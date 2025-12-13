@@ -1,0 +1,51 @@
+# Build outputs
+build/
+build_nxrender/
+*/build/
+**/CMakeFiles/
+**/cmake_install.cmake
+**/Makefile
+**/*.o
+**/*.a
+**/*.so
+**/*.dll
+**/*.exe
+
+# Rust
+**/target/
+
+# Visual Studio / Windows
+x64/
+*.dir/
+*.vcxproj
+*.vcxproj.filters
+*.sln
+bin/Debug/
+bin/Release/
+lib/Debug/
+lib/Release/
+*.pdb
+*.tlog/
+
+# CMake
+CMakeCache.txt
+cmake_install.cmake
+install_manifest.txt
+compile_commands.json
+CTestTestfile.cmake
+_deps/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Test outputs
+Testing/
+*.log

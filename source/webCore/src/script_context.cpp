@@ -626,6 +626,31 @@ void ScriptContext::setupWindowGlobals() {
         }, 3)));
     navigatorObj->set("geolocation", Runtime::Value::object(geolocationObj));
     
+    // =========================================================================
+    // BLOCKED APIs (Security Policy - Tier 4)
+    // These return undefined to prevent hardware/tracking attacks
+    // =========================================================================
+    
+    // WebUSB - BLOCKED (kernel-adjacent risk)
+    navigatorObj->set("usb", Runtime::Value::undefined());
+    
+    // WebBluetooth - BLOCKED (BLE device attacks)
+    navigatorObj->set("bluetooth", Runtime::Value::undefined());
+    
+    // WebSerial - BLOCKED (serial port access)
+    navigatorObj->set("serial", Runtime::Value::undefined());
+    
+    // WebHID - BLOCKED (raw HID device access)
+    navigatorObj->set("hid", Runtime::Value::undefined());
+    
+    // WebNFC - BLOCKED (NFC manipulation)
+    // Not typically on navigator, but block if accessed
+    
+    // Log blocked API access attempts
+    if (g_currentContext) {
+        g_currentContext->log("[Security] Dangerous hardware APIs blocked by policy");
+    }
+    
     vm_->setGlobal("navigator", Runtime::Value::object(navigatorObj));
     
     // =========================================================================

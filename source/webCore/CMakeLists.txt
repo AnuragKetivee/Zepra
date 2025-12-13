@@ -37,6 +37,7 @@ set(WEBCORE_SOURCES
     src/js_realm.cpp
     src/gc_bridge.cpp
     src/sdl_gl_context.cpp
+    src/nxgfx_context.cpp
     src/webgl_context.cpp
     src/simple_font.cpp
     src/shortcut_manager.cpp

@@ -1,6 +1,21 @@
 /**
  * @file webgl_context.cpp
  * @brief WebGL rendering context implementation
+ * 
+ * NOTE: TRANSITIONAL IMPLEMENTATION
+ * =================================
+ * This file uses SDL/OpenGL directly for WebGL rendering.
+ * 
+ * Future architecture:
+ *   WebGL → webgl_bindings.cpp → NXGFX → OpenGL/Vulkan/Metal
+ * 
+ * WebGL must eventually route through NXGFX to unify:
+ *   - WebGL
+ *   - WebGPU  
+ *   - Canvas 2D
+ *   - WebCodecs
+ * 
+ * Do NOT add new features here. New GPU work goes to NXGFX.
  */
 
 #include "webcore/webgl_context.hpp"

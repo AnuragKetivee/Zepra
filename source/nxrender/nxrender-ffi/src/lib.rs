@@ -412,3 +412,325 @@ pub extern "C" fn nx_version() -> *const c_char {
     static VERSION: &[u8] = b"NXRENDER 1.0.0\0";
     VERSION.as_ptr() as *const c_char
 }
+
+// ============= WEBGPU C ABI =============
+// These functions provide a C-compatible interface for WebGPU
+// to call into NXGFX. WebGPU C++ code calls these via FFI.
+
+/// Opaque handle types for WebGPU resources
+pub type NxGpuBufferHandle = u64;
+pub type NxGpuTextureHandle = u64;
+pub type NxGpuShaderHandle = u64;
+pub type NxGpuPipelineHandle = u64;
+pub type NxGpuCommandHandle = u64;
+
+/// Buffer usage flags (matches WebGPU spec)
+#[repr(C)]
+pub struct NxGpuBufferUsage(pub u32);
+
+impl NxGpuBufferUsage {
+    pub const MAP_READ: u32 = 0x0001;
+    pub const MAP_WRITE: u32 = 0x0002;
+    pub const COPY_SRC: u32 = 0x0004;
+    pub const COPY_DST: u32 = 0x0008;
+    pub const INDEX: u32 = 0x0010;
+    pub const VERTEX: u32 = 0x0020;
+    pub const UNIFORM: u32 = 0x0040;
+    pub const STORAGE: u32 = 0x0080;
+}
+
+/// Buffer descriptor for creation
+#[repr(C)]
+pub struct NxGpuBufferDesc {
+    pub size: u64,
+    pub usage: u32,
+    pub mapped_at_creation: bool,
+}
+
+/// Texture format (subset of WebGPU formats)
+#[repr(C)]
+#[derive(Clone, Copy)]
+pub enum NxGpuTextureFormat {
+    RGBA8Unorm = 0,
+    RGBA8UnormSRGB = 1,
+    BGRA8Unorm = 2,
+    BGRA8UnormSRGB = 3,
+    Depth24Plus = 4,
+    Depth24PlusStencil8 = 5,
+    Depth32Float = 6,
+}
+
+/// Texture descriptor
+#[repr(C)]
+pub struct NxGpuTextureDesc {
+    pub width: u32,
+    pub height: u32,
+    pub depth: u32,
+    pub mip_levels: u32,
+    pub sample_count: u32,
+    pub format: NxGpuTextureFormat,
+    pub usage: u32,
+}
+
+/// Shader stage
+#[repr(C)]
+#[derive(Clone, Copy)]
+pub enum NxGpuShaderStage {
+    Vertex = 0,
+    Fragment = 1,
+    Compute = 2,
+}
+
+// Static storage for WebGPU resources (thread-local for safety)
+use std::sync::atomic::{AtomicU64, Ordering};
+use std::collections::HashMap;
+use std::sync::Mutex;
+
+static NEXT_HANDLE: AtomicU64 = AtomicU64::new(1);
+
+lazy_static::lazy_static! {
+    static ref GPU_BUFFERS: Mutex<HashMap<u64, GpuBuffer>> = Mutex::new(HashMap::new());
+    static ref GPU_TEXTURES: Mutex<HashMap<u64, GpuTexture>> = Mutex::new(HashMap::new());
+    static ref GPU_SHADERS: Mutex<HashMap<u64, GpuShader>> = Mutex::new(HashMap::new());
+}
+
+/// Internal buffer representation
+struct GpuBuffer {
+    size: u64,
+    usage: u32,
+    data: Vec<u8>,
+    mapped: bool,
+}
+
+/// Internal texture representation
+struct GpuTexture {
+    width: u32,
+    height: u32,
+    format: NxGpuTextureFormat,
+}
+
+/// Internal shader representation
+struct GpuShader {
+    stage: NxGpuShaderStage,
+    code: String,
+}
+
+// ---------- Buffer Functions ----------
+
+/// Create a GPU buffer
+#[no_mangle]
+pub extern "C" fn nx_webgpu_buffer_create(desc: *const NxGpuBufferDesc) -> NxGpuBufferHandle {
+    if desc.is_null() { return 0; }
+    
+    let desc = unsafe { &*desc };
+    let handle = NEXT_HANDLE.fetch_add(1, Ordering::SeqCst);
+    
+    let buffer = GpuBuffer {
+        size: desc.size,
+        usage: desc.usage,
+        data: vec![0u8; desc.size as usize],
+        mapped: desc.mapped_at_creation,
+    };
+    
+    GPU_BUFFERS.lock().unwrap().insert(handle, buffer);
+    handle
+}
+
+/// Destroy a GPU buffer
+#[no_mangle]
+pub extern "C" fn nx_webgpu_buffer_destroy(handle: NxGpuBufferHandle) {
+    GPU_BUFFERS.lock().unwrap().remove(&handle);
+}
+
+/// Get buffer size
+#[no_mangle]
+pub extern "C" fn nx_webgpu_buffer_size(handle: NxGpuBufferHandle) -> u64 {
+    GPU_BUFFERS.lock().unwrap().get(&handle).map(|b| b.size).unwrap_or(0)
+}
+
+/// Write data to buffer
+#[no_mangle]
+pub extern "C" fn nx_webgpu_buffer_write(
+    handle: NxGpuBufferHandle,
+    offset: u64,
+    data: *const u8,
+    size: u64
+) -> bool {
+    if data.is_null() { return false; }
+    
+    let mut buffers = GPU_BUFFERS.lock().unwrap();
+    if let Some(buffer) = buffers.get_mut(&handle) {
+        let offset = offset as usize;
+        let size = size as usize;
+        if offset + size <= buffer.data.len() {
+            unsafe {
+                std::ptr::copy_nonoverlapping(data, buffer.data.as_mut_ptr().add(offset), size);
+            }
+            return true;
+        }
+    }
+    false
+}
+
+/// Map buffer for reading
+#[no_mangle]
+pub extern "C" fn nx_webgpu_buffer_map(handle: NxGpuBufferHandle) -> *mut u8 {
+    let mut buffers = GPU_BUFFERS.lock().unwrap();
+    if let Some(buffer) = buffers.get_mut(&handle) {
+        buffer.mapped = true;
+        return buffer.data.as_mut_ptr();
+    }
+    std::ptr::null_mut()
+}
+
+/// Unmap buffer
+#[no_mangle]
+pub extern "C" fn nx_webgpu_buffer_unmap(handle: NxGpuBufferHandle) {
+    let mut buffers = GPU_BUFFERS.lock().unwrap();
+    if let Some(buffer) = buffers.get_mut(&handle) {
+        buffer.mapped = false;
+    }
+}
+
+// ---------- Texture Functions ----------
+
+/// Create a GPU texture
+#[no_mangle]
+pub extern "C" fn nx_webgpu_texture_create(desc: *const NxGpuTextureDesc) -> NxGpuTextureHandle {
+    if desc.is_null() { return 0; }
+    
+    let desc = unsafe { &*desc };
+    let handle = NEXT_HANDLE.fetch_add(1, Ordering::SeqCst);
+    
+    let texture = GpuTexture {
+        width: desc.width,
+        height: desc.height,
+        format: desc.format,
+    };
+    
+    GPU_TEXTURES.lock().unwrap().insert(handle, texture);
+    handle
+}
+
+/// Destroy a GPU texture
+#[no_mangle]
+pub extern "C" fn nx_webgpu_texture_destroy(handle: NxGpuTextureHandle) {
+    GPU_TEXTURES.lock().unwrap().remove(&handle);
+}
+
+/// Get texture width
+#[no_mangle]
+pub extern "C" fn nx_webgpu_texture_width(handle: NxGpuTextureHandle) -> u32 {
+    GPU_TEXTURES.lock().unwrap().get(&handle).map(|t| t.width).unwrap_or(0)
+}
+
+/// Get texture height
+#[no_mangle]
+pub extern "C" fn nx_webgpu_texture_height(handle: NxGpuTextureHandle) -> u32 {
+    GPU_TEXTURES.lock().unwrap().get(&handle).map(|t| t.height).unwrap_or(0)
+}
+
+// ---------- Shader Functions ----------
+
+/// Create a shader module from WGSL code
+#[no_mangle]
+pub extern "C" fn nx_webgpu_shader_create(
+    stage: NxGpuShaderStage,
+    code: *const c_char
+) -> NxGpuShaderHandle {
+    if code.is_null() { return 0; }
+    
+    let code_str = unsafe { CStr::from_ptr(code).to_string_lossy().into_owned() };
+    let handle = NEXT_HANDLE.fetch_add(1, Ordering::SeqCst);
+    
+    let shader = GpuShader {
+        stage,
+        code: code_str,
+    };
+    
+    GPU_SHADERS.lock().unwrap().insert(handle, shader);
+    handle
+}
+
+/// Destroy a shader module
+#[no_mangle]
+pub extern "C" fn nx_webgpu_shader_destroy(handle: NxGpuShaderHandle) {
+    GPU_SHADERS.lock().unwrap().remove(&handle);
+}
+
+// ---------- Command Encoder Functions ----------
+
+/// Begin a command encoder (returns opaque handle)
+#[no_mangle]
+pub extern "C" fn nx_webgpu_command_begin() -> NxGpuCommandHandle {
+    NEXT_HANDLE.fetch_add(1, Ordering::SeqCst)
+}
+
+/// End command encoder and get command buffer
+#[no_mangle]
+pub extern "C" fn nx_webgpu_command_finish(_encoder: NxGpuCommandHandle) -> NxGpuCommandHandle {
+    // In real implementation, this would compile commands
+    NEXT_HANDLE.fetch_add(1, Ordering::SeqCst)
+}
+
+/// Submit command buffer to queue
+#[no_mangle]
+pub extern "C" fn nx_webgpu_queue_submit(_command: NxGpuCommandHandle) {
+    // In real implementation, this would execute on GPU
+}
+
+// ---------- Draw Commands ----------
+
+/// Clear color attachment
+#[no_mangle]
+pub extern "C" fn nx_webgpu_cmd_clear_color(
+    _encoder: NxGpuCommandHandle,
+    r: f32, g: f32, b: f32, a: f32
+) {
+    let _ = (r, g, b, a);
+    // Will be recorded in command buffer
+}
+
+/// Set viewport
+#[no_mangle]
+pub extern "C" fn nx_webgpu_cmd_set_viewport(
+    _encoder: NxGpuCommandHandle,
+    x: f32, y: f32, width: f32, height: f32
+) {
+    let _ = (x, y, width, height);
+}
+
+/// Draw call
+#[no_mangle]
+pub extern "C" fn nx_webgpu_cmd_draw(
+    _encoder: NxGpuCommandHandle,
+    vertex_count: u32,
+    instance_count: u32,
+    first_vertex: u32,
+    first_instance: u32
+) {
+    let _ = (vertex_count, instance_count, first_vertex, first_instance);
+}
+
+/// Draw indexed
+#[no_mangle]
+pub extern "C" fn nx_webgpu_cmd_draw_indexed(
+    _encoder: NxGpuCommandHandle,
+    index_count: u32,
+    instance_count: u32,
+    first_index: u32,
+    base_vertex: i32,
+    first_instance: u32
+) {
+    let _ = (index_count, instance_count, first_index, base_vertex, first_instance);
+}
+
+/// Dispatch compute
+#[no_mangle]
+pub extern "C" fn nx_webgpu_cmd_dispatch(
+    _encoder: NxGpuCommandHandle,
+    x: u32, y: u32, z: u32
+) {
+    let _ = (x, y, z);
+}
+

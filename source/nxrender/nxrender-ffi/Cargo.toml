@@ -12,3 +12,6 @@ nxgfx = { path = "../nxgfx" }
 nxrender-theme = { path = "../nxrender-theme" }
 nxrender-core = { path = "../nxrender-core" }
 nxrender-input = { path = "../nxrender-input" }
+lazy_static = "1.4"
+log = "0.4"
+

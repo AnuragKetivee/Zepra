@@ -259,7 +259,7 @@ impl Compositor {
         
         // 4. Begin frame
         self.gpu.begin_frame();
-        self.gpu.clear_color(self.config.background_color);
+        self.gpu.set_clear_color(self.config.background_color);
         self.gpu.clear();
         
         let damage_percent = self.damage_tracker.damage_percentage();

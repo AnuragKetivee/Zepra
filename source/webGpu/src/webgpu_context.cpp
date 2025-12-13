@@ -1,24 +1,54 @@
 /**
  * @file webgpu_context.cpp
  * @brief WebGPU context implementation
+ * 
+ * NOTE: This implementation uses NXGFX via nxrender-ffi (C ABI).
+ * WebGPU → C++ → nxrender_webgpu.h → NXGFX (Rust)
  */
 
 #include "webgpu/webgpu_context.hpp"
 #include <iostream>
+#include <cstring>
+
+// Include NXGFX FFI header for GPU operations
+// Note: When libffi is linked, this header provides the C ABI
+#if defined(NXRENDER_FFI_ENABLED)
+extern "C" {
+#include "nxrender_webgpu.h"
+}
+#define USE_NXGFX_FFI 1
+#else
+#define USE_NXGFX_FFI 0
+#endif
 
 namespace Zepra::WebGPU {
 
 // =============================================================================
 // GPUBuffer Implementation
+// Uses NXGFX FFI when available, falls back to software implementation
 // =============================================================================
 
 GPUBuffer::GPUBuffer(const GPUBufferDescriptor& desc) 
     : size_(desc.size), usage_(desc.usage) {
     label = desc.label;
+    
+#if USE_NXGFX_FFI
+    // Create buffer via NXGFX FFI
+    NxGpuBufferDesc nxDesc;
+    nxDesc.size = desc.size;
+    nxDesc.usage = static_cast<uint32_t>(desc.usage);
+    nxDesc.mapped_at_creation = desc.mappedAtCreation;
+    nxHandle_ = nx_webgpu_buffer_create(&nxDesc);
+    if (desc.mappedAtCreation) {
+        mapped_ = true;
+    }
+#else
+    // Software fallback
     data_.resize(size_);
     if (desc.mappedAtCreation) {
         mapped_ = true;
     }
+#endif
 }
 
 GPUBuffer::~GPUBuffer() {

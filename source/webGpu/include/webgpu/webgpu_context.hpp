@@ -82,8 +82,9 @@ public:
 private:
     uint64_t size_ = 0;
     uint32_t usage_ = 0;
-    std::vector<uint8_t> data_;
+    std::vector<uint8_t> data_;  // Software fallback
     bool mapped_ = false;
+    uint64_t nxHandle_ = 0;      // NXGFX FFI handle
 };
 
 // =============================================================================

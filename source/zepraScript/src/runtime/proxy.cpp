@@ -57,9 +57,91 @@ bool Proxy::deleteProperty(const std::string& key) {
     return true;
 }
 
-Proxy* Proxy::create(Object* target, Object*) {
+/**
+ * @brief Create a Proxy with handler object traps
+ * 
+ * Extracts trap functions from the handler object and stores them
+ * in the ProxyHandler struct for efficient trap invocation.
+ */
+Proxy* Proxy::create(Object* target, Object* handlerObj) {
     ProxyHandler handler;
-    // TODO: Extract handler functions from handler object
+    
+    if (handlerObj) {
+        // Extract 'get' trap
+        Value getVal = handlerObj->get("get");
+        if (getVal.isObject()) {
+            Function* getFn = dynamic_cast<Function*>(getVal.asObject());
+            if (getFn) {
+                handler.get = [getFn](Object* t, const std::string& k, Object* r) {
+                    std::vector<Value> args = {
+                        Value::object(t),
+                        Value::string(new String(k)),
+                        Value::object(r)
+                    };
+                    FunctionCallInfo info(nullptr, Value::undefined(), args);
+                    return getFn->builtinFunction() ? getFn->builtinFunction()(info) 
+                                                     : Value::undefined();
+                };
+            }
+        }
+        
+        // Extract 'set' trap
+        Value setVal = handlerObj->get("set");
+        if (setVal.isObject()) {
+            Function* setFn = dynamic_cast<Function*>(setVal.asObject());
+            if (setFn) {
+                handler.set = [setFn](Object* t, const std::string& k, Value v, Object* r) {
+                    std::vector<Value> args = {
+                        Value::object(t),
+                        Value::string(new String(k)),
+                        v,
+                        Value::object(r)
+                    };
+                    FunctionCallInfo info(nullptr, Value::undefined(), args);
+                    Value result = setFn->builtinFunction() ? setFn->builtinFunction()(info) 
+                                                            : Value::boolean(true);
+                    return result.toBoolean();
+                };
+            }
+        }
+        
+        // Extract 'has' trap
+        Value hasVal = handlerObj->get("has");
+        if (hasVal.isObject()) {
+            Function* hasFn = dynamic_cast<Function*>(hasVal.asObject());
+            if (hasFn) {
+                handler.has = [hasFn](Object* t, const std::string& k) {
+                    std::vector<Value> args = {
+                        Value::object(t),
+                        Value::string(new String(k))
+                    };
+                    FunctionCallInfo info(nullptr, Value::undefined(), args);
+                    Value result = hasFn->builtinFunction() ? hasFn->builtinFunction()(info) 
+                                                            : Value::boolean(false);
+                    return result.toBoolean();
+                };
+            }
+        }
+        
+        // Extract 'deleteProperty' trap
+        Value delVal = handlerObj->get("deleteProperty");
+        if (delVal.isObject()) {
+            Function* delFn = dynamic_cast<Function*>(delVal.asObject());
+            if (delFn) {
+                handler.deleteProperty = [delFn](Object* t, const std::string& k) {
+                    std::vector<Value> args = {
+                        Value::object(t),
+                        Value::string(new String(k))
+                    };
+                    FunctionCallInfo info(nullptr, Value::undefined(), args);
+                    Value result = delFn->builtinFunction() ? delFn->builtinFunction()(info) 
+                                                            : Value::boolean(true);
+                    return result.toBoolean();
+                };
+            }
+        }
+    }
+    
     return new Proxy(target, handler);
 }
 
@@ -89,9 +171,11 @@ bool Reflect::has(Object* target, const std::string& key) {
     return target && !target->get(key).isUndefined();
 }
 
-bool Reflect::deleteProperty(Object*, const std::string&) {
-    // TODO: Actually delete property
-    return true;
+bool Reflect::deleteProperty(Object* target, const std::string& key) {
+    if (!target) return false;
+    // Delete the property from the object
+    // Returns true if deletion was successful or property didn't exist
+    return target->deleteProperty(key);
 }
 
 std::vector<std::string> Reflect::ownKeys(Object* target) {
@@ -102,19 +186,16 @@ Value Reflect::apply(Object* target, Value thisArg, const std::vector<Value>& ar
     Function* fn = dynamic_cast<Function*>(target);
     if (!fn) return Value::undefined();
     
-    // TODO: Call function with thisArg and args
-    (void)thisArg;
-    (void)args;
-    return Value::undefined();
+    // Call the function with the provided thisArg and arguments
+    return fn->call(nullptr, thisArg, args);
 }
 
 Value Reflect::construct(Object* target, const std::vector<Value>& args) {
     Function* fn = dynamic_cast<Function*>(target);
     if (!fn) return Value::undefined();
     
-    // TODO: Construct object
-    (void)args;
-    return Value::undefined();
+    // Construct the object using the function as constructor
+    return fn->construct(nullptr, args);
 }
 
 Value Reflect::getOwnPropertyDescriptor(Object*, const std::string&) {

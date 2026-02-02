@@ -114,6 +114,15 @@ enum class Opcode : uint8 {
     // Construction
     OP_NEW,
     
+    // Classes (ES6)
+    OP_INHERIT,         // Set up prototype chain for class extends
+    OP_DEFINE_METHOD,   // Add method to prototype
+    OP_DEFINE_STATIC,   // Add static method to class
+    OP_DEFINE_GETTER,   // Define getter property
+    OP_DEFINE_SETTER,   // Define setter property
+    OP_SUPER_CALL,      // Call super constructor
+    OP_SUPER_GET,       // Get property from super prototype
+    
     // Exception handling
     OP_THROW,
     OP_TRY_BEGIN,

@@ -1,19 +1,16 @@
 /**
  * @file WeakRefAPI.h
  * @brief WeakRef and FinalizationRegistry Implementation
- * 
- * ECMAScript WeakRefs:
- * - WeakRef: Weak reference to object
- * - FinalizationRegistry: Cleanup callbacks
  */
 
 #pragma once
 
 #include <memory>
 #include <functional>
+#include <unordered_map>
 #include <vector>
 #include <mutex>
-#include <unordered_map>
+#include <optional>
 
 namespace Zepra::Runtime {
 
@@ -21,148 +18,102 @@ namespace Zepra::Runtime {
 // WeakRef
 // =============================================================================
 
-/**
- * @brief Weak reference that doesn't prevent GC
- */
 template<typename T>
 class WeakRef {
 public:
-    explicit WeakRef(std::shared_ptr<T> target)
-        : target_(target) {}
+    WeakRef() = default;
+    explicit WeakRef(std::shared_ptr<T> target) : target_(target) {}
     
-    // Dereference
     std::shared_ptr<T> deref() const {
         return target_.lock();
     }
     
-    // Check if still alive
     bool expired() const {
         return target_.expired();
     }
-    
+
 private:
     std::weak_ptr<T> target_;
-};
-
-// =============================================================================
-// Weak Reference Cell (for GC integration)
-// =============================================================================
-
-/**
- * @brief Internal weak cell for GC
- */
-class WeakCell {
-public:
-    using Target = std::shared_ptr<void>;
-    
-    explicit WeakCell(Target target) : target_(target) {}
-    
-    Target deref() const { return target_.lock(); }
-    bool expired() const { return target_.expired(); }
-    
-    // Holdings kept alive while target is alive
-    void setHoldings(std::shared_ptr<void> holdings) {
-        holdings_ = holdings;
-    }
-    
-    std::shared_ptr<void> holdings() const { return holdings_; }
-    
-private:
-    std::weak_ptr<void> target_;
-    std::shared_ptr<void> holdings_;
-};
-
-// =============================================================================
-// Cleanup Callback
-// =============================================================================
-
-struct FinalizationEntry {
-    std::weak_ptr<void> target;
-    std::shared_ptr<void> heldValue;
-    std::shared_ptr<void> unregisterToken;
 };
 
 // =============================================================================
 // FinalizationRegistry
 // =============================================================================
 
-/**
- * @brief Registry for cleanup callbacks when objects are GC'd
- */
+template<typename T>
 class FinalizationRegistry {
 public:
-    using CleanupCallback = std::function<void(std::shared_ptr<void>)>;
+    using CleanupCallback = std::function<void(T)>;
+    using UnregisterToken = void*;
     
     explicit FinalizationRegistry(CleanupCallback callback)
         : callback_(std::move(callback)) {}
     
-    // Register an object for cleanup
-    void register_(std::shared_ptr<void> target,
-                   std::shared_ptr<void> heldValue,
-                   std::shared_ptr<void> unregisterToken = nullptr) {
-        std::lock_guard lock(mutex_);
+    void register_(std::shared_ptr<void> target, T heldValue, UnregisterToken token = nullptr) {
+        std::lock_guard<std::mutex> lock(mutex_);
         
-        FinalizationEntry entry;
-        entry.target = target;
-        entry.heldValue = heldValue;
-        entry.unregisterToken = unregisterToken;
+        Registration reg;
+        reg.target = target;
+        reg.heldValue = std::move(heldValue);
+        reg.token = token;
         
-        entries_.push_back(std::move(entry));
+        registrations_.push_back(std::move(reg));
     }
     
-    // Unregister by token
-    bool unregister(std::shared_ptr<void> unregisterToken) {
-        if (!unregisterToken) return false;
+    bool unregister(UnregisterToken token) {
+        if (!token) return false;
         
-        std::lock_guard lock(mutex_);
-        
+        std::lock_guard<std::mutex> lock(mutex_);
         bool removed = false;
-        entries_.erase(
-            std::remove_if(entries_.begin(), entries_.end(),
-                [&unregisterToken, &removed](const FinalizationEntry& e) {
-                    if (e.unregisterToken == unregisterToken) {
+        
+        registrations_.erase(
+            std::remove_if(registrations_.begin(), registrations_.end(),
+                [token, &removed](const Registration& reg) {
+                    if (reg.token == token) {
                         removed = true;
                         return true;
                     }
                     return false;
                 }),
-            entries_.end()
+            registrations_.end()
         );
         
         return removed;
     }
     
-    // Called by GC to run pending cleanups
     void cleanupSome() {
-        std::vector<std::shared_ptr<void>> toCleanup;
+        std::vector<T> toCleanup;
         
         {
-            std::lock_guard lock(mutex_);
+            std::lock_guard<std::mutex> lock(mutex_);
             
-            entries_.erase(
-                std::remove_if(entries_.begin(), entries_.end(),
-                    [&toCleanup](FinalizationEntry& e) {
-                        if (e.target.expired()) {
-                            toCleanup.push_back(e.heldValue);
+            registrations_.erase(
+                std::remove_if(registrations_.begin(), registrations_.end(),
+                    [&toCleanup](Registration& reg) {
+                        if (reg.target.expired()) {
+                            toCleanup.push_back(std::move(reg.heldValue));
                             return true;
                         }
                         return false;
                     }),
-                entries_.end()
+                registrations_.end()
             );
         }
         
-        // Run callbacks outside lock
-        for (const auto& held : toCleanup) {
-            if (callback_) {
-                callback_(held);
-            }
+        for (auto& value : toCleanup) {
+            callback_(std::move(value));
         }
     }
-    
+
 private:
+    struct Registration {
+        std::weak_ptr<void> target;
+        T heldValue;
+        UnregisterToken token = nullptr;
+    };
+    
     CleanupCallback callback_;
-    std::vector<FinalizationEntry> entries_;
+    std::vector<Registration> registrations_;
     std::mutex mutex_;
 };
 
@@ -170,72 +121,90 @@ private:
 // WeakMap
 // =============================================================================
 
-/**
- * @brief Map with weak keys
- */
 template<typename K, typename V>
 class WeakMap {
 public:
     void set(std::shared_ptr<K> key, V value) {
-        std::lock_guard lock(mutex_);
-        entries_[key.get()] = {std::weak_ptr<K>(key), std::move(value)};
+        std::lock_guard<std::mutex> lock(mutex_);
+        cleanup();
+        entries_[key.get()] = {key, std::move(value)};
     }
     
     std::optional<V> get(std::shared_ptr<K> key) const {
-        std::lock_guard lock(mutex_);
-        
+        std::lock_guard<std::mutex> lock(mutex_);
         auto it = entries_.find(key.get());
-        if (it != entries_.end() && !it->second.first.expired()) {
-            return it->second.second;
+        if (it != entries_.end() && !it->second.weakKey.expired()) {
+            return it->second.value;
         }
         return std::nullopt;
     }
     
     bool has(std::shared_ptr<K> key) const {
-        std::lock_guard lock(mutex_);
-        
+        std::lock_guard<std::mutex> lock(mutex_);
         auto it = entries_.find(key.get());
-        return it != entries_.end() && !it->second.first.expired();
+        return it != entries_.end() && !it->second.weakKey.expired();
     }
     
     bool delete_(std::shared_ptr<K> key) {
-        std::lock_guard lock(mutex_);
+        std::lock_guard<std::mutex> lock(mutex_);
         return entries_.erase(key.get()) > 0;
     }
-    
+
 private:
+    void cleanup() {
+        for (auto it = entries_.begin(); it != entries_.end();) {
+            if (it->second.weakKey.expired()) {
+                it = entries_.erase(it);
+            } else {
+                ++it;
+            }
+        }
+    }
+    
+    struct Entry {
+        std::weak_ptr<K> weakKey;
+        V value;
+    };
+    
     mutable std::mutex mutex_;
-    std::unordered_map<K*, std::pair<std::weak_ptr<K>, V>> entries_;
+    std::unordered_map<K*, Entry> entries_;
 };
 
 // =============================================================================
 // WeakSet
 // =============================================================================
 
-/**
- * @brief Set with weak members
- */
 template<typename T>
 class WeakSet {
 public:
     void add(std::shared_ptr<T> value) {
-        std::lock_guard lock(mutex_);
-        entries_[value.get()] = std::weak_ptr<T>(value);
+        std::lock_guard<std::mutex> lock(mutex_);
+        cleanup();
+        entries_[value.get()] = value;
     }
     
     bool has(std::shared_ptr<T> value) const {
-        std::lock_guard lock(mutex_);
-        
+        std::lock_guard<std::mutex> lock(mutex_);
         auto it = entries_.find(value.get());
         return it != entries_.end() && !it->second.expired();
     }
     
     bool delete_(std::shared_ptr<T> value) {
-        std::lock_guard lock(mutex_);
+        std::lock_guard<std::mutex> lock(mutex_);
         return entries_.erase(value.get()) > 0;
     }
-    
+
 private:
+    void cleanup() {
+        for (auto it = entries_.begin(); it != entries_.end();) {
+            if (it->second.expired()) {
+                it = entries_.erase(it);
+            } else {
+                ++it;
+            }
+        }
+    }
+    
     mutable std::mutex mutex_;
     std::unordered_map<T*, std::weak_ptr<T>> entries_;
 };

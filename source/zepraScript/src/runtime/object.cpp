@@ -586,5 +586,262 @@ void Array::setLength(size_t len) {
     elements_.resize(len, Value::undefined());
 }
 
-} // namespace Zepra::Runtime
+// =============================================================================
+// Error (ES2022 with cause support)
+// =============================================================================
 
+Error::Error(const std::string& message, const std::string& name)
+    : Object(ObjectType::Error)
+    , message_(message)
+    , name_(name)
+    , cause_(Value::undefined())
+{
+    // Set standard error properties
+    set("message", Value::string(new String(message)));
+    set("name", Value::string(new String(name)));
+}
+
+Error::Error(const std::string& message, const std::string& name, Value cause)
+    : Object(ObjectType::Error)
+    , message_(message)
+    , name_(name)
+    , cause_(cause)
+{
+    set("message", Value::string(new String(message)));
+    set("name", Value::string(new String(name)));
+    
+    // ES2022: Set cause property if provided
+    if (!cause.isUndefined()) {
+        set("cause", cause);
+    }
+}
+
+Error* Error::typeError(const std::string& message) {
+    return new Error(message, "TypeError");
+}
+
+Error* Error::rangeError(const std::string& message) {
+    return new Error(message, "RangeError");
+}
+
+Error* Error::referenceError(const std::string& message) {
+    return new Error(message, "ReferenceError");
+}
+
+Error* Error::syntaxError(const std::string& message) {
+    return new Error(message, "SyntaxError");
+}
+
+Error* Error::uriError(const std::string& message) {
+    return new Error(message, "URIError");
+}
+
+Error* Error::evalError(const std::string& message) {
+    return new Error(message, "EvalError");
+}
+
+Error* Error::aggregateError(const std::string& message, const std::vector<Value>& errors) {
+    Error* err = new Error(message, "AggregateError");
+    err->set("errors", Value::object(new Array(errors)));
+    return err;
+}
+
+Error* Error::withCause(const std::string& name, const std::string& message, Value cause) {
+    return new Error(message, name, cause);
+}
+
+// =============================================================================
+// WeakReference (ES2021)
+// =============================================================================
+
+WeakReference::WeakReference(Object* target)
+    : Object(ObjectType::WeakRef)
+    , target_(target)
+{
+}
+
+Value WeakReference::deref() const {
+    if (target_ != nullptr) {
+        return Value::object(target_);
+    }
+    return Value::undefined();
+}
+
+// =============================================================================
+// FinalizationRegistry (ES2021)
+// =============================================================================
+
+FinalizationRegistry::FinalizationRegistry(CleanupCallback callback)
+    : Object(ObjectType::FinalizationRegistry)
+    , callback_(callback)
+{
+}
+
+void FinalizationRegistry::registerTarget(Object* target, Value heldValue, Value unregisterToken) {
+    Registration reg;
+    reg.target = target;
+    reg.heldValue = heldValue;
+    reg.unregisterToken = unregisterToken;
+    reg.collected = false;
+    registrations_.push_back(reg);
+}
+
+bool FinalizationRegistry::unregister(Value token) {
+    if (token.isUndefined()) {
+        return false;
+    }
+    
+    bool found = false;
+    auto it = registrations_.begin();
+    while (it != registrations_.end()) {
+        if (it->unregisterToken.strictEquals(token)) {
+            it = registrations_.erase(it);
+            found = true;
+        } else {
+            ++it;
+        }
+    }
+    return found;
+}
+
+void FinalizationRegistry::cleanupSome() {
+    for (auto& reg : registrations_) {
+        if (reg.collected && callback_) {
+            callback_(reg.heldValue);
+        }
+    }
+    
+    // Remove collected registrations
+    registrations_.erase(
+        std::remove_if(registrations_.begin(), registrations_.end(),
+            [](const Registration& r) { return r.collected; }),
+        registrations_.end());
+}
+
+void FinalizationRegistry::notifyCollected(Object* target) {
+    for (auto& reg : registrations_) {
+        if (reg.target == target) {
+            reg.collected = true;
+            reg.target = nullptr;
+        }
+    }
+}
+
+// =============================================================================
+// StructuredClone (ES2021)
+// =============================================================================
+
+Value StructuredClone::clone(const Value& value) {
+    std::unordered_map<Object*, Object*> seen;
+    return cloneInternal(value, seen);
+}
+
+Value StructuredClone::clone(const Value& value, const std::vector<Object*>& transfer) {
+    // Transfer semantics: move objects instead of cloning
+    // For simplicity, we just clone - full transfer requires detaching ArrayBuffers etc.
+    (void)transfer;
+    return clone(value);
+}
+
+Value StructuredClone::cloneInternal(const Value& value, std::unordered_map<Object*, Object*>& seen) {
+    // Primitives are cloned by value
+    if (value.isUndefined() || value.isNull() || value.isBoolean() || 
+        value.isNumber() || value.isString()) {
+        // Strings need to be cloned as new String objects
+        if (value.isString()) {
+            return Value::string(new String(value.toString()));
+        }
+        return value;
+    }
+    
+    if (!value.isObject()) {
+        return value;
+    }
+    
+    Object* obj = value.asObject();
+    
+    // Check for circular reference
+    auto it = seen.find(obj);
+    if (it != seen.end()) {
+        return Value::object(it->second);
+    }
+    
+    // Clone based on type
+    switch (obj->objectType()) {
+        case ObjectType::Array:
+            return Value::object(cloneArray(static_cast<Array*>(obj), seen));
+            
+        case ObjectType::Date: {
+            // Clone Date - preserve timestamp
+            Object* dateClone = new Object(ObjectType::Date);
+            dateClone->set("[[DateValue]]", obj->internalSlot("[[DateValue]]"));
+            seen[obj] = dateClone;
+            return Value::object(dateClone);
+        }
+        
+        case ObjectType::RegExp: {
+            // Clone RegExp
+            Object* regexpClone = new Object(ObjectType::RegExp);
+            regexpClone->set("source", obj->get("source"));
+            regexpClone->set("flags", obj->get("flags"));
+            seen[obj] = regexpClone;
+            return Value::object(regexpClone);
+        }
+        
+        case ObjectType::Error: {
+            // Clone Error with cause
+            Error* errSrc = static_cast<Error*>(obj);
+            Error* errClone = new Error(errSrc->message(), errSrc->name(), errSrc->cause());
+            seen[obj] = errClone;
+            return Value::object(errClone);
+        }
+        
+        case ObjectType::Map: {
+            // Clone Map
+            Object* mapClone = new Object(ObjectType::Map);
+            seen[obj] = mapClone;
+            return Value::object(mapClone);
+        }
+        
+        case ObjectType::Set: {
+            // Clone Set
+            Object* setClone = new Object(ObjectType::Set);
+            seen[obj] = setClone;
+            return Value::object(setClone);
+        }
+        
+        default:
+            // Clone ordinary object
+            return Value::object(cloneObject(obj, seen));
+    }
+}
+
+Object* StructuredClone::cloneObject(Object* obj, std::unordered_map<Object*, Object*>& seen) {
+    Object* clone = new Object();
+    seen[obj] = clone;
+    
+    // Clone enumerable own properties
+    std::vector<std::string> keys = obj->keys();
+    for (const auto& key : keys) {
+        Value propValue = obj->get(key);
+        Value clonedValue = cloneInternal(propValue, seen);
+        clone->set(key, clonedValue);
+    }
+    
+    return clone;
+}
+
+Array* StructuredClone::cloneArray(Array* arr, std::unordered_map<Object*, Object*>& seen) {
+    Array* clone = new Array();
+    seen[arr] = clone;
+    
+    for (size_t i = 0; i < arr->length(); i++) {
+        Value elem = arr->at(i);
+        Value clonedElem = cloneInternal(elem, seen);
+        clone->push(clonedElem);
+    }
+    
+    return clone;
+}
+
+} // namespace Zepra::Runtime

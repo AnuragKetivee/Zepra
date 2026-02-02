@@ -241,7 +241,28 @@ bool SecureStorage::unlock(const std::string& masterPassword) {
     
     // Try to load existing storage to get salt
     SecureBuffer* existingSalt = nullptr;
-    // TODO: Load salt from file header if exists
+    SecureBuffer loadedSalt;
+    
+    // Attempt to load salt from existing storage file
+    if (!storagePath_.empty()) {
+        std::ifstream file(storagePath_, std::ios::binary);
+        if (file) {
+            // Read and verify magic header
+            char magic[8];
+            file.read(magic, 8);
+            
+            if (std::memcmp(magic, "ZEPRASEC", 8) == 0) {
+                // Magic matches - read salt (16 bytes)
+                uint8_t salt[16];
+                file.read(reinterpret_cast<char*>(salt), 16);
+                
+                if (file.gcount() == 16) {
+                    loadedSalt = SecureBuffer(salt, 16);
+                    existingSalt = &loadedSalt;
+                }
+            }
+        }
+    }
     
     masterKey_ = CryptoProvider::deriveKey(masterPassword, existingSalt);
     isUnlocked_ = masterKey_.isValid();

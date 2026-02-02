@@ -344,8 +344,104 @@ Value ConsoleBuiltin::clear(Runtime::Context*, const std::vector<Value>&) {
 }
 
 Object* ConsoleBuiltin::createConsoleObject() {
-    // TODO: Create console object with all methods
-    return new Object();
+    Object* console = new Object();
+    
+    // Register all console methods as native functions using the correct Function class
+    // The Function class accepts NativeFn (std::function<Value(Context*, const std::vector<Value>&)>)
+    
+    // Core logging methods
+    console->set("log", Value::object(
+        Runtime::createNativeFunction("log", [](Runtime::Context* ctx, const std::vector<Value>& args) {
+            return ConsoleBuiltin::log(ctx, args);
+        })
+    ));
+    
+    console->set("info", Value::object(
+        Runtime::createNativeFunction("info", [](Runtime::Context* ctx, const std::vector<Value>& args) {
+            return ConsoleBuiltin::info(ctx, args);
+        })
+    ));
+    
+    console->set("warn", Value::object(
+        Runtime::createNativeFunction("warn", [](Runtime::Context* ctx, const std::vector<Value>& args) {
+            return ConsoleBuiltin::warn(ctx, args);
+        })
+    ));
+    
+    console->set("error", Value::object(
+        Runtime::createNativeFunction("error", [](Runtime::Context* ctx, const std::vector<Value>& args) {
+            return ConsoleBuiltin::error(ctx, args);
+        })
+    ));
+    
+    console->set("debug", Value::object(
+        Runtime::createNativeFunction("debug", [](Runtime::Context* ctx, const std::vector<Value>& args) {
+            return ConsoleBuiltin::debug(ctx, args);
+        })
+    ));
+    
+    // Advanced methods
+    console->set("table", Value::object(
+        Runtime::createNativeFunction("table", [](Runtime::Context* ctx, const std::vector<Value>& args) {
+            return ConsoleBuiltin::table(ctx, args);
+        })
+    ));
+    
+    // Grouping
+    console->set("group", Value::object(
+        Runtime::createNativeFunction("group", [](Runtime::Context* ctx, const std::vector<Value>& args) {
+            return ConsoleBuiltin::group(ctx, args);
+        })
+    ));
+    
+    console->set("groupEnd", Value::object(
+        Runtime::createNativeFunction("groupEnd", [](Runtime::Context* ctx, const std::vector<Value>& args) {
+            return ConsoleBuiltin::groupEnd(ctx, args);
+        })
+    ));
+    
+    // Timing
+    console->set("time", Value::object(
+        Runtime::createNativeFunction("time", [](Runtime::Context* ctx, const std::vector<Value>& args) {
+            return ConsoleBuiltin::time(ctx, args);
+        })
+    ));
+    
+    console->set("timeEnd", Value::object(
+        Runtime::createNativeFunction("timeEnd", [](Runtime::Context* ctx, const std::vector<Value>& args) {
+            return ConsoleBuiltin::timeEnd(ctx, args);
+        })
+    ));
+    
+    // Counting
+    console->set("count", Value::object(
+        Runtime::createNativeFunction("count", [](Runtime::Context* ctx, const std::vector<Value>& args) {
+            return ConsoleBuiltin::count(ctx, args);
+        })
+    ));
+    
+    // Assertions
+    console->set("assert", Value::object(
+        Runtime::createNativeFunction("assert", [](Runtime::Context* ctx, const std::vector<Value>& args) {
+            return ConsoleBuiltin::assert_(ctx, args);
+        })
+    ));
+    
+    // Stack trace
+    console->set("trace", Value::object(
+        Runtime::createNativeFunction("trace", [](Runtime::Context* ctx, const std::vector<Value>& args) {
+            return ConsoleBuiltin::trace(ctx, args);
+        })
+    ));
+    
+    // Clear
+    console->set("clear", Value::object(
+        Runtime::createNativeFunction("clear", [](Runtime::Context* ctx, const std::vector<Value>& args) {
+            return ConsoleBuiltin::clear(ctx, args);
+        })
+    ));
+    
+    return console;
 }
 
 } // namespace Zepra::Debug

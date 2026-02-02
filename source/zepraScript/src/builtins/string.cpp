@@ -458,6 +458,31 @@ Runtime::Value StringBuiltin::replaceAll(const Runtime::FunctionCallInfo& info) 
     return Runtime::Value::string(new Runtime::String(str));
 }
 
+// String.prototype.at(index) - ES2022 - allows negative indexing
+Runtime::Value StringBuiltin::at(const Runtime::FunctionCallInfo& info) {
+    Runtime::Value thisVal = info.thisValue();
+    std::string str = thisVal.toString();
+    int64_t len = static_cast<int64_t>(str.length());
+    
+    if (info.argumentCount() < 1) {
+        return len > 0 ? Runtime::Value::string(new Runtime::String(std::string(1, str[0]))) 
+                       : Runtime::Value::undefined();
+    }
+    
+    int64_t index = static_cast<int64_t>(info.argument(0).toNumber());
+    
+    // Handle negative indices
+    if (index < 0) {
+        index = len + index;
+    }
+    
+    if (index < 0 || index >= len) {
+        return Runtime::Value::undefined();
+    }
+    
+    return Runtime::Value::string(new Runtime::String(std::string(1, str[static_cast<size_t>(index)])));
+}
+
 // length getter
 Runtime::Value StringBuiltin::getLength(const Runtime::FunctionCallInfo& info) {
     Runtime::Value thisVal = info.thisValue();
@@ -511,6 +536,10 @@ Runtime::Object* StringBuiltin::createStringPrototype(Runtime::Context*) {
         new Runtime::Function("replace", replace, 2)));
     prototype->set("replaceAll", Runtime::Value::object(
         new Runtime::Function("replaceAll", replaceAll, 2)));
+    
+    // ES2022+ methods
+    prototype->set("at", Runtime::Value::object(
+        new Runtime::Function("at", at, 1)));
     
     return prototype;
 }

@@ -73,9 +73,18 @@ public:
     bool confirm(const std::string& message);
     std::string prompt(const std::string& message, const std::string& defaultValue = "");
     
+    // UI callback setters for dialogs
+    void setAlertHandler(std::function<void(const std::string&)> handler);
+    void setConfirmHandler(std::function<bool(const std::string&)> handler);
+    void setPromptHandler(std::function<std::string(const std::string&, const std::string&)> handler);
+    
     // Navigation
-    void open(const std::string& url);
+    void open(const std::string& url, const std::string& target = "_blank");
     void close();
+    
+    // UI callback setters for navigation
+    void setOpenHandler(std::function<void(const std::string&, const std::string&)> handler);
+    void setCloseHandler(std::function<void()> handler);
     
     // Animation frame
     uint32_t requestAnimationFrame(std::function<void(double)> callback);
@@ -99,6 +108,13 @@ private:
     
     std::vector<std::pair<uint32_t, std::function<void(double)>>> animationFrameCallbacks_;
     uint32_t nextAnimationFrameId_ = 1;
+    
+    // UI callback handlers
+    std::function<void(const std::string&)> alertHandler_;
+    std::function<bool(const std::string&)> confirmHandler_;
+    std::function<std::string(const std::string&, const std::string&)> promptHandler_;
+    std::function<void(const std::string&, const std::string&)> openHandler_;
+    std::function<void()> closeHandler_;
 };
 
 /**

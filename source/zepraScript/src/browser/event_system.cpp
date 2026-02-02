@@ -4,7 +4,9 @@
  */
 
 #include "zeprascript/browser/event_system.hpp"
+#include "zeprascript/runtime/function.hpp"
 #include <chrono>
+#include <algorithm>
 
 namespace Zepra::Browser {
 
@@ -62,6 +64,10 @@ void EventTarget::removeEventListener(const std::string& type, Value,
 }
 
 bool EventTarget::dispatchEvent(Event* event) {
+    return dispatchEventWithContext(event, nullptr);
+}
+
+bool EventTarget::dispatchEventWithContext(Event* event, Runtime::Context* ctx) {
     if (!event) return false;
     
     event->setTarget(this);
@@ -76,8 +82,17 @@ bool EventTarget::dispatchEvent(Event* event) {
     for (auto& listener : it->second) {
         if (event->isImmediatePropagationStopped()) break;
         
-        // TODO: Call callback through VM
-        // callCallback(listener.callback, event);
+        // Call callback through VM using Function::call()
+        if (listener.callback.isObject()) {
+            Runtime::Object* obj = listener.callback.asObject();
+            if (obj && obj->isFunction()) {
+                Runtime::Function* fn = static_cast<Runtime::Function*>(obj);
+                // Create event argument
+                std::vector<Value> args = { Value::object(event) };
+                // Invoke the callback with 'this' as the event target
+                fn->call(ctx, Value::object(this), args);
+            }
+        }
         
         if (listener.options.once) {
             toRemove.push_back(listener);
@@ -85,8 +100,18 @@ bool EventTarget::dispatchEvent(Event* event) {
     }
     
     // Remove once listeners
-    for (const auto& rem : toRemove) {
-        (void)rem; // TODO: Remove from list
+    if (!toRemove.empty()) {
+        auto& listenerVec = it->second;
+        for (const auto& rem : toRemove) {
+            listenerVec.erase(
+                std::remove_if(listenerVec.begin(), listenerVec.end(),
+                    [&rem](const EventListener& l) {
+                        // Compare by callback value (pointer equality for functions)
+                        return l.callback.isObject() && rem.callback.isObject() &&
+                               l.callback.asObject() == rem.callback.asObject();
+                    }),
+                listenerVec.end());
+        }
     }
     
     return !event->defaultPrevented();

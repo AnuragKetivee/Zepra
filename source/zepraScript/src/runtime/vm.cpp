@@ -667,9 +667,85 @@ void VM::dispatch(Opcode op) {
         
         case Opcode::OP_NEW: {
             uint8_t argCount = readByte();
-            // TODO: Implement constructor calls
-            (void)argCount;
-            push(Value::object(new Object()));
+            
+            // Get the constructor (below all arguments)
+            Value callee = peek(argCount);
+            
+            if (!callee.isObject()) {
+                throw std::runtime_error("new requires a constructor");
+            }
+            
+            Object* calleeObj = callee.asObject();
+            if (!calleeObj->isFunction()) {
+                throw std::runtime_error("new requires a constructor function");
+            }
+            
+            Function* constructor = static_cast<Function*>(calleeObj);
+            
+            // Check if function is a valid constructor (not arrow function)
+            if (!constructor->isConstructor()) {
+                throw std::runtime_error(constructor->name() + " is not a constructor");
+            }
+            
+            // Collect arguments from stack
+            std::vector<Value> args;
+            args.reserve(argCount);
+            for (int i = argCount - 1; i >= 0; i--) {
+                args.push_back(peek(i));
+            }
+            
+            // Pop arguments and constructor from stack
+            popN(argCount + 1);
+            
+            // Create new object with constructor's prototype
+            Object* newObj = new Object();
+            Value prototypeVal = constructor->get("prototype");
+            if (prototypeVal.isObject()) {
+                newObj->setPrototype(prototypeVal.asObject());
+            }
+            
+            // Execute the constructor with new object as 'this'
+            Value result;
+            
+            if (constructor->isBuiltin()) {
+                FunctionCallInfo info(context_, Value::object(newObj), args);
+                result = constructor->builtinFunction()(info);
+            } else if (constructor->isNative()) {
+                result = constructor->nativeFunction()(context_, args);
+            } else if (constructor->isCompiled()) {
+                // Push call frame for compiled constructor
+                VMCallFrame frame;
+                frame.function = constructor;
+                frame.returnAddress = ip_;
+                frame.slotBase = stack_.size();
+                frame.thisValue = Value::object(newObj);
+                frame.savedChunk = chunk_;
+                pushCallFrame(frame);
+                
+                // Setup locals: push 'this' first, then arguments
+                push(Value::object(newObj));
+                for (const auto& arg : args) {
+                    push(arg);
+                }
+                
+                // Switch to constructor's bytecode
+                chunk_ = constructor->bytecodeChunk();
+                ip_ = 0;
+                
+                // The main loop continues with constructor's bytecode
+                // OP_RETURN will push the result
+                break;
+            } else {
+                // AST-based function - call construct method
+                result = constructor->construct(context_, args);
+            }
+            
+            // If constructor returned an object, use that; otherwise use newObj
+            if (result.isObject()) {
+                push(result);
+            } else {
+                push(Value::object(newObj));
+            }
             break;
         }
         
@@ -688,12 +764,61 @@ void VM::dispatch(Opcode op) {
             break;
         }
         
-        case Opcode::OP_INSTANCEOF:
-            // TODO: Implement instanceof
-            pop();
-            pop();
-            push(Value::boolean(false));
+        case Opcode::OP_INSTANCEOF: {
+            Value constructorVal = pop();
+            Value instance = pop();
+            
+            // Right-hand side must be callable
+            if (!constructorVal.isObject()) {
+                throw std::runtime_error("Right-hand side of 'instanceof' is not an object");
+            }
+            
+            Object* constructorObj = constructorVal.asObject();
+            if (!constructorObj->isFunction()) {
+                throw std::runtime_error("Right-hand side of 'instanceof' is not callable");
+            }
+            
+            Function* constructor = static_cast<Function*>(constructorObj);
+            
+            // Check for custom @@hasInstance (Symbol.hasInstance)
+            Value hasInstanceSym = constructor->get("@@hasInstance");
+            if (hasInstanceSym.isObject() && hasInstanceSym.asObject()->isFunction()) {
+                Function* hasInstanceFn = static_cast<Function*>(hasInstanceSym.asObject());
+                FunctionCallInfo info(context_, constructorVal, {instance});
+                Value result = hasInstanceFn->builtinFunction()(info);
+                push(Value::boolean(result.toBoolean()));
+                break;
+            }
+            
+            // Standard instanceof: check prototype chain
+            Value prototypeVal = constructor->get("prototype");
+            if (!prototypeVal.isObject()) {
+                throw std::runtime_error("Function has non-object prototype property");
+            }
+            Object* prototype = prototypeVal.asObject();
+            
+            // Primitives are never instanceof anything
+            if (!instance.isObject()) {
+                push(Value::boolean(false));
+                break;
+            }
+            
+            // Walk the prototype chain
+            Object* obj = instance.asObject()->prototype();
+            while (obj != nullptr) {
+                if (obj == prototype) {
+                    push(Value::boolean(true));
+                    break;
+                }
+                obj = obj->prototype();
+            }
+            
+            // If we exited the loop without finding, result is false
+            if (obj == nullptr) {
+                push(Value::boolean(false));
+            }
             break;
+        }
             
         // Exceptions
         case Opcode::OP_THROW: {

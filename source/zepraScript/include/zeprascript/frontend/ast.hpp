@@ -604,6 +604,34 @@ private:
 };
 
 /**
+ * @brief For-of statement (ES6 iterator loop)
+ * 
+ * for (let x of iterable) { ... }
+ * Uses Symbol.iterator to iterate over values
+ */
+class ForOfStmt : public Statement {
+public:
+    ForOfStmt(ASTNodePtr left, ExprPtr right, StmtPtr body,
+              bool await = false, SourceLocation loc = {})
+        : Statement(NodeType::ForOfStatement, loc)
+        , left_(std::move(left))
+        , right_(std::move(right))
+        , body_(std::move(body))
+        , await_(await) {}
+    
+    ASTNode* left() const { return left_.get(); }      // let x or x
+    Expression* right() const { return right_.get(); } // iterable
+    Statement* body() const { return body_.get(); }
+    bool isAwait() const { return await_; }            // for await (x of asyncIterable)
+    
+private:
+    ASTNodePtr left_;   // Variable declaration or identifier
+    ExprPtr right_;     // Iterable expression
+    StmtPtr body_;
+    bool await_;
+};
+
+/**
  * @brief Throw statement
  */
 class ThrowStmt : public Statement {
@@ -760,6 +788,41 @@ private:
 };
 
 /**
+ * @brief Class declaration (ES6)
+ */
+class ClassDecl : public Declaration {
+public:
+    struct MethodDef {
+        std::string name;
+        std::unique_ptr<FunctionExpr> function;
+        bool isStatic = false;
+        bool isGetter = false;
+        bool isSetter = false;
+    };
+    
+    ClassDecl(std::string name, ExprPtr superClass,
+              std::unique_ptr<FunctionExpr> constructor,
+              std::vector<MethodDef> methods,
+              SourceLocation loc = {})
+        : Declaration(NodeType::ClassDeclaration, loc)
+        , name_(std::move(name))
+        , superClass_(std::move(superClass))
+        , constructor_(std::move(constructor))
+        , methods_(std::move(methods)) {}
+    
+    const std::string& name() const { return name_; }
+    Expression* superClass() const { return superClass_.get(); }
+    FunctionExpr* constructor() const { return constructor_.get(); }
+    const std::vector<MethodDef>& methods() const { return methods_; }
+    
+private:
+    std::string name_;
+    ExprPtr superClass_;
+    std::unique_ptr<FunctionExpr> constructor_;
+    std::vector<MethodDef> methods_;
+};
+
+/**
  * @brief Arrow function expression
  */
 class ArrowFunctionExpr : public Expression {
@@ -894,6 +957,24 @@ public:
     
 private:
     ExprPtr argument_;
+};
+
+/**
+ * @brief Yield expression: yield expr or yield* expr
+ */
+class YieldExpr : public Expression {
+public:
+    YieldExpr(ExprPtr argument, bool delegate = false, SourceLocation loc = {})
+        : Expression(NodeType::YieldExpression, loc)
+        , argument_(std::move(argument))
+        , delegate_(delegate) {}
+    
+    Expression* argument() const { return argument_.get(); }
+    bool delegate() const { return delegate_; }  // yield* for delegation
+    
+private:
+    ExprPtr argument_;
+    bool delegate_;
 };
 
 } // namespace Zepra::Frontend

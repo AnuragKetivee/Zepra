@@ -110,6 +110,25 @@ void Parser::error(const Token& token, const std::string& message) {
     errors_.push_back(err);
 }
 
+#ifndef NDEBUG
+void Parser::assertProgress() {
+    size_t current = lexer_.offset();
+    if (current == lastTokenOffset_) {
+        noProgressCount_++;
+        if (noProgressCount_ > 5) {
+            // Fatal: Parser loop detected - helps debug future issues
+            error("FATAL: Parser made no progress - possible infinite loop at " + 
+                  std::to_string(currentToken_.start.line) + ":" +
+                  std::to_string(currentToken_.start.column));
+            throw std::runtime_error("Parser infinite loop detected");
+        }
+    } else {
+        noProgressCount_ = 0;
+        lastTokenOffset_ = current;
+    }
+}
+#endif
+
 // Declaration parsing
 StmtPtr Parser::parseDeclaration() {
     if (match(TokenType::Var) || match(TokenType::Let) || match(TokenType::Const)) {
@@ -117,6 +136,15 @@ StmtPtr Parser::parseDeclaration() {
     }
     if (match(TokenType::Function)) {
         return parseFunctionDeclaration();
+    }
+    // Handle 'async function' declarations
+    if (match(TokenType::Async)) {
+        if (match(TokenType::Function)) {
+            return parseFunctionDeclaration();  // TODO: mark as async in AST
+        }
+        // Async arrow function or expression - let parseStatement handle it
+        // Restore the async token since we consumed it
+        // For now, fall through to parseStatement which will handle it via parseExpression
     }
     if (match(TokenType::Class)) {
         return parseClassDeclaration();
@@ -177,9 +205,55 @@ StmtPtr Parser::parseFunctionDeclaration() {
 }
 
 StmtPtr Parser::parseClassDeclaration() {
-    // Stub for class declaration
-    error("Class declarations not yet implemented");
-    return nullptr;
+    // class Name extends SuperClass { constructor() {} method() {} }
+    Token className = consume(TokenType::Identifier, "Expected class name");
+    
+    // extends SuperClass?
+    ExprPtr superClass = nullptr;
+    if (match(TokenType::Extends)) {
+        superClass = parsePrimaryExpression();
+    }
+    
+    consume(TokenType::LeftBrace, "Expected '{' before class body");
+    
+    // Parse class members
+    std::unique_ptr<FunctionExpr> constructor = nullptr;
+    std::vector<ClassDecl::MethodDef> methods;
+    
+    while (!check(TokenType::RightBrace) && !isAtEnd()) {
+        bool isStatic = match(TokenType::Static);
+        bool isGetter = match(TokenType::Get);
+        bool isSetter = !isGetter && match(TokenType::Set);
+        
+        Token methodName = consume(TokenType::Identifier, "Expected method name");
+        consume(TokenType::LeftParen, "Expected '(' after method name");
+        std::vector<FunctionParam> params = parseParameters();
+        consume(TokenType::RightParen, "Expected ')' after parameters");
+        consume(TokenType::LeftBrace, "Expected '{' before method body");
+        auto body = std::unique_ptr<BlockStmt>(static_cast<BlockStmt*>(parseBlockStatement().release()));
+        
+        auto methodFunc = std::make_unique<FunctionExpr>("", std::move(params), std::move(body));
+        
+        if (methodName.value == "constructor") {
+            constructor = std::move(methodFunc);
+        } else {
+            ClassDecl::MethodDef method;
+            method.name = methodName.value;
+            method.function = std::move(methodFunc);
+            method.isStatic = isStatic;
+            method.isGetter = isGetter;
+            method.isSetter = isSetter;
+            methods.push_back(std::move(method));
+        }
+    }
+    
+    consume(TokenType::RightBrace, "Expected '}' after class body");
+    
+    if (!constructor) {
+        constructor = std::make_unique<FunctionExpr>("", std::vector<FunctionParam>(), std::make_unique<BlockStmt>(std::vector<StmtPtr>()));
+    }
+    
+    return std::make_unique<ClassDecl>(className.value, std::move(superClass), std::move(constructor), std::move(methods));
 }
 
 std::vector<FunctionParam> Parser::parseParameters() {
@@ -211,6 +285,9 @@ std::vector<FunctionParam> Parser::parseParameters() {
 
 // Statement parsing
 StmtPtr Parser::parseStatement() {
+#ifndef NDEBUG
+    assertProgress();
+#endif
     if (match(TokenType::LeftBrace)) {
         return parseBlockStatement();
     }
@@ -312,25 +389,104 @@ StmtPtr Parser::parseDoWhileStatement() {
 StmtPtr Parser::parseForStatement() {
     consume(TokenType::LeftParen, "Expected '(' after 'for'");
     
-    // Initializer
+    // Check for for...of or for...in patterns
+    // for (let/const/var x of iterable) or for (x of iterable)
+    
     ASTNodePtr init = nullptr;
+    bool isForOf = false;
+    
     if (match(TokenType::Semicolon)) {
-        // No initializer
+        // No initializer - regular for loop
     } else if (match({TokenType::Var, TokenType::Let, TokenType::Const})) {
-        init = parseVariableDeclaration();
+        TokenType declType = previousToken_.type;
+        Token varName = consume(TokenType::Identifier, "Expected variable name");
+        
+        // Check if this is for...of
+        if (match(TokenType::Of)) {
+            isForOf = true;
+            
+            // Parse the iterable expression
+            ExprPtr iterable = parseAssignmentExpression();
+            consume(TokenType::RightParen, "Expected ')' after for...of");
+            
+            bool prevInLoop = inLoop_;
+            inLoop_ = true;
+            StmtPtr body = parseStatement();
+            inLoop_ = prevInLoop;
+            
+            // Create variable declaration for the loop variable
+            VariableDecl::Kind kind;
+            if (declType == TokenType::Var) kind = VariableDecl::Kind::Var;
+            else if (declType == TokenType::Let) kind = VariableDecl::Kind::Let;
+            else kind = VariableDecl::Kind::Const;
+            
+            std::vector<VariableDeclarator> declarators;
+            ExprPtr id = std::make_unique<IdentifierExpr>(varName.value, varName.start);
+            declarators.push_back({std::move(id), nullptr});
+            auto varDecl = std::make_unique<VariableDecl>(kind, std::move(declarators));
+            
+            return std::make_unique<ForOfStmt>(std::move(varDecl), std::move(iterable), std::move(body));
+        }
+        
+        // Regular variable declaration
+        ExprPtr id = std::make_unique<IdentifierExpr>(varName.value, varName.start);
+        ExprPtr initValue = nullptr;
+        
+        if (match(TokenType::Assign)) {
+            initValue = parseAssignmentExpression();
+        }
+        
+        std::vector<VariableDeclarator> declarators;
+        declarators.push_back({std::move(id), std::move(initValue)});
+        
+        // Handle multiple declarators
+        while (match(TokenType::Comma)) {
+            Token name = consume(TokenType::Identifier, "Expected variable name");
+            ExprPtr varId = std::make_unique<IdentifierExpr>(name.value, name.start);
+            ExprPtr varInit = nullptr;
+            if (match(TokenType::Assign)) {
+                varInit = parseAssignmentExpression();
+            }
+            declarators.push_back({std::move(varId), std::move(varInit)});
+        }
+        
+        VariableDecl::Kind kind;
+        if (declType == TokenType::Var) kind = VariableDecl::Kind::Var;
+        else if (declType == TokenType::Let) kind = VariableDecl::Kind::Let;
+        else kind = VariableDecl::Kind::Const;
+        
+        init = std::make_unique<VariableDecl>(kind, std::move(declarators));
+        consume(TokenType::Semicolon, "Expected ';' after for initializer");
     } else {
-        init = parseExpression();
+        // Expression or identifier that might be for...of
+        ExprPtr expr = parseExpression();
+        
+        // Check if this is for...of with an existing identifier
+        if (match(TokenType::Of)) {
+            isForOf = true;
+            
+            ExprPtr iterable = parseAssignmentExpression();
+            consume(TokenType::RightParen, "Expected ')' after for...of");
+            
+            bool prevInLoop = inLoop_;
+            inLoop_ = true;
+            StmtPtr body = parseStatement();
+            inLoop_ = prevInLoop;
+            
+            return std::make_unique<ForOfStmt>(std::move(expr), std::move(iterable), std::move(body));
+        }
+        
+        init = std::move(expr);
         consume(TokenType::Semicolon, "Expected ';' after for initializer");
     }
     
-    // Condition
+    // Regular for loop
     ExprPtr condition = nullptr;
     if (!check(TokenType::Semicolon)) {
         condition = parseExpression();
     }
     consume(TokenType::Semicolon, "Expected ';' after for condition");
     
-    // Update
     ExprPtr update = nullptr;
     if (!check(TokenType::RightParen)) {
         update = parseExpression();
@@ -345,6 +501,7 @@ StmtPtr Parser::parseForStatement() {
     return std::make_unique<ForStmt>(std::move(init), std::move(condition), 
                                       std::move(update), std::move(body));
 }
+
 
 StmtPtr Parser::parseSwitchStatement() {
     // Stub
@@ -429,10 +586,98 @@ StmtPtr Parser::parseExpressionStatement() {
 
 // Expression parsing - uses precedence climbing
 ExprPtr Parser::parseExpression() {
+#ifndef NDEBUG
+    assertProgress();
+#endif
     return parseAssignmentExpression();
 }
 
 ExprPtr Parser::parseAssignmentExpression() {
+    // Check for arrow function pattern: identifier => expr
+    // or (params) => expr
+    if (check(TokenType::Identifier)) {
+        // Save lexer state for proper backtracking
+        auto savedLexerState = lexer_.checkpoint();
+        Token savedToken = currentToken_;
+        Token id = advance();
+        
+        if (match(TokenType::Arrow)) {
+            // Single parameter arrow: x => ...
+            std::vector<FunctionParam> params;
+            FunctionParam param;
+            param.pattern = std::make_unique<IdentifierExpr>(id.value);
+            params.push_back(std::move(param));
+            
+            // Parse body
+            std::variant<std::unique_ptr<BlockStmt>, ExprPtr> body;
+            if (check(TokenType::LeftBrace)) {
+                advance(); // consume {
+                body = std::unique_ptr<BlockStmt>(
+                    static_cast<BlockStmt*>(parseBlockStatement().release())
+                );
+            } else {
+                body = parseAssignmentExpression();
+            }
+            
+            return std::make_unique<ArrowFunctionExpr>(
+                std::move(params), std::move(body)
+            );
+        }
+        
+        // Not arrow, restore lexer state completely
+        lexer_.restore(savedLexerState);
+        currentToken_ = savedToken;
+    }
+    
+    // Check for (params) => expr pattern
+    if (check(TokenType::LeftParen)) {
+        // Save lexer state for proper backtracking
+        auto savedLexerState = lexer_.checkpoint();
+        Token savedToken = currentToken_;
+        advance(); // consume (
+        
+        // Try to parse as parameters
+        std::vector<FunctionParam> params;
+        bool couldBeArrow = true;
+        
+        if (!check(TokenType::RightParen)) {
+            // Parse parameter list
+            do {
+                if (!check(TokenType::Identifier)) {
+                    couldBeArrow = false;
+                    break;
+                }
+                
+                FunctionParam param;
+                Token paramName = advance();
+                param.pattern = std::make_unique<IdentifierExpr>(paramName.value);
+                params.push_back(std::move(param));
+            } while (match(TokenType::Comma));
+        }
+        
+        if (couldBeArrow && match(TokenType::RightParen) && match(TokenType::Arrow)) {
+            // It's an arrow function!
+            std::variant<std::unique_ptr<BlockStmt>, ExprPtr> body;
+            if (check(TokenType::LeftBrace)) {
+                advance(); // consume {
+                body = std::unique_ptr<BlockStmt>(
+                    static_cast<BlockStmt*>(parseBlockStatement().release())
+                );
+            } else {
+                body = parseAssignmentExpression();
+            }
+            
+            return std::make_unique<ArrowFunctionExpr>(
+                std::move(params), std::move(body)
+            );
+        }
+        
+        // Not arrow function, restore lexer state completely
+        lexer_.restore(savedLexerState);
+        currentToken_ = savedToken;
+    }
+    
+    // Normal assignment expression
     ExprPtr left = parseConditionalExpression();
     
     if (match({TokenType::Assign, TokenType::PlusAssign, TokenType::MinusAssign,
@@ -781,6 +1026,11 @@ ExprPtr Parser::parsePrimaryExpression() {
         return parseObjectLiteral();
     }
     
+    // Template literal
+    if (match(TokenType::Template)) {
+        return parseTemplateLiteral();
+    }
+    
     // Function expression
     if (match(TokenType::Function)) {
         return parseFunctionExpression();
@@ -795,20 +1045,25 @@ ExprPtr Parser::parseArrayLiteral() {
     
     while (!check(TokenType::RightBracket) && !isAtEnd()) {
         if (match(TokenType::Comma)) {
-            // Elision
+            // Elision - empty slot
             elements.push_back(nullptr);
             continue;
         }
         
         if (match(TokenType::DotDotDot)) {
-            ExprPtr arg = parseAssignmentExpression();
-            elements.push_back(std::move(arg));
+            // Spread element: [...arr]
+            ExprPtr spreadArg = parseAssignmentExpression();
+            // Mark as spread by wrapping in special node
+            // For now, just add it directly - compiler will handle
+            elements.push_back(std::move(spreadArg));
         } else {
             elements.push_back(parseAssignmentExpression());
         }
         
         if (!check(TokenType::RightBracket)) {
-            consume(TokenType::Comma, "Expected ',' between array elements");
+            if (!match(TokenType::Comma)) {
+                break;
+            }
         }
     }
     
@@ -891,6 +1146,92 @@ ExprPtr Parser::parseFunctionExpression() {
     );
     
     return std::make_unique<FunctionExpr>(std::move(name), std::move(params), std::move(body));
+}
+
+ExprPtr Parser::parseTemplateLiteral() {
+    // Parse template literal: `Hello ${name}!`
+    // Token value contains parts with \x01 and \x02 markers for expressions
+    
+    const std::string& templateStr = previousToken_.value;
+    
+    // Check if it's a simple template (no expressions)
+    if (templateStr.find('\x01') == std::string::npos) {
+        // Simple template: just a string
+        return std::make_unique<LiteralExpr>(templateStr, previousToken_.start);
+    }
+    
+    // Complex template with expressions
+    // For now, convert to string concatenation
+    // Full implementation would use TemplateLiteralExpr AST node
+    
+    std::vector<ExprPtr> parts;
+    size_t pos = 0;
+    
+    while (pos < templateStr.size()) {
+        size_t exprStart = templateStr.find('\x01', pos);
+        
+        if (exprStart == std::string::npos) {
+            // Remaining string part
+            if (pos < templateStr.size()) {
+                std::string part = templateStr.substr(pos);
+                parts.push_back(std::make_unique<LiteralExpr>(part));
+            }
+            break;
+        }
+        
+        // String part before expression
+        if (exprStart > pos) {
+            std::string part = templateStr.substr(pos, exprStart - pos);
+            parts.push_back(std::make_unique<LiteralExpr>(part));
+        }
+        
+        // Expression part
+        size_t exprEnd = templateStr.find('\x02', exprStart);
+        if (exprEnd == std::string::npos) {
+            error("Malformed template literal");
+            return nullptr;
+        }
+        
+        // Parse embedded expression
+        std::string exprCode = templateStr.substr(exprStart + 1, exprEnd - exprStart - 1);
+        
+        // Create a temporary parser for the expression
+        auto exprSource = SourceCode::fromString(exprCode, "<template expression>");
+        Parser exprParser(exprSource.get());
+        ExprPtr expr = exprParser.parseExpression();
+        
+        if (expr) {
+            parts.push_back(std::move(expr));
+        }
+        
+        pos = exprEnd + 1;
+    }
+    
+    // Build concatenation expression: part1 + part2 + part3...
+    if (parts.empty()) {
+        return std::make_unique<LiteralExpr>("");
+    }
+    
+    if (parts.size() == 1) {
+        return std::move(parts[0]);
+    }
+    
+    // Build left-to-right concatenation tree
+    ExprPtr result = std::make_unique<BinaryExpr>(
+        TokenType::Plus,
+        std::move(parts[0]),
+        std::move(parts[1])
+    );
+    
+    for (size_t i = 2; i < parts.size(); i++) {
+        result = std::make_unique<BinaryExpr>(
+            TokenType::Plus,
+            std::move(result),
+            std::move(parts[i])
+        );
+    }
+    
+    return result;
 }
 
 ExprPtr Parser::parseArrowFunction() {

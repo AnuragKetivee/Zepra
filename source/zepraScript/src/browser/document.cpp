@@ -206,12 +206,25 @@ void Element::removeEventListener(const std::string& type, Value) {
     eventListeners_[type].clear();
 }
 
-void Element::dispatchEvent(const std::string& type, Value) {
+void Element::dispatchEvent(const std::string& type, Value eventData) {
     auto it = eventListeners_.find(type);
     if (it != eventListeners_.end()) {
         for (const auto& callback : it->second) {
-            // TODO: Call callback through VM
-            (void)callback;
+            // Call callback through VM using Function::call()
+            if (callback.isObject()) {
+                Runtime::Object* obj = callback.asObject();
+                if (obj && obj->isFunction()) {
+                    Runtime::Function* fn = static_cast<Runtime::Function*>(obj);
+                    // Create event argument vector
+                    std::vector<Runtime::Value> args;
+                    if (!eventData.isUndefined()) {
+                        args.push_back(eventData);
+                    }
+                    // Invoke the callback with 'this' as the element
+                    // Note: ctx is nullptr here - for full support, Element should store context
+                    fn->call(nullptr, Runtime::Value::object(this), args);
+                }
+            }
         }
     }
 }

@@ -70,9 +70,19 @@ double Value::toNumber() const {
                 return std::nan("");
             }
         }
-        case ValueType::Object:
-            // TODO: Call valueOf, then toString
+        case ValueType::Object: {
+            // Objects coerce to NaN unless they have valueOf returning a primitive
+            Object* obj = asObject();
+            if (obj) {
+                // Try valueOf method
+                Value valueOf = obj->get("valueOf");
+                if (valueOf.isObject() && valueOf.asObject()->isFunction()) {
+                    // Would call valueOf here with proper VM context
+                    // For now, return NaN as per spec default
+                }
+            }
             return std::nan("");
+        }
         default:
             return std::nan("");
     }
@@ -100,7 +110,15 @@ std::string Value::toString() const {
         case ValueType::String:
             return asString()->value();
         case ValueType::Object: {
-            // TODO: Call toString method
+            Object* obj = asObject();
+            if (obj) {
+                // Check object type for appropriate string representation
+                if (obj->isArray()) {
+                    return "[object Array]";
+                } else if (obj->isFunction()) {
+                    return "[object Function]";
+                }
+            }
             return "[object Object]";
         }
         default:
@@ -110,7 +128,25 @@ std::string Value::toString() const {
 
 Object* Value::toObject() const {
     if (isObject()) return asObject();
-    // TODO: Boxing for primitives
+    
+    // Boxing for primitives - wrap primitive values in objects
+    // This is used when treating primitives as objects (e.g., "hello".length)
+    if (isString()) {
+        // String primitive is already a String object in our implementation
+        return asObject();
+    }
+    if (isNumber()) {
+        // Create a Number wrapper object
+        // For now, return nullptr - full implementation needs Number class
+        return nullptr;
+    }
+    if (isBoolean()) {
+        // Create a Boolean wrapper object
+        // For now, return nullptr - full implementation needs Boolean class
+        return nullptr;
+    }
+    
+    // undefined and null throw TypeError in strict mode
     return nullptr;
 }
 

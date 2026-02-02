@@ -120,6 +120,8 @@ private:
     void compileTryStatement(const Frontend::TryStmt* stmt);
     void compileImportDeclaration(const Frontend::ImportDecl* decl);
     void compileExportDeclaration(const Frontend::ExportDecl* decl);
+    void compileClassDeclaration(const Frontend::ClassDecl* decl);
+    void compileForOfStatement(const Frontend::ForOfStmt* stmt);
     
     // Expression compilation
     void compileExpression(const Frontend::Expression* expr);
@@ -139,6 +141,8 @@ private:
     void compileFunctionExpression(const Frontend::FunctionExpr* expr);
     void compileArrowFunction(const Frontend::ArrowFunctionExpr* expr);
     void compileThisExpression(const Frontend::ThisExpr* expr);
+    void compileAwaitExpression(const Frontend::AwaitExpr* expr);
+    void compileYieldExpression(const Frontend::YieldExpr* expr);
     
     // Helpers
     void emit(uint8_t byte);

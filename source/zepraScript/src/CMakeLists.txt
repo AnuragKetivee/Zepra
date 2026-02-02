@@ -23,9 +23,13 @@ set(ZEPRA_CORE_SOURCES
     runtime/inline_cache.cpp
     runtime/iterator.cpp
     runtime/proxy.cpp
+    runtime/class_fields.cpp
+    runtime/async_function.cpp
     
     # Garbage Collector
     gc/heap.cpp
+    gc/gc_heap.cpp
+    gc/concurrent_gc.cpp
     gc/allocator.cpp
     gc/marking.cpp
     gc/sweeping.cpp
@@ -57,13 +61,27 @@ set(ZEPRA_CORE_SOURCES
     builtins/regexp.cpp
     builtins/symbol.cpp
     builtins/weakmap.cpp
+    builtins/intl.cpp
     builtins/typed_array.cpp
     builtins/data_view.cpp
+    builtins/temporal.cpp
+    builtins/atomics.cpp
+    
+    # WebAssembly
+    wasm/wasm.cpp
+    wasm/WasmValidate.cpp
+    wasm/WasmBaselineCompile.cpp
+    wasm/WasmInterpreter.cpp
     
     # JIT
     jit/jit_profiler.cpp
+    jit/type_profiler.cpp
     jit/baseline_jit.cpp
     jit/osr.cpp
+    
+    # DFG Optimizer
+    dfg/DFGGraph.cpp
+    dfg/DFGBuilder.cpp
     
     # Memory
     memory/page_allocator.cpp
@@ -74,6 +92,8 @@ set(ZEPRA_CORE_SOURCES
     api/isolate.cpp
     api/context.cpp
     api/local_handle.cpp
+    api/script.cpp
+    api/value_api.cpp
     
     # Debug
     debug/debug_api.cpp
@@ -109,22 +129,45 @@ set(ZEPRA_CORE_SOURCES
 # Create core library
 add_library(zepra-core STATIC ${ZEPRA_CORE_SOURCES})
 
+# Determine nxhttp path - support both standalone and integrated builds
+# CMAKE_CURRENT_SOURCE_DIR = .../zepraScript/src, so ../.. = .../source
+set(ZEPRA_SOURCE_ROOT "${CMAKE_CURRENT_SOURCE_DIR}/../..")
+if(EXISTS "${CMAKE_SOURCE_DIR}/source/nxhttp/include")
+    # Building as part of zeprabrowser (from root)
+    set(NXHTTP_INCLUDE_DIR "${CMAKE_SOURCE_DIR}/source/nxhttp/include")
+    set(NXHTTP_LIB "${CMAKE_SOURCE_DIR}/source/nxhttp/build/libnxhttp.a")
+elseif(EXISTS "${ZEPRA_SOURCE_ROOT}/nxhttp/include")
+    # Building zepraScript standalone - nxhttp is sibling dir
+    set(NXHTTP_INCLUDE_DIR "${ZEPRA_SOURCE_ROOT}/nxhttp/include")
+    set(NXHTTP_LIB "${ZEPRA_SOURCE_ROOT}/nxhttp/build/libnxhttp.a")
+else()
+    message(WARNING "nxhttp not found - fetch.cpp will fail to build")
+    set(NXHTTP_INCLUDE_DIR "")
+    set(NXHTTP_LIB "")
+endif()
+
+# Include directories (including nxhttp)
 target_include_directories(zepra-core
     PUBLIC
-        ${CMAKE_SOURCE_DIR}/include
+        ${CMAKE_CURRENT_SOURCE_DIR}/../include
+        ${NXHTTP_INCLUDE_DIR}
     PRIVATE
         ${CMAKE_CURRENT_SOURCE_DIR}
 )
 
 # Link threading support
 find_package(Threads REQUIRED)
-find_package(CURL REQUIRED)
 
+# Link libraries
 target_link_libraries(zepra-core
     PUBLIC
         Threads::Threads
-        CURL::libcurl
 )
+
+# Conditionally link nxhttp if available
+if(NXHTTP_LIB AND EXISTS "${NXHTTP_LIB}")
+    target_link_libraries(zepra-core PUBLIC ${NXHTTP_LIB})
+endif()
 
 # Platform-specific settings
 if(UNIX AND NOT APPLE)

@@ -11,6 +11,8 @@
 #include <unordered_map>
 #include <vector>
 #include <optional>
+#include <cstdint>
+#include <limits>
 #include <functional>
 
 namespace Zepra::Runtime {
@@ -104,6 +106,10 @@ enum class ObjectType : uint8 {
     Arguments,
     Global,
     Module,
+    
+    // ES2021+ types
+    WeakRef,
+    FinalizationRegistry,
     
     // Internal types
     Environment,
@@ -243,7 +249,7 @@ public:
     
     // Additional modifying operations
     void reverse();
-    void fill(Value value, size_t start = 0, size_t end = SIZE_MAX);
+    void fill(Value value, size_t start = 0, size_t end = static_cast<size_t>(-1));
     void set(size_t index, Value value);
     
     // Iteration
@@ -259,6 +265,110 @@ public:
     
     // Direct element access
     const std::vector<Value>& elements() const { return elements_; }
+};
+
+/**
+ * @brief Error object (ES2022 with cause support)
+ */
+class Error : public Object {
+public:
+    Error(const std::string& message, const std::string& name = "Error");
+    Error(const std::string& message, const std::string& name, Value cause);
+    
+    const std::string& message() const { return message_; }
+    const std::string& name() const { return name_; }
+    Value cause() const { return cause_; }
+    
+    // Stack trace (if available)
+    const std::string& stack() const { return stack_; }
+    void setStack(const std::string& stack) { stack_ = stack; }
+    
+    // Error construction helpers
+    static Error* typeError(const std::string& message);
+    static Error* rangeError(const std::string& message);
+    static Error* referenceError(const std::string& message);
+    static Error* syntaxError(const std::string& message);
+    static Error* uriError(const std::string& message);
+    static Error* evalError(const std::string& message);
+    static Error* aggregateError(const std::string& message, const std::vector<Value>& errors);
+    
+    // With cause (ES2022)
+    static Error* withCause(const std::string& name, const std::string& message, Value cause);
+    
+private:
+    std::string message_;
+    std::string name_;
+    Value cause_;
+    std::string stack_;
+};
+
+/**
+ * @brief WeakRef - holds weak reference to object (ES2021)
+ */
+class WeakReference : public Object {
+public:
+    explicit WeakReference(Object* target);
+    
+    // deref() - returns target if still alive, undefined otherwise
+    Value deref() const;
+    
+    // Check if target is still alive
+    bool isAlive() const { return target_ != nullptr; }
+    
+    // Called by GC when target is collected
+    void clearTarget() { target_ = nullptr; }
+    
+    Object* target() const { return target_; }
+    
+private:
+    Object* target_;
+};
+
+/**
+ * @brief FinalizationRegistry - callback when objects are collected (ES2021)
+ */
+class FinalizationRegistry : public Object {
+public:
+    using CleanupCallback = std::function<void(Value heldValue)>;
+    
+    explicit FinalizationRegistry(CleanupCallback callback);
+    
+    // Register object with held value and optional unregister token
+    void registerTarget(Object* target, Value heldValue, Value unregisterToken = Value::undefined());
+    
+    // Unregister by token
+    bool unregister(Value token);
+    
+    // Called by GC - process any ready cleanup callbacks
+    void cleanupSome();
+    
+    // Check if object was collected and queue callback
+    void notifyCollected(Object* target);
+    
+private:
+    struct Registration {
+        Object* target;
+        Value heldValue;
+        Value unregisterToken;
+        bool collected;
+    };
+    
+    CleanupCallback callback_;
+    std::vector<Registration> registrations_;
+};
+
+/**
+ * @brief structuredClone helper for deep cloning (ES2021)
+ */
+class StructuredClone {
+public:
+    static Value clone(const Value& value);
+    static Value clone(const Value& value, const std::vector<Object*>& transfer);
+    
+private:
+    static Value cloneInternal(const Value& value, std::unordered_map<Object*, Object*>& seen);
+    static Object* cloneObject(Object* obj, std::unordered_map<Object*, Object*>& seen);
+    static Array* cloneArray(Array* arr, std::unordered_map<Object*, Object*>& seen);
 };
 
 } // namespace Zepra::Runtime

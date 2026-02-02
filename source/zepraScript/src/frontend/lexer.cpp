@@ -326,13 +326,52 @@ Token Lexer::scanIdentifierOrKeyword() {
 }
 
 Token Lexer::scanTemplate() {
-    // TODO: Implement template literal scanning
+    // Scan template literal: `Hello ${name}!`
+    // Returns Template token with parts and expressions
+    
     std::string value;
+    bool hasExpressions = false;
     
     while (current() != '\0' && current() != '`') {
         if (current() == '\\') {
+            // Escape sequence
             advance();
-            value += advance();
+            char escaped = advance();
+            switch (escaped) {
+                case 'n': value += '\n'; break;
+                case 't': value += '\t'; break;
+                case 'r': value += '\r'; break;
+                case '\\': value += '\\'; break;
+                case '`': value += '`'; break;
+                case '$': value += '$'; break;
+                default: value += escaped; break;
+            }
+        } else if (current() == '$' && peek(1) == '{') {
+            // Embedded expression: ${...}
+            hasExpressions = true;
+            
+            // Mark where expression starts
+            value += "\x01"; // Use special marker for parser
+            advance(); // $
+            advance(); // {
+            
+            // Scan until } (with nesting support)
+            int braceDepth = 1;
+            while (current() != '\0' && braceDepth > 0) {
+                if (current() == '{') braceDepth++;
+                else if (current() == '}') braceDepth--;
+                
+                if (braceDepth > 0) {
+                    value += advance();
+                }
+            }
+            
+            if (current() == '}') {
+                advance(); // Close }
+                value += "\x02"; // End expression marker
+            } else {
+                return errorToken("Unterminated template expression");
+            }
         } else {
             value += advance();
         }
@@ -341,7 +380,7 @@ Token Lexer::scanTemplate() {
     if (current() != '`') {
         return errorToken("Unterminated template literal");
     }
-    advance();
+    advance(); // Closing `
     
     return makeToken(TokenType::Template, value);
 }

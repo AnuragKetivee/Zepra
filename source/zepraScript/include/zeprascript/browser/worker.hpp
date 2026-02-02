@@ -134,6 +134,11 @@ public:
      */
     void importScripts(const std::vector<std::string>& urls);
     
+    /**
+     * @brief Set handler for postMessage calls (used internally by Worker)
+     */
+    void setPostMessageHandler(std::function<void(Value)> handler);
+    
 private:
     std::function<void(Value)> postMessageHandler_;
 };

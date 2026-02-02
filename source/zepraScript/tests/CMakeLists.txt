@@ -28,6 +28,12 @@ set(UNIT_TEST_SOURCES
     unit/gc_tests.cpp
     unit/builtin_tests.cpp
     unit/url_tests.cpp
+    unit/wasm_tests.cpp
+    unit/zeprascript_comprehensive_tests.cpp
+    unit/async_tests.cpp
+    unit/class_tests.cpp
+    unit/b3_tests.cpp
+    unit/runtime_tests.cpp
 )
 
 add_executable(zepra-unit-tests ${UNIT_TEST_SOURCES})

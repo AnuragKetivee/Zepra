@@ -114,6 +114,8 @@ private:
     ExprPtr parseFunctionExpression();
     ExprPtr parseArrowFunction();
     ExprPtr parseClassExpression();
+    ExprPtr parseTemplateLiteral();
+
     
     // Helpers
     std::vector<FunctionParam> parseParameters();
@@ -128,6 +130,13 @@ private:
     bool inLoop_ = false;
     bool inSwitch_ = false;
     bool inFunction_ = false;
+    
+#ifndef NDEBUG
+    // Debug: Infinite loop detection
+    size_t lastTokenOffset_ = 0;
+    int noProgressCount_ = 0;
+    void assertProgress();
+#endif
 };
 
 /**

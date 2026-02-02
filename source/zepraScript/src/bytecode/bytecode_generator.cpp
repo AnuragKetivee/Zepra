@@ -283,7 +283,10 @@ void BytecodeGenerator::declareVariable(const std::string& name, bool isConst) {
 
 void BytecodeGenerator::defineVariable(const std::string& name) {
     if (current_->scopeDepth > 0) {
-        // Local variable - already on stack
+        // Local variable - mark as initialized (exit temporal dead zone)
+        if (!current_->locals.empty()) {
+            current_->locals.back().depth = current_->scopeDepth;
+        }
         return;
     }
     
@@ -358,6 +361,12 @@ void BytecodeGenerator::compileStatement(const Frontend::Statement* stmt) {
         case Frontend::NodeType::ExportDeclaration:
             compileExportDeclaration(static_cast<const Frontend::ExportDecl*>(stmt));
             break;
+        case Frontend::NodeType::ClassDeclaration:
+            compileClassDeclaration(static_cast<const Frontend::ClassDecl*>(stmt));
+            break;
+        case Frontend::NodeType::ForOfStatement:
+            compileForOfStatement(static_cast<const Frontend::ForOfStmt*>(stmt));
+            break;
         default:
             error("Unknown statement type");
             break;
@@ -407,8 +416,10 @@ void BytecodeGenerator::compileFunctionDeclaration(const Frontend::FunctionDecl*
     
     // Add parameters as locals at depth 0 (function's base scope)
     // They are already on the stack when the function is called
+    int paramCount = 0;
     for (const auto& param : decl->params()) {
         const auto* id = static_cast<const Frontend::IdentifierExpr*>(param.pattern.get());
+        
         // Add local at depth 0 so they don't get popped by endScope
         Local local;
         local.name = id->name();
@@ -416,6 +427,35 @@ void BytecodeGenerator::compileFunctionDeclaration(const Frontend::FunctionDecl*
         local.isCaptured = false;
         local.isConst = false;
         current_->locals.push_back(local);
+        
+        // Handle default value
+        if (param.defaultValue) {
+            // if (param === undefined) param = defaultValue;
+            emit(Opcode::OP_GET_LOCAL);
+            emit(static_cast<uint8_t>(paramCount));
+            emit(Opcode::OP_NIL);
+            emit(Opcode::OP_STRICT_EQUAL);
+            
+            size_t skipDefault = emitJump(Opcode::OP_JUMP_IF_FALSE);
+            emit(Opcode::OP_POP);
+            
+            compileExpression(param.defaultValue.get());
+            emit(Opcode::OP_SET_LOCAL);
+            emit(static_cast<uint8_t>(paramCount));
+            emit(Opcode::OP_POP);
+            
+            patchJump(skipDefault);
+            emit(Opcode::OP_POP);
+        }
+        
+        // Handle rest parameter (must be last)
+        if (param.rest) {
+            // Create array from remaining arguments
+            // This would need runtime support for arguments object
+            // For now, just mark it as special
+        }
+        
+        paramCount++;
     }
     
     // Compile body (each block statement inside will handle its own scope)
@@ -696,6 +736,24 @@ void BytecodeGenerator::compileExpression(const Frontend::Expression* expr) {
         case Frontend::NodeType::ThisExpression:
             compileThisExpression(static_cast<const Frontend::ThisExpr*>(expr));
             break;
+        case Frontend::NodeType::ArrowFunction:
+            compileArrowFunction(static_cast<const Frontend::ArrowFunctionExpr*>(expr));
+            break;
+        case Frontend::NodeType::FunctionExpression:
+            compileFunctionExpression(static_cast<const Frontend::FunctionExpr*>(expr));
+            break;
+        case Frontend::NodeType::AwaitExpression:
+            compileAwaitExpression(static_cast<const Frontend::AwaitExpr*>(expr));
+            break;
+        case Frontend::NodeType::YieldExpression:
+            compileYieldExpression(static_cast<const Frontend::YieldExpr*>(expr));
+            break;
+        case Frontend::NodeType::UpdateExpression:
+            compileUpdateExpression(static_cast<const Frontend::UpdateExpr*>(expr));
+            break;
+        case Frontend::NodeType::NewExpression:
+            compileNewExpression(static_cast<const Frontend::NewExpr*>(expr));
+            break;
         default:
             error("Unknown expression type");
             break;
@@ -854,6 +912,12 @@ void BytecodeGenerator::compileAssignmentExpression(const Frontend::AssignmentEx
         
         int local = resolveLocal(identName);
         if (local != -1) {
+            // Check if it's a const variable
+            if (current_->locals[local].isConst) {
+                error("Cannot assign to const variable '" + identName + "'");
+                return;
+            }
+            
             emit(Opcode::OP_SET_LOCAL);
             emit(static_cast<uint8_t>(local));
         } else {
@@ -945,17 +1009,21 @@ void BytecodeGenerator::compileNewExpression(const Frontend::NewExpr* expr) {
 }
 
 void BytecodeGenerator::compileArrayExpression(const Frontend::ArrayExpr* expr) {
+    // Compile each element and push onto stack
     for (const auto& element : expr->elements()) {
         if (element) {
             compileExpression(element.get());
         } else {
+            // Elision (empty slot) - push undefined
             emit(Opcode::OP_NIL);
         }
     }
     
+    // Create array from all elements on stack
     emit(Opcode::OP_CREATE_ARRAY);
     emit(static_cast<uint8_t>(expr->elements().size()));
 }
+
 
 void BytecodeGenerator::compileObjectExpression(const Frontend::ObjectExpr* expr) {
     emit(Opcode::OP_CREATE_OBJECT);
@@ -982,9 +1050,61 @@ void BytecodeGenerator::compileFunctionExpression(const Frontend::FunctionExpr*)
     emit(Opcode::OP_NIL);
 }
 
-void BytecodeGenerator::compileArrowFunction(const Frontend::ArrowFunctionExpr*) {
-    // TODO: Implement arrow function compilation
-    emit(Opcode::OP_NIL);
+void BytecodeGenerator::compileArrowFunction(const Frontend::ArrowFunctionExpr* expr) {
+    // Arrow functions are like regular functions but:
+    // 1. They capture 'this' lexically
+    // 2. They have implicit return for expression bodies
+    
+    // Create new compiler state for function
+    CompilerState fnState;
+    fnState.enclosing = current_;
+    fnState.functionName = "<arrow>";
+    current_ = &fnState;
+    
+    // Add parameters as locals
+    for (const auto& param : expr->params()) {
+        const auto* id = static_cast<const Frontend::IdentifierExpr*>(param.pattern.get());
+        Local local;
+        local.name = id->name();
+        local.depth = 0;  // Function scope
+        local.isCaptured = false;
+        local.isConst = false;
+        current_->locals.push_back(local);
+    }
+    
+    // Compile body
+    if (expr->hasExpressionBody()) {
+        // Expression body: implicit return
+        compileExpression(expr->expressionBody());
+        emit(Opcode::OP_RETURN);
+    } else {
+        // Block body: explicit returns
+        for (const auto& stmt : expr->blockBody()->body()) {
+            compileStatement(stmt.get());
+        }
+        // Default return undefined
+        emit(Opcode::OP_NIL);
+        emit(Opcode::OP_RETURN);
+    }
+    
+    // Create function chunk
+    auto functionChunk = std::make_unique<BytecodeChunk>(std::move(fnState.chunk));
+    current_ = fnState.enclosing;
+    
+    // Create arrow function object
+    auto* arrowFn = new Runtime::Function(expr, nullptr);
+    arrowFn->setBytecodeChunk(functionChunk.get());
+    
+    // Store chunk (transferred ownership)
+    static std::vector<std::unique_ptr<BytecodeChunk>> compiledChunks;
+    compiledChunks.push_back(std::move(functionChunk));
+    
+    // Emit closure with captured 'this'
+    size_t funcIndex = makeConstant(Runtime::Value::object(arrowFn));
+    emit(Opcode::OP_CLOSURE);
+    emit(static_cast<uint8_t>(funcIndex));
+    
+    // TODO: Emit upvalue count and indices for captured 'this'
 }
 
 void BytecodeGenerator::compileUpdateExpression(const Frontend::UpdateExpr*) {
@@ -1050,6 +1170,299 @@ void BytecodeGenerator::compileExportDeclaration(const Frontend::ExportDecl* dec
         emit(Opcode::OP_EXPORT);
         emit(static_cast<uint8_t>(exportNameConstant));
     }
+}
+
+void BytecodeGenerator::compileClassDeclaration(const Frontend::ClassDecl* decl) {
+    // ES6 class compilation: transpile to ES5 constructor + prototype
+    // class Foo extends Bar { constructor() {} method() {} }
+    // becomes:
+    // function Foo() { Bar.call(this); /* constructor body */ }
+    // Foo.prototype = Object.create(Bar.prototype);
+    // Foo.prototype.constructor = Foo;
+    // Foo.prototype.method = function() {};
+    
+    const std::string& className = decl->name();
+    
+    // Declare the class name as a variable
+    declareVariable(className, false);
+    
+    // Compile constructor as a function
+    CompilerState classState;
+    classState.enclosing = current_;
+    classState.functionName = className;
+    classState.isMethod = false;
+    current_ = &classState;
+    
+    // Add 'this' as first local
+    Local thisLocal;
+    thisLocal.name = "this";
+    thisLocal.depth = 0;
+    thisLocal.isCaptured = false;
+    thisLocal.isConst = true;
+    current_->locals.push_back(thisLocal);
+    
+    // Compile constructor body
+    const Frontend::FunctionExpr* ctor = decl->constructor();
+    if (ctor) {
+        // Add constructor parameters
+        for (const auto& param : ctor->params()) {
+            const auto* id = static_cast<const Frontend::IdentifierExpr*>(param.pattern.get());
+            Local local;
+            local.name = id->name();
+            local.depth = 0;
+            local.isCaptured = false;
+            local.isConst = false;
+            current_->locals.push_back(local);
+        }
+        
+        // If extends, call super constructor
+        if (decl->superClass()) {
+            // super.call(this) equivalent
+            // For now, emit placeholder for super call
+        }
+        
+        // Compile constructor body
+        if (ctor->body()) {
+            for (const auto& stmt : ctor->body()->body()) {
+                compileStatement(stmt.get());
+            }
+        }
+    }
+    
+    // Default return 'this'
+    emit(Opcode::OP_GET_LOCAL);
+    emit(static_cast<uint8_t>(0));  // 'this' is at slot 0
+    emit(Opcode::OP_RETURN);
+    
+    // Create constructor function chunk
+    auto constructorChunk = std::make_unique<BytecodeChunk>(std::move(classState.chunk));
+    current_ = classState.enclosing;
+    
+    // Create constructor function object
+    auto* ctorFunc = new Runtime::Function(ctor, nullptr);
+    ctorFunc->setBytecodeChunk(constructorChunk.get());
+    
+    // Store chunk
+    static std::vector<std::unique_ptr<BytecodeChunk>> compiledChunks;
+    compiledChunks.push_back(std::move(constructorChunk));
+    
+    // Emit closure for constructor
+    size_t ctorIndex = makeConstant(Runtime::Value::object(ctorFunc));
+    emit(Opcode::OP_CLOSURE);
+    emit(static_cast<uint8_t>(ctorIndex));
+    
+    // If extends, set up prototype chain
+    if (decl->superClass()) {
+        // Duplicate constructor
+        emit(Opcode::OP_DUP);
+        
+        // Get superclass
+        compileExpression(decl->superClass());
+        
+        // Set up inheritance (Object.create pattern)
+        emit(Opcode::OP_INHERIT);
+    }
+    
+    // Compile methods onto prototype
+    for (const auto& method : decl->methods()) {
+        // Duplicate constructor (to get its prototype)
+        emit(Opcode::OP_DUP);
+        
+        // Compile method function
+        CompilerState methodState;
+        methodState.enclosing = current_;
+        methodState.functionName = method.name;
+        methodState.isMethod = true;
+        current_ = &methodState;
+        
+        // Add 'this' as first local for methods
+        Local thisParam;
+        thisParam.name = "this";
+        thisParam.depth = 0;
+        thisParam.isCaptured = false;
+        thisParam.isConst = true;
+        current_->locals.push_back(thisParam);
+        
+        // Add method parameters
+        for (const auto& param : method.function->params()) {
+            const auto* id = static_cast<const Frontend::IdentifierExpr*>(param.pattern.get());
+            Local local;
+            local.name = id->name();
+            local.depth = 0;
+            local.isCaptured = false;
+            local.isConst = false;
+            current_->locals.push_back(local);
+        }
+        
+        // Compile method body
+        if (method.function->body()) {
+            for (const auto& stmt : method.function->body()->body()) {
+                compileStatement(stmt.get());
+            }
+        }
+        
+        // Default return undefined
+        emit(Opcode::OP_NIL);
+        emit(Opcode::OP_RETURN);
+        
+        auto methodChunk = std::make_unique<BytecodeChunk>(std::move(methodState.chunk));
+        current_ = methodState.enclosing;
+        
+        auto* methodFunc = new Runtime::Function(method.function.get(), nullptr);
+        methodFunc->setBytecodeChunk(methodChunk.get());
+        compiledChunks.push_back(std::move(methodChunk));
+        
+        size_t methodIndex = makeConstant(Runtime::Value::object(methodFunc));
+        emit(Opcode::OP_CLOSURE);
+        emit(static_cast<uint8_t>(methodIndex));
+        
+        // Add method name constant
+        size_t nameConstant = makeConstant(
+            Runtime::Value::string(new Runtime::String(method.name)));
+        
+        if (method.isStatic) {
+            // Static method: Foo.methodName = function
+            emit(Opcode::OP_DEFINE_STATIC);
+        } else if (method.isGetter) {
+            // Getter: Object.defineProperty pattern
+            emit(Opcode::OP_DEFINE_GETTER);
+        } else if (method.isSetter) {
+            // Setter: Object.defineProperty pattern
+            emit(Opcode::OP_DEFINE_SETTER);
+        } else {
+            // Regular method: Foo.prototype.methodName = function
+            emit(Opcode::OP_DEFINE_METHOD);
+        }
+        emit(static_cast<uint8_t>(nameConstant));
+    }
+    
+    // Define the class name
+    defineVariable(className);
+}
+
+void BytecodeGenerator::compileForOfStatement(const Frontend::ForOfStmt* stmt) {
+    // for (let x of iterable) { body }
+    // becomes:
+    // let iterator = iterable[Symbol.iterator]();
+    // let result;
+    // while (!(result = iterator.next()).done) {
+    //     let x = result.value;
+    //     body
+    // }
+    
+    beginScope();
+    
+    // Compile iterable and get iterator
+    compileExpression(stmt->right());
+    emit(Opcode::OP_GET_ITERATOR);  // Get [Symbol.iterator]() result
+    
+    // Store iterator in a hidden local
+    addLocal("$iterator", false);
+    
+    size_t loopStart = currentChunk()->currentOffset();
+    
+    // Call iterator.next()
+    emit(Opcode::OP_GET_LOCAL);
+    emit(static_cast<uint8_t>(current_->locals.size() - 1));  // $iterator
+    emit(Opcode::OP_ITERATOR_NEXT);  // Calls .next() and pushes result
+    
+    // Check if done
+    emit(Opcode::OP_DUP);
+    emit(Opcode::OP_GET_PROPERTY);
+    size_t doneConstant = makeConstant(
+        Runtime::Value::string(new Runtime::String("done")));
+    emit(static_cast<uint8_t>(doneConstant));
+    
+    // If done, exit loop
+    size_t exitJump = emitJump(Opcode::OP_JUMP_IF_TRUE);
+    emit(Opcode::OP_POP);  // Pop 'done' value
+    
+    // Get value property
+    emit(Opcode::OP_GET_PROPERTY);
+    size_t valueConstant = makeConstant(
+        Runtime::Value::string(new Runtime::String("value")));
+    emit(static_cast<uint8_t>(valueConstant));
+    
+    // Declare loop variable
+    const Frontend::ASTNode* left = stmt->left();
+    if (left->type() == Frontend::NodeType::VariableDeclaration) {
+        const auto* varDecl = static_cast<const Frontend::VariableDecl*>(left);
+        if (!varDecl->declarators().empty()) {
+            const auto* id = static_cast<const Frontend::IdentifierExpr*>(
+                varDecl->declarators()[0].id.get());
+            bool isConst = varDecl->kind() == Frontend::VariableDecl::Kind::Const;
+            declareVariable(id->name(), isConst);
+            defineVariable(id->name());
+        }
+    } else if (left->type() == Frontend::NodeType::Identifier) {
+        const auto* id = static_cast<const Frontend::IdentifierExpr*>(left);
+        int slot = resolveLocal(id->name());
+        if (slot != -1) {
+            emit(Opcode::OP_SET_LOCAL);
+            emit(static_cast<uint8_t>(slot));
+        } else {
+            size_t constant = makeConstant(
+                Runtime::Value::string(new Runtime::String(id->name())));
+            emit(Opcode::OP_SET_GLOBAL);
+            emit(static_cast<uint8_t>(constant));
+        }
+        emit(Opcode::OP_POP);
+    }
+    
+    // Track loop for break/continue
+    breakJumps_.push_back({});
+    continueTargets_.push_back(loopStart);
+    
+    // Compile loop body
+    compileStatement(stmt->body());
+    
+    // Loop back
+    emitLoop(loopStart);
+    
+    // Patch exit jump
+    patchJump(exitJump);
+    emit(Opcode::OP_POP);  // Pop 'done' value
+    emit(Opcode::OP_POP);  // Pop iterator result
+    emit(Opcode::OP_POP);  // Pop iterator
+    
+    // Patch breaks
+    for (size_t breakJump : breakJumps_.back()) {
+        patchJump(breakJump);
+    }
+    breakJumps_.pop_back();
+    continueTargets_.pop_back();
+    
+    endScope();
+}
+
+void BytecodeGenerator::compileAwaitExpression(const Frontend::AwaitExpr* expr) {
+    // await promise
+    // Compile the argument (should evaluate to a Promise)
+    compileExpression(expr->argument());
+    
+    // Emit await opcode - this suspends execution until promise resolves
+    emit(Opcode::OP_AWAIT);
+    // Result value is left on stack
+}
+
+void BytecodeGenerator::compileYieldExpression(const Frontend::YieldExpr* expr) {
+    // yield value or yield* iterable
+    if (expr->argument()) {
+        compileExpression(expr->argument());
+    } else {
+        emit(Opcode::OP_NIL);
+    }
+    
+    // Emit yield opcode - this suspends the generator
+    // For yield*, we need to iterate over the delegated iterator
+    if (expr->delegate()) {
+        emit(Opcode::OP_YIELD);
+        emit(static_cast<uint8_t>(1));  // Delegate flag
+    } else {
+        emit(Opcode::OP_YIELD);
+        emit(static_cast<uint8_t>(0));  // No delegation
+    }
+    // The value passed to next() is left on stack
 }
 
 } // namespace Zepra::Bytecode

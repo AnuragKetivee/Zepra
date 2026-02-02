@@ -2,130 +2,99 @@
 
 /**
  * @file promise.hpp
- * @brief Promise implementation for async/await support
+ * @brief Promise implementation (ES6)
  */
 
 #include "../config.hpp"
 #include "value.hpp"
 #include "object.hpp"
-#include <functional>
 #include <vector>
-#include <queue>
+#include <functional>
 
 namespace Zepra::Runtime {
 
-class VM;
-
 /**
- * @brief Promise state
+ * @brief Promise states
  */
-enum class PromiseState : uint8 {
+enum class PromiseState {
     Pending,
     Fulfilled,
     Rejected
 };
 
-// Forward declaration
-class Promise;
-
 /**
- * @brief Promise reaction (then/catch handler)
+ * @brief Promise callback
  */
-struct PromiseReaction {
-    Value onFulfilled;
-    Value onRejected;
-    Promise* resultPromise = nullptr;
-};
+using PromiseCallback = std::function<Value(const Value&)>;
 
 /**
- * @brief JavaScript Promise object
+ * @brief Promise object
+ * 
+ * Implements ES6 Promise with:
+ * - then(onFulfilled, onRejected)
+ * - catch(onRejected)
+ * - finally(onFinally)
  */
 class Promise : public Object {
 public:
     Promise();
     
-    /**
-     * @brief Get promise state
-     */
+    // State management
     PromiseState state() const { return state_; }
-    
-    /**
-     * @brief Get result value (if fulfilled/rejected)
-     */
     Value result() const { return result_; }
     
-    /**
-     * @brief Resolve the promise with a value
-     */
-    void resolve(Value value);
+    // Resolve/Reject
+    void resolve(const Value& value);
+    void reject(const Value& reason);
     
-    /**
-     * @brief Reject the promise with a reason
-     */
-    void reject(Value reason);
+    // Then/Catch/Finally
+    Promise* then(PromiseCallback onFulfilled, PromiseCallback onRejected = nullptr);
+    Promise* catchError(PromiseCallback onRejected);
+    Promise* finally(PromiseCallback onFinally);
     
-    /**
-     * @brief Add then handler
-     */
-    Promise* then(Value onFulfilled, Value onRejected = Value::undefined());
+    // Static methods
+    static Promise* resolved(const Value& value);
+    static Promise* rejected(const Value& reason);
+    static Promise* all(const std::vector<Promise*>& promises);
+    static Promise* race(const std::vector<Promise*>& promises);
     
-    /**
-     * @brief Add catch handler
-     */
-    Promise* catchError(Value onRejected);
+    // ES2020+
+    static Promise* allSettled(const std::vector<Promise*>& promises);
+    static Promise* any(const std::vector<Promise*>& promises);
     
-    /**
-     * @brief Add finally handler
-     */
-    Promise* finally(Value onFinally);
-    
-    /**
-     * @brief Static Promise.resolve()
-     */
-    static Promise* resolved(Value value);
-    
-    /**
-     * @brief Static Promise.reject()
-     */
-    static Promise* rejected(Value reason);
+    // ES2024
+    static Object* withResolvers();
     
 private:
-    void triggerReactions();
+    struct Reaction {
+        PromiseCallback onFulfilled;
+        PromiseCallback onRejected;
+        Promise* promise;
+    };
     
-    PromiseState state_ = PromiseState::Pending;
+    void fulfill(const Value& value);
+    void rejectInternal(const Value& reason);
+    void processReactions();
+    
+    PromiseState state_;
     Value result_;
-    std::vector<PromiseReaction> reactions_;
+    std::vector<Reaction> reactions_;
 };
 
 /**
- * @brief Microtask queue for promise resolution
+ * @brief Microtask queue (for promises)
  */
 class MicrotaskQueue {
 public:
-    using Microtask = std::function<void()>;
-    
-    /**
-     * @brief Add a microtask
-     */
-    void enqueue(Microtask task);
-    
-    /**
-     * @brief Run all pending microtasks
-     */
-    void drain();
-    
-    /**
-     * @brief Check if queue is empty
-     */
-    bool empty() const { return tasks_.empty(); }
-    
-    /**
-     * @brief Get singleton instance
-     */
     static MicrotaskQueue& instance();
     
+    void enqueue(std::function<void()> task);
+    void process();
+    void drain(); // Defined in stubs/microtask_drain_stub.cpp
+    bool isEmpty() const;
+    
 private:
-    std::queue<Microtask> tasks_;
+    std::vector<std::function<void()>> queue_;
 };
 
 } // namespace Zepra::Runtime

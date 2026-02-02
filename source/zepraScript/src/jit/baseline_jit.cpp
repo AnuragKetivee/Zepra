@@ -205,20 +205,365 @@ std::unique_ptr<CompiledCode> BaselineJIT::compile(const Bytecode::BytecodeChunk
 }
 
 void BaselineJIT::compileOpcode(CodeBuffer& buffer, Bytecode::Opcode op,
-                                 const uint8_t*, size_t&) {
+                                 const uint8_t* bytecode, size_t& ip) {
     using Bytecode::Opcode;
     
     switch (op) {
+        // =====================================================================
+        // Stack Operations
+        // =====================================================================
         case Opcode::OP_NOP:
             buffer.emitNop();
             break;
             
-        case Opcode::OP_RETURN:
-            // Already handled by epilogue
+        case Opcode::OP_POP:
+            // Discard top of stack
+            buffer.emitPop(Reg::RAX);
             break;
             
-        // For now, emit nop for unhandled opcodes
-        // TODO: Implement full opcode translation
+        case Opcode::OP_DUP:
+            // Duplicate top of stack: pop, push, push
+            buffer.emitPop(Reg::RAX);
+            buffer.emitPush(Reg::RAX);
+            buffer.emitPush(Reg::RAX);
+            break;
+            
+        case Opcode::OP_SWAP:
+            // Swap top two: pop both, push in reverse
+            buffer.emitPop(Reg::RAX);
+            buffer.emitPop(Reg::RDX);
+            buffer.emitPush(Reg::RAX);
+            buffer.emitPush(Reg::RDX);
+            break;
+            
+        // =====================================================================
+        // Constants
+        // =====================================================================
+        case Opcode::OP_CONSTANT: {
+            // Push constant from pool (index in next byte)
+            uint8_t constIndex = bytecode[ip++];
+            // For now, push the index as a placeholder
+            // Real implementation would load from constant pool
+            buffer.emitMovImm64(Reg::RAX, constIndex);
+            buffer.emitPush(Reg::RAX);
+            break;
+        }
+            
+        case Opcode::OP_NIL:
+            // Push undefined (encoded as special NaN-boxed value)
+            // TAG_UNDEFINED = 0x7FF8000000000000 | 0x0007000000000000
+            buffer.emitMovImm64(Reg::RAX, 0x7FFF000000000000ULL);
+            buffer.emitPush(Reg::RAX);
+            break;
+            
+        case Opcode::OP_TRUE:
+            // Push true (NaN-boxed boolean)
+            buffer.emitMovImm64(Reg::RAX, 0x7FFB000000000000ULL);
+            buffer.emitPush(Reg::RAX);
+            break;
+            
+        case Opcode::OP_FALSE:
+            // Push false (NaN-boxed boolean)
+            buffer.emitMovImm64(Reg::RAX, 0x7FFA000000000000ULL);
+            buffer.emitPush(Reg::RAX);
+            break;
+            
+        case Opcode::OP_ZERO:
+            // Push 0.0 (IEEE 754 double)
+            buffer.emitMovImm64(Reg::RAX, 0x0000000000000000ULL);
+            buffer.emitPush(Reg::RAX);
+            break;
+            
+        case Opcode::OP_ONE:
+            // Push 1.0 (IEEE 754 double)
+            buffer.emitMovImm64(Reg::RAX, 0x3FF0000000000000ULL);
+            buffer.emitPush(Reg::RAX);
+            break;
+            
+        // =====================================================================
+        // Arithmetic (integer path - full impl needs fp handling)
+        // =====================================================================
+        case Opcode::OP_ADD:
+            // Pop two, add, push result
+            buffer.emitPop(Reg::RDX);   // right operand
+            buffer.emitPop(Reg::RAX);   // left operand
+            buffer.emitAdd(Reg::RAX, Reg::RDX);
+            buffer.emitPush(Reg::RAX);
+            break;
+            
+        case Opcode::OP_SUBTRACT:
+            // Pop two, subtract, push result
+            buffer.emitPop(Reg::RDX);   // right operand
+            buffer.emitPop(Reg::RAX);   // left operand
+            buffer.emitSub(Reg::RAX, Reg::RDX);
+            buffer.emitPush(Reg::RAX);
+            break;
+            
+        case Opcode::OP_NEGATE: {
+            // Negate top of stack: pop, negate, push
+            buffer.emitPop(Reg::RAX);
+            // neg rax: REX.W + F7 /3
+            buffer.emit8(0x48);  // REX.W
+            buffer.emit8(0xF7);  // NEG r/m64
+            buffer.emit8(0xD8);  // ModR/M: reg=3 (neg), r/m=0 (rax)
+            buffer.emitPush(Reg::RAX);
+            break;
+        }
+            
+        case Opcode::OP_MULTIPLY: {
+            // Pop two, multiply, push result
+            buffer.emitPop(Reg::RDX);   // right operand
+            buffer.emitPop(Reg::RAX);   // left operand
+            // imul rax, rdx: REX.W + 0F AF /r
+            buffer.emit8(0x48);  // REX.W
+            buffer.emit8(0x0F);
+            buffer.emit8(0xAF);
+            buffer.emit8(0xC2);  // ModR/M: rax *= rdx
+            buffer.emitPush(Reg::RAX);
+            break;
+        }
+            
+        // =====================================================================
+        // Local Variables
+        // =====================================================================
+        case Opcode::OP_GET_LOCAL: {
+            // Load local variable from stack frame
+            uint8_t slot = bytecode[ip++];
+            // mov rax, [rbp - 8*(slot+1)]
+            buffer.emit8(0x48);  // REX.W
+            buffer.emit8(0x8B);  // MOV r64, r/m64
+            buffer.emit8(0x45);  // ModR/M: [rbp + disp8]
+            buffer.emit8(static_cast<uint8_t>(-8 * (slot + 1)));
+            buffer.emitPush(Reg::RAX);
+            break;
+        }
+            
+        case Opcode::OP_SET_LOCAL: {
+            // Store top of stack to local variable
+            uint8_t slot = bytecode[ip++];
+            buffer.emitPop(Reg::RAX);
+            // mov [rbp - 8*(slot+1)], rax
+            buffer.emit8(0x48);  // REX.W
+            buffer.emit8(0x89);  // MOV r/m64, r64
+            buffer.emit8(0x45);  // ModR/M: [rbp + disp8]
+            buffer.emit8(static_cast<uint8_t>(-8 * (slot + 1)));
+            break;
+        }
+            
+        // =====================================================================
+        // Control Flow
+        // =====================================================================
+        case Opcode::OP_RETURN:
+            // Epilogue handled by compile(), but support early return
+            buffer.emitPop(Reg::RBP);
+            buffer.emitRet();
+            break;
+            
+        case Opcode::OP_JUMP: {
+            // Unconditional jump (16-bit offset)
+            int16_t offset = static_cast<int16_t>(bytecode[ip] | (bytecode[ip + 1] << 8));
+            ip += 2;
+            // jmp rel32: E9 + rel32
+            buffer.emit8(0xE9);
+            buffer.emit32(static_cast<uint32_t>(offset - 5));  // Adjust for instruction size
+            break;
+        }
+            
+        case Opcode::OP_JUMP_IF_FALSE: {
+            // Jump if top of stack is falsy
+            int16_t offset = static_cast<int16_t>(bytecode[ip] | (bytecode[ip + 1] << 8));
+            ip += 2;
+            buffer.emitPop(Reg::RAX);
+            // test rax, rax
+            buffer.emit8(0x48);  // REX.W
+            buffer.emit8(0x85);  // TEST r/m64, r64
+            buffer.emit8(0xC0);  // ModR/M: rax, rax
+            // jz rel32: 0F 84 + rel32
+            buffer.emit8(0x0F);
+            buffer.emit8(0x84);
+            buffer.emit32(static_cast<uint32_t>(offset - 9));  // Adjust for instruction size
+            break;
+        }
+            
+        case Opcode::OP_JUMP_IF_TRUE: {
+            // Jump if top of stack is truthy
+            int16_t offset = static_cast<int16_t>(bytecode[ip] | (bytecode[ip + 1] << 8));
+            ip += 2;
+            buffer.emitPop(Reg::RAX);
+            // test rax, rax
+            buffer.emit8(0x48);  // REX.W
+            buffer.emit8(0x85);  // TEST
+            buffer.emit8(0xC0);  // rax, rax
+            // jnz rel32: 0F 85 + rel32
+            buffer.emit8(0x0F);
+            buffer.emit8(0x85);
+            buffer.emit32(static_cast<uint32_t>(offset - 9));
+            break;
+        }
+            
+        case Opcode::OP_LOOP: {
+            // Backwards jump (for loops)
+            int16_t offset = static_cast<int16_t>(bytecode[ip] | (bytecode[ip + 1] << 8));
+            ip += 2;
+            // jmp rel32 (negative offset)
+            buffer.emit8(0xE9);
+            buffer.emit32(static_cast<uint32_t>(-offset - 5));
+            break;
+        }
+            
+        // =====================================================================
+        // Comparison Operations
+        // =====================================================================
+        case Opcode::OP_EQUAL:
+        case Opcode::OP_STRICT_EQUAL: {
+            // Compare two values for equality
+            buffer.emitPop(Reg::RDX);   // right
+            buffer.emitPop(Reg::RAX);   // left
+            // cmp rax, rdx
+            buffer.emit8(0x48);  // REX.W
+            buffer.emit8(0x39);  // CMP r/m64, r64
+            buffer.emit8(0xD0);  // ModR/M: rax, rdx
+            // sete al (set if equal)
+            buffer.emit8(0x0F);
+            buffer.emit8(0x94);
+            buffer.emit8(0xC0);  // al
+            // movzx rax, al (zero-extend)
+            buffer.emit8(0x48);
+            buffer.emit8(0x0F);
+            buffer.emit8(0xB6);
+            buffer.emit8(0xC0);
+            buffer.emitPush(Reg::RAX);
+            break;
+        }
+            
+        case Opcode::OP_NOT_EQUAL:
+        case Opcode::OP_STRICT_NOT_EQUAL: {
+            // Compare for inequality
+            buffer.emitPop(Reg::RDX);
+            buffer.emitPop(Reg::RAX);
+            // cmp rax, rdx
+            buffer.emit8(0x48);
+            buffer.emit8(0x39);
+            buffer.emit8(0xD0);
+            // setne al
+            buffer.emit8(0x0F);
+            buffer.emit8(0x95);
+            buffer.emit8(0xC0);
+            // movzx rax, al
+            buffer.emit8(0x48);
+            buffer.emit8(0x0F);
+            buffer.emit8(0xB6);
+            buffer.emit8(0xC0);
+            buffer.emitPush(Reg::RAX);
+            break;
+        }
+            
+        case Opcode::OP_LESS: {
+            buffer.emitPop(Reg::RDX);   // right
+            buffer.emitPop(Reg::RAX);   // left
+            // cmp rax, rdx
+            buffer.emit8(0x48);
+            buffer.emit8(0x39);
+            buffer.emit8(0xD0);
+            // setl al (set if less, signed)
+            buffer.emit8(0x0F);
+            buffer.emit8(0x9C);
+            buffer.emit8(0xC0);
+            // movzx rax, al
+            buffer.emit8(0x48);
+            buffer.emit8(0x0F);
+            buffer.emit8(0xB6);
+            buffer.emit8(0xC0);
+            buffer.emitPush(Reg::RAX);
+            break;
+        }
+            
+        case Opcode::OP_LESS_EQUAL: {
+            buffer.emitPop(Reg::RDX);
+            buffer.emitPop(Reg::RAX);
+            // cmp rax, rdx
+            buffer.emit8(0x48);
+            buffer.emit8(0x39);
+            buffer.emit8(0xD0);
+            // setle al
+            buffer.emit8(0x0F);
+            buffer.emit8(0x9E);
+            buffer.emit8(0xC0);
+            // movzx rax, al
+            buffer.emit8(0x48);
+            buffer.emit8(0x0F);
+            buffer.emit8(0xB6);
+            buffer.emit8(0xC0);
+            buffer.emitPush(Reg::RAX);
+            break;
+        }
+            
+        case Opcode::OP_GREATER: {
+            buffer.emitPop(Reg::RDX);
+            buffer.emitPop(Reg::RAX);
+            // cmp rax, rdx
+            buffer.emit8(0x48);
+            buffer.emit8(0x39);
+            buffer.emit8(0xD0);
+            // setg al
+            buffer.emit8(0x0F);
+            buffer.emit8(0x9F);
+            buffer.emit8(0xC0);
+            // movzx rax, al
+            buffer.emit8(0x48);
+            buffer.emit8(0x0F);
+            buffer.emit8(0xB6);
+            buffer.emit8(0xC0);
+            buffer.emitPush(Reg::RAX);
+            break;
+        }
+            
+        case Opcode::OP_GREATER_EQUAL: {
+            buffer.emitPop(Reg::RDX);
+            buffer.emitPop(Reg::RAX);
+            // cmp rax, rdx
+            buffer.emit8(0x48);
+            buffer.emit8(0x39);
+            buffer.emit8(0xD0);
+            // setge al
+            buffer.emit8(0x0F);
+            buffer.emit8(0x9D);
+            buffer.emit8(0xC0);
+            // movzx rax, al
+            buffer.emit8(0x48);
+            buffer.emit8(0x0F);
+            buffer.emit8(0xB6);
+            buffer.emit8(0xC0);
+            buffer.emitPush(Reg::RAX);
+            break;
+        }
+            
+        // =====================================================================
+        // Logical Operations
+        // =====================================================================
+        case Opcode::OP_NOT: {
+            // Logical NOT: pop, negate truthiness, push
+            buffer.emitPop(Reg::RAX);
+            // test rax, rax
+            buffer.emit8(0x48);
+            buffer.emit8(0x85);
+            buffer.emit8(0xC0);
+            // sete al (set if zero, i.e., falsy)
+            buffer.emit8(0x0F);
+            buffer.emit8(0x94);
+            buffer.emit8(0xC0);
+            // movzx rax, al
+            buffer.emit8(0x48);
+            buffer.emit8(0x0F);
+            buffer.emit8(0xB6);
+            buffer.emit8(0xC0);
+            buffer.emitPush(Reg::RAX);
+            break;
+        }
+            
+        // =====================================================================
+        // Fallback - unhandled opcodes emit nop (Tier 2 will handle)
+        // =====================================================================
         default:
             buffer.emitNop();
             break;

@@ -98,6 +98,9 @@ public:
                              bool capture = false);
     bool dispatchEvent(Event* event);
     
+    // Context-aware event dispatch - allows callbacks to be invoked through VM
+    bool dispatchEventWithContext(Event* event, Runtime::Context* ctx);
+    
 protected:
     std::unordered_map<std::string, std::vector<EventListener>> listeners_;
 };

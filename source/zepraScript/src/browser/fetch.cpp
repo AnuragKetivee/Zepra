@@ -13,7 +13,7 @@
 #include "zeprascript/browser/fetch.hpp"
 #include "zeprascript/builtins/json.hpp"
 #include "zeprascript/runtime/function.hpp"
-#include <curl/curl.h>
+#include "nxhttp.h"
 #include <thread>
 #include <mutex>
 #include <atomic>
@@ -238,9 +238,156 @@ Promise* Response::arrayBuffer() const {
 
 Promise* Response::formData() const {
     Promise* p = new Promise();
-    // FormData parsing is complex - return undefined for now
-    // TODO: Implement multipart/form-data and application/x-www-form-urlencoded parsing
-    p->reject(Value::string(new Runtime::String("FormData parsing not yet implemented")));
+    
+    if (body_.empty()) {
+        p->reject(Value::string(new Runtime::String("No body to parse")));
+        return p;
+    }
+    
+    // Check content type
+    std::string contentType = headers_->getHeader("Content-Type");
+    
+    // Create FormData object
+    Object* formData = new Object();
+    
+    if (contentType.find("application/x-www-form-urlencoded") != std::string::npos) {
+        // Parse URL-encoded form data: key1=value1&key2=value2
+        std::string decoded;
+        size_t i = 0;
+        while (i < body_.size()) {
+            std::string key, value;
+            
+            // Read key until '='
+            while (i < body_.size() && body_[i] != '=' && body_[i] != '&') {
+                if (body_[i] == '+') {
+                    key += ' ';
+                } else if (body_[i] == '%' && i + 2 < body_.size()) {
+                    // Decode %XX
+                    char hex[3] = {body_[i+1], body_[i+2], 0};
+                    key += static_cast<char>(std::strtol(hex, nullptr, 16));
+                    i += 2;
+                } else {
+                    key += body_[i];
+                }
+                i++;
+            }
+            
+            if (i < body_.size() && body_[i] == '=') {
+                i++; // Skip '='
+                
+                // Read value until '&' or end
+                while (i < body_.size() && body_[i] != '&') {
+                    if (body_[i] == '+') {
+                        value += ' ';
+                    } else if (body_[i] == '%' && i + 2 < body_.size()) {
+                        char hex[3] = {body_[i+1], body_[i+2], 0};
+                        value += static_cast<char>(std::strtol(hex, nullptr, 16));
+                        i += 2;
+                    } else {
+                        value += body_[i];
+                    }
+                    i++;
+                }
+            }
+            
+            if (!key.empty()) {
+                formData->set(key, Value::string(new Runtime::String(value)));
+            }
+            
+            if (i < body_.size() && body_[i] == '&') i++; // Skip '&'
+        }
+        
+        p->resolve(Value::object(formData));
+        
+    } else if (contentType.find("multipart/form-data") != std::string::npos) {
+        // Parse multipart form data
+        // Find boundary from content type
+        std::string boundary;
+        size_t boundaryPos = contentType.find("boundary=");
+        if (boundaryPos != std::string::npos) {
+            boundary = "--" + contentType.substr(boundaryPos + 9);
+            // Remove trailing semicolon or quotes if present
+            size_t endPos = boundary.find_first_of(";\"");
+            if (endPos != std::string::npos) {
+                boundary = boundary.substr(0, endPos);
+            }
+        }
+        
+        if (!boundary.empty()) {
+            std::string bodyStr = body_;
+            size_t pos = 0;
+            
+            // Skip to first boundary
+            pos = bodyStr.find(boundary, pos);
+            if (pos != std::string::npos) pos += boundary.size();
+            
+            while (pos < bodyStr.size()) {
+                // Skip CRLF after boundary
+                if (bodyStr[pos] == '\r') pos++;
+                if (bodyStr[pos] == '\n') pos++;
+                
+                // Check for end boundary
+                if (pos + 1 < bodyStr.size() && bodyStr[pos] == '-' && bodyStr[pos+1] == '-') {
+                    break;
+                }
+                
+                // Parse headers until empty line
+                std::string name;
+                std::string filename;
+                
+                while (pos < bodyStr.size()) {
+                    size_t lineEnd = bodyStr.find("\r\n", pos);
+                    if (lineEnd == std::string::npos) break;
+                    
+                    std::string line = bodyStr.substr(pos, lineEnd - pos);
+                    pos = lineEnd + 2;
+                    
+                    if (line.empty()) break; // End of headers
+                    
+                    // Parse Content-Disposition
+                    if (line.find("Content-Disposition:") != std::string::npos) {
+                        size_t namePos = line.find("name=\"");
+                        if (namePos != std::string::npos) {
+                            namePos += 6;
+                            size_t nameEnd = line.find("\"", namePos);
+                            name = line.substr(namePos, nameEnd - namePos);
+                        }
+                        size_t filePos = line.find("filename=\"");
+                        if (filePos != std::string::npos) {
+                            filePos += 10;
+                            size_t fileEnd = line.find("\"", filePos);
+                            filename = line.substr(filePos, fileEnd - filePos);
+                        }
+                    }
+                }
+                
+                // Read content until next boundary
+                size_t contentEnd = bodyStr.find(boundary, pos);
+                if (contentEnd == std::string::npos) break;
+                
+                // Remove trailing CRLF from content
+                if (contentEnd >= 2 && bodyStr[contentEnd-1] == '\n' && bodyStr[contentEnd-2] == '\r') {
+                    contentEnd -= 2;
+                }
+                
+                std::string content = bodyStr.substr(pos, contentEnd - pos);
+                
+                if (!name.empty()) {
+                    formData->set(name, Value::string(new Runtime::String(content)));
+                }
+                
+                // Move past this boundary to next part
+                pos = bodyStr.find(boundary, contentEnd);
+                if (pos != std::string::npos) pos += boundary.size();
+            }
+        }
+        
+        p->resolve(Value::object(formData));
+        
+    } else {
+        p->reject(Value::string(new Runtime::String("Unsupported content type for FormData")));
+    }
+    
     return p;
 }
 
@@ -480,12 +627,64 @@ public:
     bool aborted() const { return aborted_; }
     
     void abort() {
+        if (aborted_) return; // Already aborted
+        
         aborted_ = true;
-        // TODO: Fire abort event to listeners
+        
+        // Fire abort event to all registered listeners
+        for (const auto& listener : abortListeners_) {
+            if (listener.isObject() && listener.asObject()->isFunction()) {
+                Runtime::Function* fn = static_cast<Runtime::Function*>(listener.asObject());
+                // Create abort event object
+                Runtime::Object* event = new Runtime::Object();
+                event->set("type", Value::string(new Runtime::String("abort")));
+                event->set("target", Value::object(this));
+                
+                std::vector<Value> args = { Value::object(event) };
+                fn->call(nullptr, Value::object(this), args);
+            }
+        }
+    }
+    
+    /**
+     * @brief Add an abort event listener
+     */
+    void addEventListener(const std::string& type, Value callback) {
+        if (type == "abort" && callback.isObject()) {
+            abortListeners_.push_back(callback);
+        }
+    }
+    
+    /**
+     * @brief Remove an abort event listener
+     */
+    void removeEventListener(const std::string& type, Value callback) {
+        if (type == "abort") {
+            abortListeners_.erase(
+                std::remove_if(abortListeners_.begin(), abortListeners_.end(),
+                    [&callback](const Value& v) {
+                        return v.isObject() && callback.isObject() && 
+                               v.asObject() == callback.asObject();
+                    }),
+                abortListeners_.end());
+        }
+    }
+    
+    /**
+     * @brief Set onabort handler (property-style)
+     */
+    void setOnAbort(Value handler) {
+        onAbortHandler_ = handler;
+        if (handler.isObject()) {
+            // Add to listeners if not already present
+            addEventListener("abort", handler);
+        }
     }
     
 private:
     std::atomic<bool> aborted_;
+    std::vector<Value> abortListeners_;
+    Value onAbortHandler_;
 };
 
 class AbortController : public Runtime::Object {
@@ -505,42 +704,8 @@ private:
 };
 
 // =============================================================================
-// HTTP Helper (libcurl)
+// HTTP Helper (nxhttp)
 // =============================================================================
-
-static size_t curlWriteCallback(void* contents, size_t size, size_t nmemb, void* userp) {
-    ((std::string*)userp)->append((char*)contents, size * nmemb);
-    return size * nmemb;
-}
-
-static size_t curlHeaderCallback(char* buffer, size_t size, size_t nitems, void* userdata) {
-    size_t totalSize = size * nitems;
-    Headers* headers = static_cast<Headers*>(userdata);
-    
-    std::string line(buffer, totalSize);
-    
-    // Remove trailing \r\n
-    while (!line.empty() && (line.back() == '\r' || line.back() == '\n')) {
-        line.pop_back();
-    }
-    
-    // Parse header line
-    size_t colonPos = line.find(':');
-    if (colonPos != std::string::npos) {
-        std::string name = line.substr(0, colonPos);
-        std::string value = line.substr(colonPos + 1);
-        
-        // Trim leading whitespace from value
-        size_t valueStart = value.find_first_not_of(" \t");
-        if (valueStart != std::string::npos) {
-            value = value.substr(valueStart);
-        }
-        
-        headers->setHeader(name, value);
-    }
-    
-    return totalSize;
-}
 
 struct HttpResult {
     bool success = false;
@@ -549,6 +714,19 @@ struct HttpResult {
     Headers* headers = nullptr;
     std::string error;
 };
+
+/**
+ * @brief Convert method string to NxHttpMethod enum
+ */
+static NxHttpMethod methodStringToEnum(const std::string& method) {
+    if (method == "POST") return NX_HTTP_POST;
+    if (method == "PUT") return NX_HTTP_PUT;
+    if (method == "DELETE") return NX_HTTP_DELETE;
+    if (method == "PATCH") return NX_HTTP_PATCH;
+    if (method == "HEAD") return NX_HTTP_HEAD;
+    if (method == "OPTIONS") return NX_HTTP_OPTIONS;
+    return NX_HTTP_GET;
+}
 
 static HttpResult performHttpRequest(
     const std::string& url, 
@@ -561,89 +739,97 @@ static HttpResult performHttpRequest(
     HttpResult result;
     result.headers = new Headers();
     
-    CURL* curl = curl_easy_init();
-    if (!curl) {
-        result.error = "Failed to initialize curl";
+    // Create nxhttp request
+    NxHttpRequest* req = nx_http_request_create(methodStringToEnum(method), url.c_str());
+    if (!req) {
+        result.error = "Failed to create HTTP request";
         return result;
     }
     
-    std::string readBuffer;
+    // Set timeout
+    nx_http_request_set_timeout(req, static_cast<int>(timeoutMs));
     
-    curl_easy_setopt(curl, CURLOPT_URL, url.c_str());
-    curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, curlWriteCallback);
-    curl_easy_setopt(curl, CURLOPT_WRITEDATA, &readBuffer);
-    curl_easy_setopt(curl, CURLOPT_HEADERFUNCTION, curlHeaderCallback);
-    curl_easy_setopt(curl, CURLOPT_HEADERDATA, result.headers);
-    curl_easy_setopt(curl, CURLOPT_USERAGENT, "ZepraBrowser/1.0");
-    curl_easy_setopt(curl, CURLOPT_FOLLOWLOCATION, 1L);
-    curl_easy_setopt(curl, CURLOPT_SSL_VERIFYPEER, 1L);
-    curl_easy_setopt(curl, CURLOPT_SSL_VERIFYHOST, 2L);
-    curl_easy_setopt(curl, CURLOPT_TIMEOUT_MS, timeoutMs);
-    
-    // Set method
-    if (method == "POST") {
-        curl_easy_setopt(curl, CURLOPT_POST, 1L);
-    } else if (method == "PUT") {
-        curl_easy_setopt(curl, CURLOPT_CUSTOMREQUEST, "PUT");
-    } else if (method == "DELETE") {
-        curl_easy_setopt(curl, CURLOPT_CUSTOMREQUEST, "DELETE");
-    } else if (method == "PATCH") {
-        curl_easy_setopt(curl, CURLOPT_CUSTOMREQUEST, "PATCH");
-    } else if (method == "HEAD") {
-        curl_easy_setopt(curl, CURLOPT_NOBODY, 1L);
-    } else if (method == "OPTIONS") {
-        curl_easy_setopt(curl, CURLOPT_CUSTOMREQUEST, "OPTIONS");
-    }
+    // Set redirects
+    nx_http_request_set_follow_redirects(req, true, 10);
     
     // Set request body
     if (!body.empty()) {
-        curl_easy_setopt(curl, CURLOPT_POSTFIELDS, body.c_str());
-        curl_easy_setopt(curl, CURLOPT_POSTFIELDSIZE, static_cast<long>(body.size()));
+        nx_http_request_set_body_string(req, body.c_str());
     }
     
     // Set custom headers
-    struct curl_slist* headerList = nullptr;
     if (requestHeaders) {
         for (const auto& [name, value] : requestHeaders->entries()) {
-            std::string header = name + ": " + value;
-            headerList = curl_slist_append(headerList, header.c_str());
-        }
-        if (headerList) {
-            curl_easy_setopt(curl, CURLOPT_HTTPHEADER, headerList);
+            nx_http_request_set_header(req, name.c_str(), value.c_str());
         }
     }
     
-    // Set up abort checking via progress function
-    if (signal) {
-        curl_easy_setopt(curl, CURLOPT_NOPROGRESS, 0L);
-        curl_easy_setopt(curl, CURLOPT_XFERINFODATA, signal);
-        curl_easy_setopt(curl, CURLOPT_XFERINFOFUNCTION, 
-            [](void* clientp, curl_off_t, curl_off_t, curl_off_t, curl_off_t) -> int {
-                AbortSignal* sig = static_cast<AbortSignal*>(clientp);
-                return sig && sig->aborted() ? 1 : 0;  // Return non-zero to abort
-            });
-    }
+    // Set User-Agent header
+    nx_http_request_set_header(req, "User-Agent", "ZepraBrowser/1.0");
     
-    CURLcode res = curl_easy_perform(curl);
-    
-    if (res == CURLE_OK) {
-        result.success = true;
-        
-        long code;
-        curl_easy_getinfo(curl, CURLINFO_RESPONSE_CODE, &code);
-        result.statusCode = static_cast<int>(code);
-        result.body = std::move(readBuffer);
-    } else if (res == CURLE_ABORTED_BY_CALLBACK) {
+    // Check abort signal before request
+    if (signal && signal->aborted()) {
+        nx_http_request_free(req);
         result.error = "Request aborted";
+        return result;
+    }
+    
+    // Create client and send request
+    NxHttpClientConfig config = {
+        .connect_timeout_ms = static_cast<int>(timeoutMs),
+        .read_timeout_ms = static_cast<int>(timeoutMs),
+        .follow_redirects = true,
+        .max_redirects = 10,
+        .verify_ssl = true,
+        .user_agent = "ZepraBrowser/1.0"
+    };
+    
+    NxHttpClient* client = nx_http_client_create(&config);
+    if (!client) {
+        nx_http_request_free(req);
+        result.error = "Failed to create HTTP client";
+        return result;
+    }
+    
+    NxHttpError err;
+    NxHttpResponse* res = nx_http_client_send(client, req, &err);
+    
+    if (res) {
+        result.success = true;
+        result.statusCode = nx_http_response_status(res);
+        
+        // Get body
+        const char* bodyStr = nx_http_response_body_string(res);
+        if (bodyStr) {
+            result.body = bodyStr;
+        }
+        
+        // Copy response headers
+        const NxHttpHeaders* resHeaders = nx_http_response_headers(res);
+        if (resHeaders) {
+            size_t count = nx_http_headers_count(resHeaders);
+            for (size_t i = 0; i < count; ++i) {
+                const char* name = nullptr;
+                const char* value = nullptr;
+                if (nx_http_headers_get_at(resHeaders, i, &name, &value) && name && value) {
+                    result.headers->setHeader(name, value);
+                }
+            }
+        }
+        
+        nx_http_response_free(res);
     } else {
-        result.error = curl_easy_strerror(res);
+        // Check abort signal
+        if (signal && signal->aborted()) {
+            result.error = "Request aborted";
+        } else {
+            result.error = nx_http_error_string(err);
+        }
     }
     
-    if (headerList) {
-        curl_slist_free_all(headerList);
-    }
+    nx_http_client_free(client);
+    nx_http_request_free(req);
     
-    curl_easy_cleanup(curl);
     return result;
 }
 
@@ -785,20 +971,16 @@ Value FetchAPI::fetchBuiltin(Runtime::Context*, const std::vector<Value>& args) 
 // Global Initialization
 // =============================================================================
 
-static bool curlInitialized = false;
+static bool fetchInitialized = false;
 
 void initFetchAPI() {
-    if (!curlInitialized) {
-        curl_global_init(CURL_GLOBAL_ALL);
-        curlInitialized = true;
-    }
+    // nxhttp doesn't require global initialization
+    fetchInitialized = true;
 }
 
 void shutdownFetchAPI() {
-    if (curlInitialized) {
-        curl_global_cleanup();
-        curlInitialized = false;
-    }
+    // nxhttp doesn't require global cleanup
+    fetchInitialized = false;
 }
 
 } // namespace Zepra::Browser

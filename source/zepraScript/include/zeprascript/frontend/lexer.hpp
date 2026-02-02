@@ -46,6 +46,11 @@ public:
     const SourceLocation& currentLocation() const { return location_; }
     
     /**
+     * @brief Get current offset (for debug progress tracking)
+     */
+    size_t offset() const { return offset_; }
+    
+    /**
      * @brief Get all errors encountered
      */
     const std::vector<std::string>& errors() const { return errors_; }
@@ -54,6 +59,32 @@ public:
      * @brief Check if any errors occurred
      */
     bool hasErrors() const { return !errors_.empty(); }
+    
+    /**
+     * @brief Get current lexer state for backtracking
+     */
+    struct LexerState {
+        size_t offset;
+        SourceLocation location;
+        Token peekedToken;
+        bool hasPeeked;
+        bool canFollowDivision;
+    };
+    
+    LexerState checkpoint() const {
+        return {offset_, location_, peekedToken_, hasPeeked_, canFollowDivision_};
+    }
+    
+    /**
+     * @brief Restore lexer to a previous state
+     */
+    void restore(const LexerState& state) {
+        offset_ = state.offset;
+        location_ = state.location;
+        peekedToken_ = state.peekedToken;
+        hasPeeked_ = state.hasPeeked;
+        canFollowDivision_ = state.canFollowDivision;
+    }
     
 private:
     // Character reading

@@ -6,6 +6,7 @@
 #include "zeprascript/runtime/value.hpp"
 #include "zeprascript/runtime/object.hpp"
 #include "zeprascript/runtime/function.hpp"
+#include "zeprascript/runtime/bigint_object.hpp"
 #include <sstream>
 #include <cmath>
 #include <limits>
@@ -18,6 +19,7 @@ ValueType Value::type() const {
     if (isBoolean()) return ValueType::Boolean;
     if (isNumber()) return ValueType::Number;
     if (isString()) return ValueType::String;
+    if (isBigInt()) return ValueType::BigInt;
     if (isObject()) return ValueType::Object;
     return ValueType::Undefined;
 }
@@ -45,6 +47,21 @@ Array* Value::asArray() const {
     Object* obj = asObject();
     if (!obj->isArray()) return nullptr;
     return static_cast<Array*>(obj);
+}
+
+bool Value::isBigInt() const {
+    if (!isObject()) return false;
+    Object* obj = asObject();
+    return obj && obj->objectType() == ObjectType::BigInt;
+}
+
+BigIntObject* Value::asBigInt() const {
+    if (!isBigInt()) return nullptr;
+    return static_cast<BigIntObject*>(asObject());
+}
+
+Value Value::bigint(BigIntObject* bi) {
+    return Value::object(static_cast<Object*>(bi));
 }
 
 bool Value::toBoolean() const {

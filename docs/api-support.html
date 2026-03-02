@@ -1,0 +1,227 @@
+<!DOCTYPE html>
+<html lang="en" class="scroll-smooth">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>API_SUPPORT.md</title>
+    
+    <!-- Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+    
+    <!-- Tailwind CSS with Typography Plugin -->
+    <script src="https://cdn.tailwindcss.com?plugins=typography"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        bg: {
+                            primary: '#0a0a0f',
+                            secondary: '#12121a',
+                            tertiary: '#1a1a24'
+                        },
+                        accent: {
+                            DEFAULT: '#10b981',
+                            light: '#34d399',
+                            dark: '#059669',
+                            glow: 'rgba(16, 185, 129, 0.3)'
+                        }
+                    },
+                    fontFamily: {
+                        sans: ['Inter', 'sans-serif'],
+                        mono: ['JetBrains Mono', 'monospace'],
+                    },
+                    typography: (theme) => ({
+                        DEFAULT: {
+                            css: {
+                                color: theme('colors.gray.300'),
+                                a: {
+                                    color: theme('colors.emerald.400'),
+                                    '&:hover': {
+                                        color: theme('colors.emerald.300'),
+                                    },
+                                },
+                                h1: { color: theme('colors.white') },
+                                h2: { color: theme('colors.white') },
+                                h3: { color: theme('colors.white') },
+                                h4: { color: theme('colors.gray.100') },
+                                code: { color: theme('colors.pink.400') },
+                                'code::before': { content: '""' },
+                                'code::after': { content: '""' },
+                                pre: {
+                                    backgroundColor: theme('colors.bg.tertiary'),
+                                    color: theme('colors.gray.200'),
+                                },
+                                blockquote: {
+                                    color: theme('colors.gray.400'),
+                                    borderLeftColor: theme('colors.emerald.500'),
+                                },
+                            },
+                        },
+                    }),
+                }
+            }
+        }
+    </script>
+
+    <!-- Custom CSS -->
+    <link rel="stylesheet" href="assets/css/docs.css">
+</head>
+<body class="antialiased min-h-screen relative selection:bg-emerald-500/30 selection:text-emerald-200">
+
+    <!-- Background Elements -->
+    <div class="bg-grid"></div>
+    <div class="glow-orb orb-1"></div>
+    <div class="glow-orb orb-2"></div>
+
+    <!-- Navigation -->
+    
+    
+    <!-- Navigation Sidebar -->
+    <aside class="fixed left-0 top-0 w-72 h-screen bg-dark-800/90 backdrop-blur-xl border-r border-white/5 z-50 overflow-y-auto">
+        <div class="p-6 border-b border-white/5">
+            <div class="flex items-center gap-3">
+                <a href="index.html" class="flex items-center gap-3 w-full">
+                    <div class="w-10 h-10 rounded-xl bg-gradient-to-br from-emerald-500 to-blue-500 flex items-center justify-center glow">
+                        <img src="../resources/zepraicon/logo.svg" alt="Zepra Logo" class="w-8 h-8 object-contain">
+                    </div>
+                    <div>
+                        <h1 class="font-bold text-lg text-white">ZepraBrowser</h1>
+                        <span class="text-xs text-gray-500">Documentation Hub</span>
+                    </div>
+                </a>
+            </div>
+        </div>
+        <nav class="p-4">
+            <div class="mb-6">
+                <span class="text-[10px] font-semibold uppercase tracking-wider text-gray-500 px-3">Quick Navigation</span>
+                <div class="mt-2 space-y-1">
+                    <a href="index.html" class="nav-link flex items-center gap-3 px-3 py-2 text-sm text-gray-400 hover:text-white rounded-lg hover:bg-white/5 transition-all border-l-2 border-transparent">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"/></svg>
+                        Hub Home
+                    </a>
+                    <a href="zeprascript/index.html" class="nav-link flex items-center gap-3 px-3 py-2 text-sm text-gray-400 hover:text-white rounded-lg hover:bg-white/5 transition-all border-l-2 border-transparent">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>
+                        ZepraScript Engine
+                    </a>
+                </div>
+            </div>
+            <div class="mb-6">
+                <span class="text-[10px] font-semibold uppercase tracking-wider text-gray-500 px-3">Overview</span>
+                <div class="mt-2 space-y-1">
+                    <a href="architecture.html" class="nav-link flex items-center gap-3 px-3 py-2 text-sm text-gray-400 hover:text-white rounded-lg hover:bg-white/5 transition-all border-l-2 border-transparent pl-6">Architecture</a>
+                    <a href="advanced-developer-tools.html" class="nav-link flex items-center gap-3 px-3 py-2 text-sm text-gray-400 hover:text-white rounded-lg hover:bg-white/5 transition-all border-l-2 border-transparent pl-6">Developer Tools</a>
+                    <a href="security-model.html" class="nav-link flex items-center gap-3 px-3 py-2 text-sm text-gray-400 hover:text-white rounded-lg hover:bg-white/5 transition-all border-l-2 border-transparent pl-6">Security Model</a>
+                    <a href="NXRENDER/architecture.html" class="nav-link flex items-center gap-3 px-3 py-2 text-sm text-gray-400 hover:text-white rounded-lg hover:bg-white/5 transition-all border-l-2 border-transparent pl-6">NXRender</a>
+                </div>
+            </div>
+        </nav>
+    </aside>
+
+
+<main class="ml-72 flex-1 min-w-0 min-h-screen py-12 px-8 max-w-5xl mx-auto">
+<!-- Page Header with Icon -->
+                <div class="flex items-center gap-4 mb-8 border-b border-white/10 pb-8 animate-fade-in">
+                    <div class="w-16 h-16 rounded-2xl bg-bg-secondary border border-white/5 flex items-center justify-center shrink-0">
+                        <svg class="w-8 h-8 opacity-80 text-emerald-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>
+                    </div>
+                    <div>
+                        <h1 class="text-3xl sm:text-4xl font-bold text-white tracking-tight">API_SUPPORT.md</h1>
+                        <p class="text-gray-400 mt-1 text-sm font-mono">API_SUPPORT.html</p>
+                    </div>
+                </div>
+
+                <div class="prose prose-invert prose-emerald max-w-none animate-fade-up">
+
+
+
+
+<h1>Zepra Browser - API Support</h1>
+<h2>✅ TIER 1: Core APIs (Fully Supported)</h2>
+<h3>DOM &amp; Runtime</h3>
+<ul>
+<li>Document Object Model (DOM)</li>
+<li>HTML DOM API  </li>
+<li>Window, Document, Element, Node</li>
+<li>Event / UI Events</li>
+<li>History API</li>
+<li>Navigator API ✅</li>
+<li>Selection API</li>
+</ul>
+<h3>Networking</h3>
+<ul>
+<li>Fetch API ✅</li>
+<li>XMLHttpRequest</li>
+<li>URL / URLSearchParams</li>
+<li>WebSocket API</li>
+<li>Server-Sent Events</li>
+</ul>
+<h3>Storage</h3>
+<ul>
+<li>localStorage / sessionStorage ✅</li>
+<li>IndexedDB (planned)</li>
+<li>Cache API (planned)</li>
+</ul>
+<h3>Security</h3>
+<ul>
+<li>Same-Origin Policy</li>
+<li>Permissions API (planned)</li>
+<li>Web Crypto API (planned)</li>
+<li>CSP (basic)</li>
+</ul>
+<hr />
+<h2>✅ TIER 2: Modern APIs (In Progress)</h2>
+<h3>Rendering</h3>
+<ul>
+<li>Canvas API (planned)</li>
+<li>SVG API</li>
+<li>Web Animations API</li>
+<li>Resize/Intersection/Mutation Observers</li>
+<li>requestAnimationFrame</li>
+</ul>
+<h3>Media</h3>
+<ul>
+<li>Web Audio API (planned - NXAudio backend)</li>
+<li>WebGL 2.0 (stub)</li>
+<li>WebCodecs (planned)</li>
+<li>Picture-in-Picture</li>
+</ul>
+<h3>Workers</h3>
+<ul>
+<li>Web Workers (planned)</li>
+<li>Service Workers (planned)</li>
+<li>Streams API</li>
+</ul>
+<hr />
+<h2>🟡 TIER 3: Controlled APIs (Permission-Gated)</h2>
+<ul>
+<li>Vibration API ✅ (requires user gesture)</li>
+<li>Gamepad API (planned)</li>
+<li>Fullscreen API</li>
+<li>Screen Orientation</li>
+<li>Notifications API (requires permission)</li>
+<li>Geolocation (coarse only) ✅</li>
+</ul>
+<hr />
+<h2>❌ TIER 4: Blocked by Design</h2>
+<p>See <a href="api-blocked-by-design.html">API_BLOCKED_BY_DESIGN.md</a></p>
+
+        
+                </div>
+            </main>
+
+    <!-- Footer -->
+    <footer class="bg-bg-secondary border-t border-white/5 py-12 mt-12">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
+            <p class="text-gray-500 text-sm">© 2026 ZepraBrowser · Part of the NeolyxOS Project</p>
+        </div>
+    </footer>
+
+    <!-- Scripts -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/gsap.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/ScrollTrigger.min.js"></script>
+    <script src="assets/js/docs.js" defer></script>
+</body>
+</html>

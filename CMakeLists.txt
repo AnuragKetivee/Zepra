@@ -1,13 +1,42 @@
 cmake_minimum_required(VERSION 3.16)
 project(Zepra VERSION 1.0.0 LANGUAGES CXX)
 
+# ============================================================================
+# Build System - Prefer Ninja for faster, lighter builds
+# ============================================================================
+# To use Ninja: cmake -G Ninja -B build
+# Or set CMAKE_GENERATOR=Ninja environment variable
+# ============================================================================
+
 # Set C++ standard
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
+# Performance optimizations for build
+set(CMAKE_EXPORT_COMPILE_COMMANDS ON)  # For IDE support
+
+# Limit parallel jobs to prevent system overload (adjust based on your system)
+if(NOT DEFINED CMAKE_BUILD_PARALLEL_LEVEL)
+    # Use half of available cores to prevent overload
+    cmake_host_system_information(RESULT NPROC QUERY NUMBER_OF_LOGICAL_CORES)
+    math(EXPR PARALLEL_JOBS "${NPROC} / 2")
+    if(PARALLEL_JOBS LESS 1)
+        set(PARALLEL_JOBS 1)
+    endif()
+    message(STATUS "Build parallelism: ${PARALLEL_JOBS} jobs (of ${NPROC} cores)")
+endif()
+
+# Ninja-specific optimizations
+if(CMAKE_GENERATOR MATCHES "Ninja")
+    message(STATUS "Using Ninja generator - optimized for performance")
+    # Ninja pool for linking (reduce memory usage)
+    set_property(GLOBAL PROPERTY JOB_POOLS link_pool=2)
+endif()
+
 # Build options
 option(USE_UNIFIED_SYSTEM "Use unified Zepra Core system" OFF)
 option(USE_NXRENDER "Use NXRENDER native rendering (no SDL)" OFF)
+option(USE_ZEPRA_STACK "Use custom Zepra libraries (NxHTTP, NxJSON, NxCrypto)" OFF)
 
 # Set build type if not specified
 if(NOT CMAKE_BUILD_TYPE)
@@ -35,14 +64,7 @@ if(WIN32)
         endif()
     endif()
     
-    # Try to find CURL
-    find_package(CURL QUIET)
-    if(NOT CURL_FOUND)
-        # Try to find CURL using pkg-config
-        if(PkgConfig_FOUND)
-            pkg_check_modules(CURL QUIET libcurl)
-        endif()
-    endif()
+
     
     # Try to find OpenSSL
     find_package(PkgConfig QUIET)
@@ -69,18 +91,21 @@ if(WIN32)
 elseif(APPLE)
     # macOS-specific settings
     find_package(SDL2 REQUIRED)
-    find_package(CURL REQUIRED)
+
     set(PLATFORM_LIBS "")
     
 else()
     # Linux-specific settings
     find_package(PkgConfig REQUIRED)
+    find_package(X11 REQUIRED)
+    find_package(Freetype REQUIRED)
+    
     pkg_check_modules(SDL2 REQUIRED sdl2)
     pkg_check_modules(SDL2_IMAGE REQUIRED SDL2_image)
     pkg_check_modules(SDL2_TTF REQUIRED SDL2_ttf)
-    pkg_check_modules(CURL REQUIRED libcurl)
+
     pkg_check_modules(OPENSSL REQUIRED openssl)
-    set(PLATFORM_LIBS "")
+    set(PLATFORM_LIBS ${X11_LIBRARIES} Freetype::Freetype)
 endif()
 
 # Find OpenGL
@@ -89,8 +114,6 @@ find_package(OpenGL REQUIRED)
 # Include directories
 include_directories(${CMAKE_SOURCE_DIR}/include)
 include_directories(${CMAKE_SOURCE_DIR}/external)
-include_directories(${CMAKE_SOURCE_DIR}/binof\ kit+/include)
-include_directories(${CMAKE_SOURCE_DIR}/binof\ kit+/json)
 
 # ============================================================================
 # Engine subdirectories (zepraScript, webCore, etc.)
@@ -107,23 +130,50 @@ include_directories(${CMAKE_SOURCE_DIR}/source/webCore/include)
 add_subdirectory(source/networking)
 include_directories(${CMAKE_SOURCE_DIR}/source/networking/include)
 
-# Build ZepraEngine demo applications
-add_subdirectory(source/zepraEngine)
+# Build NXRender-cpp graphics library
+add_subdirectory(source/nxrender-cpp)
+
+# NOTE: zepraEngine demos moved to test/demos/zepraEngine/ (SDL removed)
 
 # Build Integration layer (JS↔DOM bridge)
 add_subdirectory(source/integration)
 include_directories(${CMAKE_SOURCE_DIR}/source/integration/include)
 
+# Build NXAudio (Audio Engine)
+add_subdirectory(src/nxaudio)
+include_directories(${CMAKE_SOURCE_DIR}/src/nxaudio/include)
+
+# ============================================================================
+# Custom Zepra Stack (optional - replace system libs)
+# ============================================================================
+# Custom Zepra Stack (Unconditional)
+# ============================================================================
+    message(STATUS "Using custom Zepra Stack libraries")
+    add_subdirectory(source/nxbase)
+    add_subdirectory(source/nxjson)
+    add_subdirectory(source/nxhttp)
+    add_subdirectory(source/nxxml)
+    add_subdirectory(source/nxcrypto)
+    
+    include_directories(${CMAKE_SOURCE_DIR}/source/nxbase/include)
+    include_directories(${CMAKE_SOURCE_DIR}/source/nxjson/include)
+    include_directories(${CMAKE_SOURCE_DIR}/source/nxhttp/include)
+    include_directories(${CMAKE_SOURCE_DIR}/source/nxxml/include)
+    include_directories(${CMAKE_SOURCE_DIR}/source/nxcrypto/include)
+
 # Source files
 if(USE_NXRENDER)
     # NXRENDER native build - no SDL
     set(SOURCES
-        src/main_nxrender.cpp
+        src/main.cpp
+        src/zepra_browser.cpp
         src/engine/dev_tools.cpp
         src/engine/webkit_engine_stub.cpp
         src/engine/html_parser_stub.cpp
         src/engine/audio_stub.cpp
         src/engine/avmedia_stub.cpp
+        src/engine/console_log.cpp
+        src/engine/download_manager.cpp
         src/search/ketivee_search.cpp
         src/ui/window.cpp
         src/ui/tab_manager.cpp
@@ -134,9 +184,33 @@ if(USE_NXRENDER)
         src/sandbox/sandbox_manager.cpp
         src/config/config_manager.cpp
         src/remote/zep_remote.cpp
+        src/network/network_monitor.cpp
+        src/network/monitored_http.cpp
+        src/security/security_checker.cpp
+        src/browser/mouse_handler.cpp
+        src/browser/layout_engine.cpp
+        src/browser/css_utils.cpp
+        # New modular architecture
+        src/storage/bookmark_manager.cpp
+        src/storage/history_database.cpp
+        src/storage/settings_store.cpp
+        src/browser/navigation_controller.cpp
+        src/browser/rewards_manager.cpp
+        src/ai/ai_sidebar.cpp
+        # Memory optimization
+        src/memory/memory_pools.cpp
+        # src/browser/tab_suspender.cpp  # DISABLED: ZepraBrowser::Tab vs zepra::Tab mismatch
+        src/browser/lazy_image_loader.cpp
+        # WebCore integration
+        src/webcore_integration.cpp
+        # NXRender-Layout bridge
+        src/browser/nxrender_layout_bridge.cpp
+        # Stubs for missing WebCore symbols (WebGL, etc.)
+        src/stubs/webgl_stubs.cpp
+        src/stubs/tab_suspender_stubs.cpp
     )
-    set(EXECUTABLE_NAME "zepra_nxrender")
-    set(NXRENDER_LIB_PATH "${CMAKE_SOURCE_DIR}/source/nxrender/target/release")
+    set(EXECUTABLE_NAME "zepra_browser")
+    # NXRender-cpp is built as subdirectory, no external lib path needed
 elseif(USE_UNIFIED_SYSTEM)
     set(SOURCES
         src/main_unified.cpp
@@ -159,11 +233,13 @@ elseif(USE_UNIFIED_SYSTEM)
 else()
     set(SOURCES
         src/main.cpp
+        src/zepra_browser.cpp
         src/engine/dev_tools.cpp
         src/engine/webkit_engine_stub.cpp
         src/engine/audio_stub.cpp
         src/engine/avmedia_stub.cpp
         src/engine/html_parser_stub.cpp
+        src/engine/download_manager.cpp
         src/search/ketivee_search.cpp
         src/ui/window.cpp
         src/ui/tab_manager.cpp
@@ -173,7 +249,10 @@ else()
         src/ui/settings_ui.cpp
         src/sandbox/sandbox_manager.cpp
         src/config/config_manager.cpp
+        src/network/network_monitor.cpp
     )
+
+
     set(EXECUTABLE_NAME "zepra_browser")
 endif()
 
@@ -212,22 +291,40 @@ if(USE_NXRENDER)
     # NXRENDER mode - link nxrender_ffi, X11, OpenGL, FreeType
     find_package(X11 REQUIRED)
     find_package(Freetype REQUIRED)
+    # CURL removed - now using nxhttp
+    find_package(PkgConfig REQUIRED)
+    # Note: Using nxjson instead of jsoncpp (line 266)
+    
     target_link_libraries(${EXECUTABLE_NAME} 
-        ${NXRENDER_LIB_PATH}/libnxrender_ffi.so
-        ${X11_LIBRARIES}
-        GL GLX
-        pthread dl m
-        Freetype::Freetype
         webcore
+        nxrender
+        ${X11_LIBRARIES}
+        X11
+        GL GLX
+        pthread dl m z
+        Freetype::Freetype
         zepra-integration
         networking
+        nxaudio_static
+        nxhttp
+        nxbase
+        nxcrypto
+        nxjson
+        nxxml
     )
     target_include_directories(${EXECUTABLE_NAME} PRIVATE 
         ${CMAKE_SOURCE_DIR}/include
+        ${CMAKE_SOURCE_DIR}/include/storage
+        ${CMAKE_SOURCE_DIR}/include/browser
+        ${CMAKE_SOURCE_DIR}/include/input
+        ${CMAKE_SOURCE_DIR}/include/ai
+        ${CMAKE_SOURCE_DIR}/source/nxrender-cpp/include
         ${X11_INCLUDE_DIR}
         ${FREETYPE_INCLUDE_DIRS}
+        ${CMAKE_SOURCE_DIR}/../../REOX/reolab/runtime
     )
-    message(STATUS "Using NXRENDER native rendering with X11/OpenGL/FreeType")
+    target_compile_definitions(${EXECUTABLE_NAME} PRIVATE USE_WEBCORE)
+    message(STATUS "Using NXRENDER + REOX native rendering with X11/OpenGL/FreeType (NO SDL)")
 else()
     # SDL mode
     if(SDL2_FOUND)
@@ -237,6 +334,8 @@ else()
         else()
             target_link_libraries(${EXECUTABLE_NAME} SDL2::SDL2)
         endif()
+        # USE_WEBCORE needed for gfx namespace in zepra_browser.cpp
+        target_compile_definitions(${EXECUTABLE_NAME} PRIVATE USE_WEBCORE)
     else()
         message(FATAL_ERROR "SDL2 not found. Use -DUSE_NXRENDER=ON for native rendering.")
     endif()
@@ -257,16 +356,8 @@ else()
      message(STATUS "SDL2_ttf not found via pkg-config")
 endif()
 
-if(CURL_FOUND)
-    if(CURL_LIBRARIES)
-        target_link_libraries(${EXECUTABLE_NAME} ${CURL_LIBRARIES})
-        target_include_directories(${EXECUTABLE_NAME} PRIVATE ${CURL_INCLUDE_DIRS})
-    else()
-        target_link_libraries(${EXECUTABLE_NAME} CURL::libcurl)
-    endif()
-else()
-    message(FATAL_ERROR "CURL not found. Please install libcurl development libraries.")
-endif()
+
+
 
 if(OPENSSL_FOUND)
     if(OPENSSL_LIBRARIES)
@@ -299,7 +390,17 @@ endif()
 target_link_libraries(${EXECUTABLE_NAME} ${OPENGL_LIBRARIES} ${PLATFORM_LIBS})
 
 # Link engine libraries (zepraScript, webCore, integration)
-target_link_libraries(${EXECUTABLE_NAME} zepra-core webcore zepra-integration)
+# ketivee_search.cpp now uses nxhttp (no more libcurl)
+target_link_libraries(${EXECUTABLE_NAME} 
+    zepra-core 
+    webcore 
+    zepra-integration
+    nxhttp
+    nxbase
+    nxcrypto
+    nxjson
+    nxxml
+)
 
 # Compiler flags
 target_compile_options(${EXECUTABLE_NAME} PRIVATE
@@ -308,51 +409,7 @@ target_compile_options(${EXECUTABLE_NAME} PRIVATE
 )
 
 # Test executable
-add_executable(zepra_test test/test_basic.cpp ${HEADERS})
 
-# Configuration test executable
-add_executable(config_test src/config/config_test.cpp src/config/config_manager.cpp)
-
-# Link test executable with same libraries
-if(SDL2_FOUND)
-    if(SDL2_LIBRARIES)
-        target_link_libraries(zepra_test ${SDL2_LIBRARIES})
-        target_include_directories(zepra_test PRIVATE ${SDL2_INCLUDE_DIRS})
-    else()
-        target_link_libraries(zepra_test SDL2::SDL2)
-    endif()
-endif()
-
-if(CURL_FOUND)
-    if(CURL_LIBRARIES)
-        target_link_libraries(zepra_test ${CURL_LIBRARIES})
-        target_include_directories(zepra_test PRIVATE ${CURL_INCLUDE_DIRS})
-    else()
-        target_link_libraries(zepra_test CURL::libcurl)
-    endif()
-endif()
-
-target_link_libraries(zepra_test ${OPENGL_LIBRARIES} ${PLATFORM_LIBS})
-
-target_compile_options(zepra_test PRIVATE
-    $<$<CXX_COMPILER_ID:MSVC>:/W4 /utf-8>
-    $<$<NOT:$<CXX_COMPILER_ID:MSVC>>:-Wall -Wextra -Wpedantic>
-)
-
-# Link configuration test executable
-target_include_directories(config_test PRIVATE 
-    ${CMAKE_CURRENT_SOURCE_DIR}/include
-    ${CMAKE_CURRENT_SOURCE_DIR}/src
-)
-
-target_compile_options(config_test PRIVATE
-    $<$<CXX_COMPILER_ID:MSVC>:/W4 /utf-8>
-    $<$<NOT:$<CXX_COMPILER_ID:MSVC>>:-Wall -Wextra -Wpedantic>
-)
-
-# Add test
-enable_testing()
-add_test(NAME ZepraBasicTest COMMAND zepra_test)
 
 # Installation rules
 install(TARGETS ${EXECUTABLE_NAME}
@@ -387,10 +444,10 @@ message(STATUS "  Build type: ${CMAKE_BUILD_TYPE}")
 message(STATUS "  C++ standard: ${CMAKE_CXX_STANDARD}")
 message(STATUS "  SDL2 found: ${SDL2_FOUND}")
 message(STATUS "  OpenGL found: ${OPENGL_FOUND}")
-message(STATUS "  CURL found: ${CURL_FOUND}")
+message(STATUS "  HTTP Client: nxhttp (libcurl removed)")
 message(STATUS "  Platform: ${CMAKE_SYSTEM_NAME}")
 
-target_include_directories(${EXECUTABLE_NAME} PRIVATE 
-    ${CMAKE_CURRENT_SOURCE_DIR}/include
-    ${CMAKE_CURRENT_SOURCE_DIR}/external
-)
+
+
+# Tests
+add_subdirectory(test)

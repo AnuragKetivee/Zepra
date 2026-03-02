@@ -113,7 +113,7 @@ int main() {
                 </style>
             </head>
             <body>
-                <h1>🚀 Hello NXRT!</h1>
+                <h1>[Run] Hello NXRT!</h1>
                 <p>This app runs on the NeolyxOS Runtime.</p>
                 
                 <div class="card">

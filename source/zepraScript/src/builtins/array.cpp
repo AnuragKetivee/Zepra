@@ -7,6 +7,7 @@
 #include "zeprascript/runtime/object.hpp"
 #include "zeprascript/runtime/function.hpp"
 #include "zeprascript/runtime/value.hpp"
+#include "zeprascript/runtime/vm.hpp"
 #include <algorithm>
 #include <sstream>
 
@@ -343,8 +344,10 @@ Runtime::Value ArrayBuiltin::forEach(const Runtime::FunctionCallInfo& info) {
             Runtime::Value::number(static_cast<double>(i)),
             thisVal
         };
-        Runtime::FunctionCallInfo callInfo(info.context(), callThisArg, args);
-        fn->builtinFunction()(callInfo);
+        // Execute callback using current VM
+        if (auto* vm = Runtime::VM::current()) {
+            vm->executeCallback(fn, callThisArg, args);
+        }
     }
     
     return Runtime::Value::undefined();
@@ -381,8 +384,10 @@ Runtime::Value ArrayBuiltin::map(const Runtime::FunctionCallInfo& info) {
             Runtime::Value::number(static_cast<double>(i)),
             thisVal
         };
-        Runtime::FunctionCallInfo callInfo(info.context(), callThisArg, args);
-        Runtime::Value mapped = fn->builtinFunction()(callInfo);
+        Runtime::Value mapped = Runtime::Value::undefined();
+        if (auto* vm = Runtime::VM::current()) {
+            mapped = vm->executeCallback(fn, callThisArg, args);
+        }
         result.push_back(mapped);
     }
     
@@ -421,8 +426,10 @@ Runtime::Value ArrayBuiltin::filter(const Runtime::FunctionCallInfo& info) {
             Runtime::Value::number(static_cast<double>(i)),
             thisVal
         };
-        Runtime::FunctionCallInfo callInfo(info.context(), callThisArg, args);
-        Runtime::Value passed = fn->builtinFunction()(callInfo);
+        Runtime::Value passed = Runtime::Value::boolean(false);
+        if (auto* vm = Runtime::VM::current()) {
+            passed = vm->executeCallback(fn, callThisArg, args);
+        }
         if (passed.toBoolean()) {
             result.push_back(element);
         }
@@ -470,8 +477,9 @@ Runtime::Value ArrayBuiltin::reduce(const Runtime::FunctionCallInfo& info) {
             Runtime::Value::number(static_cast<double>(i)),
             thisVal
         };
-        Runtime::FunctionCallInfo callInfo(info.context(), Runtime::Value::undefined(), args);
-        accumulator = fn->builtinFunction()(callInfo);
+        if (auto* vm = Runtime::VM::current()) {
+            accumulator = vm->executeCallback(fn, Runtime::Value::undefined(), args);
+        }
     }
     
     return accumulator;
@@ -515,8 +523,10 @@ Runtime::Value ArrayBuiltin::find(const Runtime::FunctionCallInfo& info) {
     for (size_t i = 0; i < arr->length(); i++) {
         Runtime::Value element = arr->at(i);
         std::vector<Runtime::Value> args = {element, Runtime::Value::number(static_cast<double>(i)), thisVal};
-        Runtime::FunctionCallInfo callInfo(info.context(), callThisArg, args);
-        Runtime::Value result = fn->builtinFunction()(callInfo);
+        Runtime::Value result = Runtime::Value::boolean(false);
+        if (auto* vm = Runtime::VM::current()) {
+            result = vm->executeCallback(fn, callThisArg, args);
+        }
         if (result.toBoolean()) {
             return element;
         }
@@ -548,8 +558,10 @@ Runtime::Value ArrayBuiltin::findIndex(const Runtime::FunctionCallInfo& info) {
     for (size_t i = 0; i < arr->length(); i++) {
         Runtime::Value element = arr->at(i);
         std::vector<Runtime::Value> args = {element, Runtime::Value::number(static_cast<double>(i)), thisVal};
-        Runtime::FunctionCallInfo callInfo(info.context(), callThisArg, args);
-        Runtime::Value result = fn->builtinFunction()(callInfo);
+        Runtime::Value result = Runtime::Value::boolean(false);
+        if (auto* vm = Runtime::VM::current()) {
+            result = vm->executeCallback(fn, callThisArg, args);
+        }
         if (result.toBoolean()) {
             return Runtime::Value::number(static_cast<double>(i));
         }
@@ -581,8 +593,10 @@ Runtime::Value ArrayBuiltin::findLast(const Runtime::FunctionCallInfo& info) {
     for (int64_t i = static_cast<int64_t>(arr->length()) - 1; i >= 0; i--) {
         Runtime::Value element = arr->at(static_cast<size_t>(i));
         std::vector<Runtime::Value> args = {element, Runtime::Value::number(static_cast<double>(i)), thisVal};
-        Runtime::FunctionCallInfo callInfo(info.context(), callThisArg, args);
-        Runtime::Value result = fn->builtinFunction()(callInfo);
+        Runtime::Value result = Runtime::Value::boolean(false);
+        if (auto* vm = Runtime::VM::current()) {
+            result = vm->executeCallback(fn, callThisArg, args);
+        }
         if (result.toBoolean()) {
             return element;
         }
@@ -614,8 +628,10 @@ Runtime::Value ArrayBuiltin::every(const Runtime::FunctionCallInfo& info) {
     for (size_t i = 0; i < arr->length(); i++) {
         Runtime::Value element = arr->at(i);
         std::vector<Runtime::Value> args = {element, Runtime::Value::number(static_cast<double>(i)), thisVal};
-        Runtime::FunctionCallInfo callInfo(info.context(), callThisArg, args);
-        Runtime::Value result = fn->builtinFunction()(callInfo);
+        Runtime::Value result = Runtime::Value::boolean(true);
+        if (auto* vm = Runtime::VM::current()) {
+            result = vm->executeCallback(fn, callThisArg, args);
+        }
         if (!result.toBoolean()) {
             return Runtime::Value::boolean(false);
         }
@@ -647,8 +663,10 @@ Runtime::Value ArrayBuiltin::some(const Runtime::FunctionCallInfo& info) {
     for (size_t i = 0; i < arr->length(); i++) {
         Runtime::Value element = arr->at(i);
         std::vector<Runtime::Value> args = {element, Runtime::Value::number(static_cast<double>(i)), thisVal};
-        Runtime::FunctionCallInfo callInfo(info.context(), callThisArg, args);
-        Runtime::Value result = fn->builtinFunction()(callInfo);
+        Runtime::Value result = Runtime::Value::boolean(false);
+        if (auto* vm = Runtime::VM::current()) {
+            result = vm->executeCallback(fn, callThisArg, args);
+        }
         if (result.toBoolean()) {
             return Runtime::Value::boolean(true);
         }

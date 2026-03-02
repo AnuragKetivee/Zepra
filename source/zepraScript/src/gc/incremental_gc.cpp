@@ -6,6 +6,7 @@
 #include "zeprascript/gc/incremental_gc.hpp"
 #include "zeprascript/runtime/object.hpp"
 #include <algorithm>
+#include <unordered_set>
 
 namespace Zepra::GC {
 
@@ -19,8 +20,12 @@ void IncrementalGC::startCollection() {
     sweepIndex_ = 0;
     markQueue_.clear();
     
-    // TODO: Get root objects when Heap::visitRoots is implemented
-    // For now, collection starts with empty queue and completes immediately
+    // Populate mark queue from root objects
+    heap_->visitRoots([this](Runtime::Object* obj) {
+        if (obj && !obj->isMarked()) {
+            markQueue_.push_back(obj);
+        }
+    });
 }
 
 bool IncrementalGC::step() {
@@ -60,6 +65,13 @@ bool IncrementalGC::step() {
 bool IncrementalGC::markStep() {
     size_t processed = 0;
     
+    // Use a set for O(1) dedup on large heaps
+    static thread_local std::unordered_set<Runtime::Object*> inQueue;
+    if (markIndex_ == 0) {
+        inQueue.clear();
+        for (auto* obj : markQueue_) inQueue.insert(obj);
+    }
+    
     while (markIndex_ < markQueue_.size() && 
            processed < config_.markBatchSize) {
         Runtime::Object* obj = markQueue_[markIndex_++];
@@ -69,8 +81,13 @@ bool IncrementalGC::markStep() {
         obj->markGC();
         processed++;
         
-        // TODO: Traverse object references when Object::visitRefs is added
-        // For now, just mark the direct objects
+        // Traverse object references and add to queue
+        obj->visitRefs([this, &inQueue](Runtime::Object* ref) {
+            if (ref && !ref->isMarked() && inQueue.find(ref) == inQueue.end()) {
+                markQueue_.push_back(ref);
+                inQueue.insert(ref);
+            }
+        });
         
         // Check time limit
         auto elapsed = std::chrono::steady_clock::now() - stepStart_;
@@ -80,13 +97,34 @@ bool IncrementalGC::markStep() {
         }
     }
     
+    if (markIndex_ >= markQueue_.size()) {
+        inQueue.clear();
+    }
+    
     return markIndex_ >= markQueue_.size();
 }
 
 bool IncrementalGC::sweepStep() {
-    // TODO: Implement incremental sweep when Heap exposes public method
-    // For now, sweep is handled by Heap::collect()
-    return true;
+    const auto& objects = heap_->getAllObjects();
+    size_t processed = 0;
+    
+    while (sweepIndex_ < objects.size() && processed < config_.markBatchSize) {
+        Runtime::Object* obj = static_cast<Runtime::Object*>(objects[sweepIndex_]);
+        if (obj && obj->isMarked()) {
+            // Survivor — clear mark for next cycle
+            obj->clearMark();
+        }
+        // Unmarked objects will be freed by heap_->collectGarbage() after we finish
+        sweepIndex_++;
+        processed++;
+    }
+    
+    // Once all objects are scanned, trigger actual sweep via heap
+    if (sweepIndex_ >= objects.size()) {
+        heap_->collectGarbage(false);
+    }
+    
+    return sweepIndex_ >= objects.size();
 }
 
 void IncrementalGC::finishCollection() {

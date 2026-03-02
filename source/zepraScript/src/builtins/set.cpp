@@ -100,6 +100,56 @@ Value SetBuiltin::size(Runtime::Context*, const std::vector<Value>& args) {
 
 Object* SetBuiltin::createSetPrototype() {
     Object* proto = new Object();
+
+    proto->set("add", Value::object(
+        new Runtime::Function("add", [](const Runtime::FunctionCallInfo& info) -> Value {
+            if (!info.thisValue().isObject()) return Value::undefined();
+            SetObject* s = dynamic_cast<SetObject*>(info.thisValue().asObject());
+            if (!s || info.argumentCount() < 1) return info.thisValue();
+            s->add(info.argument(0));
+            return info.thisValue();
+        }, 1)));
+
+    proto->set("has", Value::object(
+        new Runtime::Function("has", [](const Runtime::FunctionCallInfo& info) -> Value {
+            if (!info.thisValue().isObject()) return Value::boolean(false);
+            SetObject* s = dynamic_cast<SetObject*>(info.thisValue().asObject());
+            if (!s || info.argumentCount() < 1) return Value::boolean(false);
+            return Value::boolean(s->has(info.argument(0)));
+        }, 1)));
+
+    proto->set("delete", Value::object(
+        new Runtime::Function("delete", [](const Runtime::FunctionCallInfo& info) -> Value {
+            if (!info.thisValue().isObject()) return Value::boolean(false);
+            SetObject* s = dynamic_cast<SetObject*>(info.thisValue().asObject());
+            if (!s || info.argumentCount() < 1) return Value::boolean(false);
+            return Value::boolean(s->deleteValue(info.argument(0)));
+        }, 1)));
+
+    proto->set("clear", Value::object(
+        new Runtime::Function("clear", [](const Runtime::FunctionCallInfo& info) -> Value {
+            if (!info.thisValue().isObject()) return Value::undefined();
+            SetObject* s = dynamic_cast<SetObject*>(info.thisValue().asObject());
+            if (s) s->clear();
+            return Value::undefined();
+        }, 0)));
+
+    proto->set("forEach", Value::object(
+        new Runtime::Function("forEach", [](const Runtime::FunctionCallInfo& info) -> Value {
+            if (!info.thisValue().isObject() || info.argumentCount() < 1) return Value::undefined();
+            SetObject* s = dynamic_cast<SetObject*>(info.thisValue().asObject());
+            if (!s || !info.argument(0).isObject()) return Value::undefined();
+            Runtime::Function* callback = dynamic_cast<Runtime::Function*>(info.argument(0).asObject());
+            if (!callback) return Value::undefined();
+
+            Value thisArg = info.argumentCount() > 1 ? info.argument(1) : Value::undefined();
+            for (const auto& val : s->values()) {
+                std::vector<Value> args = {val, val, info.thisValue()};
+                callback->call(nullptr, thisArg, args);
+            }
+            return Value::undefined();
+        }, 1)));
+
     return proto;
 }
 

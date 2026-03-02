@@ -11,6 +11,7 @@
 #include <sstream>
 #include <cctype>
 #include <regex>
+#include "zeprascript/builtins/regexp.hpp"
 
 namespace Zepra::Builtins {
 
@@ -540,7 +541,65 @@ Runtime::Object* StringBuiltin::createStringPrototype(Runtime::Context*) {
     // ES2022+ methods
     prototype->set("at", Runtime::Value::object(
         new Runtime::Function("at", at, 1)));
-    
+
+    // String.prototype.match(regexp)
+    prototype->set("match", Runtime::Value::object(
+        new Runtime::Function("match", [](const Runtime::FunctionCallInfo& info) -> Runtime::Value {
+            std::string str = info.thisValue().toString();
+            if (info.argumentCount() < 1) return Runtime::Value::null();
+
+            // Check if arg is a RegExpObject
+            if (info.argument(0).isObject()) {
+                RegExpObject* re = dynamic_cast<RegExpObject*>(info.argument(0).asObject());
+                if (re) {
+                    auto matches = re->match(str);
+                    if (matches.empty()) return Runtime::Value::null();
+                    Runtime::Array* arr = new Runtime::Array();
+                    for (const auto& m : matches) {
+                        arr->push(Runtime::Value::string(new Runtime::String(m)));
+                    }
+                    return Runtime::Value::object(arr);
+                }
+            }
+
+            // String arg — create temp regex
+            std::string pattern = info.argument(0).toString();
+            try {
+                RegExpObject tempRe(pattern);
+                auto matches = tempRe.match(str);
+                if (matches.empty()) return Runtime::Value::null();
+                Runtime::Array* arr = new Runtime::Array();
+                for (const auto& m : matches) {
+                    arr->push(Runtime::Value::string(new Runtime::String(m)));
+                }
+                return Runtime::Value::object(arr);
+            } catch (...) {
+                return Runtime::Value::null();
+            }
+        }, 1)));
+
+    // String.prototype.search(regexp)
+    prototype->set("search", Runtime::Value::object(
+        new Runtime::Function("search", [](const Runtime::FunctionCallInfo& info) -> Runtime::Value {
+            std::string str = info.thisValue().toString();
+            if (info.argumentCount() < 1) return Runtime::Value::number(-1);
+
+            if (info.argument(0).isObject()) {
+                RegExpObject* re = dynamic_cast<RegExpObject*>(info.argument(0).asObject());
+                if (re) {
+                    return Runtime::Value::number(static_cast<double>(re->search(str)));
+                }
+            }
+
+            std::string pattern = info.argument(0).toString();
+            try {
+                RegExpObject tempRe(pattern);
+                return Runtime::Value::number(static_cast<double>(tempRe.search(str)));
+            } catch (...) {
+                return Runtime::Value::number(-1);
+            }
+        }, 1)));
+
     return prototype;
 }
 

@@ -4,8 +4,8 @@
  */
 
 #include "integration/dom_bridge.hpp"
-#include "webcore/dom.hpp"
-#include "webcore/page_renderer.hpp"
+#include "dom.hpp"
+#include "page_renderer.hpp"
 #include <memory>
 
 namespace Zepra::Integration {

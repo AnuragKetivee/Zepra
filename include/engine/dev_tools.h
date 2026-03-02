@@ -4,6 +4,7 @@
 #include <memory>
 #include <functional>
 #include <chrono>
+#include "../network/network_monitor.h"  // NetworkRequest, NetworkResponse defined here
 
 namespace zepra {
 
@@ -27,23 +28,11 @@ struct ConsoleMessage {
     std::chrono::system_clock::time_point timestamp;
 };
 
-struct NetworkRequest {
-    int requestId = 0;
-    String method;
-    String url;
-    String body;
-    std::chrono::system_clock::time_point timestamp;
-};
-
-struct NetworkResponse {
-    int requestId = 0;
-    int statusCode = 0;
-    String url;
-    String body;
-    std::chrono::system_clock::time_point timestamp;
-};
+// Note: NetworkRequest and NetworkResponse are defined in network/network_monitor.h
+// to avoid duplication and enable per-tab network isolation.
 
 struct DevToolsDOMNode {
+
     int nodeId = 0;
     String tagName;
     std::vector<std::shared_ptr<DevToolsDOMNode>> children;

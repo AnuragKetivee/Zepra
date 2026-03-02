@@ -14,6 +14,7 @@
 #include <cstring>
 #include <sstream>
 #include <iomanip>
+#include <iostream>
 
 namespace Zepra::Networking {
 
@@ -82,10 +83,10 @@ bool SSLContext::initialize() {
     SSL_CTX_set_verify(sslCtx, SSL_VERIFY_PEER, nullptr);
     SSL_CTX_set_verify_depth(sslCtx, 10);
     
-    // ===== ALPN (HTTP/2 support) =====
+    // ===== ALPN (HTTP/1.1 only for now) =====
+    // Note: We don't support HTTP/2 framing yet, so only advertise HTTP/1.1
     static const unsigned char alpn[] = {
-        2, 'h', '2',           // HTTP/2
-        8, 'h', 't', 't', 'p', '/', '1', '.', '1'  // HTTP/1.1 fallback
+        8, 'h', 't', 't', 'p', '/', '1', '.', '1'  // HTTP/1.1
     };
     SSL_CTX_set_alpn_protos(sslCtx, alpn, sizeof(alpn));
     
@@ -365,21 +366,27 @@ bool SSLContext::SSLSocket::connect(const std::string& hostname) {
     
     SSL* ssl = static_cast<SSL*>(ssl_);
     
-    // Set hostname for SNI
+    // Set hostname for SNI (Server Name Indication) - required for modern HTTPS
     SSL_set_tlsext_host_name(ssl, hostname.c_str());
     
-    // Set hostname for verification
-    SSL_set1_host(ssl, hostname.c_str());
+    // Set hostname for verification (only used if verification is enabled)
+    if (ctx_->verifyCertificate_) {
+        SSL_set1_host(ssl, hostname.c_str());
+    }
     
-    // Perform handshake
+    // Perform TLS handshake
     int result = SSL_connect(ssl);
     if (result != 1) {
         int err = SSL_get_error(ssl, result);
+        unsigned long errCode = ERR_get_error();
+        char errBuf[256];
+        ERR_error_string_n(errCode, errBuf, sizeof(errBuf));
+        std::cerr << "[SSL] Handshake failed: " << errBuf << " (err=" << err << ")" << std::endl;
         verifyResult_ = CertVerifyResult::UNKNOWN_ERROR;
         return false;
     }
     
-    // Verify certificate
+    // Handshake succeeded - now check certificate verification result
     long verifyResult = SSL_get_verify_result(ssl);
     switch (verifyResult) {
         case X509_V_OK:
@@ -405,6 +412,17 @@ bool SSLContext::SSLSocket::connect(const std::string& hostname) {
             verifyResult_ = CertVerifyResult::UNKNOWN_ERROR;
     }
     
+    // If verification is disabled (verify_ssl=false), return true regardless of cert result
+    // The handshake itself succeeded - we just might not trust the certificate
+    if (!ctx_->verifyCertificate_) {
+        if (verifyResult_ != CertVerifyResult::OK) {
+            std::cout << "[SSL] Certificate verification skipped (verify_ssl=false), result=" 
+                      << static_cast<int>(verifyResult_) << std::endl;
+        }
+        return true;  // SSL connection established, verification bypassed
+    }
+    
+    // Verification is enabled - require OK result
     return verifyResult_ == CertVerifyResult::OK;
 }
 
@@ -415,7 +433,50 @@ bool SSLContext::SSLSocket::accept() {
 
 int SSLContext::SSLSocket::read(void* buffer, size_t size) {
     if (!ssl_) return -1;
-    return SSL_read(static_cast<SSL*>(ssl_), buffer, static_cast<int>(size));
+    
+    SSL* ssl = static_cast<SSL*>(ssl_);
+    int result = SSL_read(ssl, buffer, static_cast<int>(size));
+    
+    if (result <= 0) {
+        int err = SSL_get_error(ssl, result);
+        switch (err) {
+            case SSL_ERROR_WANT_READ:
+            case SSL_ERROR_WANT_WRITE:
+                // Non-blocking would need retry, but we're blocking
+                // Return 0 to indicate no data available yet
+                return 0;
+            case SSL_ERROR_ZERO_RETURN:
+                // Clean TLS shutdown - connection closed
+                return 0;
+            case SSL_ERROR_SYSCALL:
+                // In OpenSSL 3.0+, unexpected EOF is reported as syscall error
+                // If errno is 0, it's just an EOF (server closed without proper TLS shutdown)
+                if (errno == 0) {
+                    // Treat as EOF - many servers don't do proper TLS shutdown
+                    return 0;
+                }
+                std::cerr << "[SSL Read] Syscall error: " << errno << std::endl;
+                return -1;
+            case SSL_ERROR_SSL:
+                // Check for the specific "unexpected eof" error
+                // In OpenSSL 3.0+, this is common when server closes abruptly
+                {
+                    unsigned long errCode = ERR_peek_error();
+                    // 0x0A000126 = SSL routines::unexpected eof while reading
+                    if (ERR_GET_REASON(errCode) == SSL_R_UNEXPECTED_EOF_WHILE_READING) {
+                        // Treat as EOF rather than error - server just closed
+                        ERR_clear_error();
+                        return 0;
+                    }
+                }
+                std::cerr << "[SSL Read] SSL error: " << getLastError() << std::endl;
+                return -1;
+            default:
+                return -1;
+        }
+    }
+    
+    return result;
 }
 
 int SSLContext::SSLSocket::write(const void* buffer, size_t size) {

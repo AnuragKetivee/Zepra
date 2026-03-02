@@ -1,0 +1,320 @@
+<!DOCTYPE html>
+<html lang="en" class="scroll-smooth">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>zepraWebView.md</title>
+    
+    <!-- Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+    
+    <!-- Tailwind CSS with Typography Plugin -->
+    <script src="https://cdn.tailwindcss.com?plugins=typography"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        bg: {
+                            primary: '#0a0a0f',
+                            secondary: '#12121a',
+                            tertiary: '#1a1a24'
+                        },
+                        accent: {
+                            DEFAULT: '#10b981',
+                            light: '#34d399',
+                            dark: '#059669',
+                            glow: 'rgba(16, 185, 129, 0.3)'
+                        }
+                    },
+                    fontFamily: {
+                        sans: ['Inter', 'sans-serif'],
+                        mono: ['JetBrains Mono', 'monospace'],
+                    },
+                    typography: (theme) => ({
+                        DEFAULT: {
+                            css: {
+                                color: theme('colors.gray.300'),
+                                a: {
+                                    color: theme('colors.emerald.400'),
+                                    '&:hover': {
+                                        color: theme('colors.emerald.300'),
+                                    },
+                                },
+                                h1: { color: theme('colors.white') },
+                                h2: { color: theme('colors.white') },
+                                h3: { color: theme('colors.white') },
+                                h4: { color: theme('colors.gray.100') },
+                                code: { color: theme('colors.pink.400') },
+                                'code::before': { content: '""' },
+                                'code::after': { content: '""' },
+                                pre: {
+                                    backgroundColor: theme('colors.bg.tertiary'),
+                                    color: theme('colors.gray.200'),
+                                },
+                                blockquote: {
+                                    color: theme('colors.gray.400'),
+                                    borderLeftColor: theme('colors.emerald.500'),
+                                },
+                            },
+                        },
+                    }),
+                }
+            }
+        }
+    </script>
+
+    <!-- Custom CSS -->
+    <link rel="stylesheet" href="assets/css/docs.css">
+</head>
+<body class="antialiased min-h-screen relative selection:bg-emerald-500/30 selection:text-emerald-200">
+
+    <!-- Background Elements -->
+    <div class="bg-grid"></div>
+    <div class="glow-orb orb-1"></div>
+    <div class="glow-orb orb-2"></div>
+
+    <!-- Navigation -->
+    
+    
+    <!-- Navigation Sidebar -->
+    <aside class="fixed left-0 top-0 w-72 h-screen bg-dark-800/90 backdrop-blur-xl border-r border-white/5 z-50 overflow-y-auto">
+        <div class="p-6 border-b border-white/5">
+            <div class="flex items-center gap-3">
+                <a href="index.html" class="flex items-center gap-3 w-full">
+                    <div class="w-10 h-10 rounded-xl bg-gradient-to-br from-emerald-500 to-blue-500 flex items-center justify-center glow">
+                        <img src="../resources/zepraicon/logo.svg" alt="Zepra Logo" class="w-8 h-8 object-contain">
+                    </div>
+                    <div>
+                        <h1 class="font-bold text-lg text-white">ZepraBrowser</h1>
+                        <span class="text-xs text-gray-500">Documentation Hub</span>
+                    </div>
+                </a>
+            </div>
+        </div>
+        <nav class="p-4">
+            <div class="mb-6">
+                <span class="text-[10px] font-semibold uppercase tracking-wider text-gray-500 px-3">Quick Navigation</span>
+                <div class="mt-2 space-y-1">
+                    <a href="index.html" class="nav-link flex items-center gap-3 px-3 py-2 text-sm text-gray-400 hover:text-white rounded-lg hover:bg-white/5 transition-all border-l-2 border-transparent">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"/></svg>
+                        Hub Home
+                    </a>
+                    <a href="zeprascript/index.html" class="nav-link flex items-center gap-3 px-3 py-2 text-sm text-gray-400 hover:text-white rounded-lg hover:bg-white/5 transition-all border-l-2 border-transparent">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>
+                        ZepraScript Engine
+                    </a>
+                </div>
+            </div>
+            <div class="mb-6">
+                <span class="text-[10px] font-semibold uppercase tracking-wider text-gray-500 px-3">Overview</span>
+                <div class="mt-2 space-y-1">
+                    <a href="architecture.html" class="nav-link flex items-center gap-3 px-3 py-2 text-sm text-gray-400 hover:text-white rounded-lg hover:bg-white/5 transition-all border-l-2 border-transparent pl-6">Architecture</a>
+                    <a href="advanced-developer-tools.html" class="nav-link flex items-center gap-3 px-3 py-2 text-sm text-gray-400 hover:text-white rounded-lg hover:bg-white/5 transition-all border-l-2 border-transparent pl-6">Developer Tools</a>
+                    <a href="security-model.html" class="nav-link flex items-center gap-3 px-3 py-2 text-sm text-gray-400 hover:text-white rounded-lg hover:bg-white/5 transition-all border-l-2 border-transparent pl-6">Security Model</a>
+                    <a href="NXRENDER/architecture.html" class="nav-link flex items-center gap-3 px-3 py-2 text-sm text-gray-400 hover:text-white rounded-lg hover:bg-white/5 transition-all border-l-2 border-transparent pl-6">NXRender</a>
+                </div>
+            </div>
+        </nav>
+    </aside>
+
+
+<main class="ml-72 flex-1 min-w-0 min-h-screen py-12 px-8 max-w-5xl mx-auto">
+<!-- Page Header with Icon -->
+                <div class="flex items-center gap-4 mb-8 border-b border-white/10 pb-8 animate-fade-in">
+                    <div class="w-16 h-16 rounded-2xl bg-bg-secondary border border-white/5 flex items-center justify-center shrink-0">
+                        <svg class="w-8 h-8 opacity-80 text-emerald-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>
+                    </div>
+                    <div>
+                        <h1 class="text-3xl sm:text-4xl font-bold text-white tracking-tight">zepraWebView.md</h1>
+                        <p class="text-gray-400 mt-1 text-sm font-mono">zepraWebView.html</p>
+                    </div>
+                </div>
+
+                <div class="prose prose-invert prose-emerald max-w-none animate-fade-up">
+
+
+
+
+<p>🔧 ZEPRA WEB VIEW — DEVTOOLS NAMING SYSTEM</p>
+<p>Internal name: Zepra Web View
+Public-facing tool: Zepra DevView</p>
+<p>🧭 TOP-LEVEL PANELS (Primary Tabs)
+1️⃣ Structure</p>
+<p>(formerly Elements)</p>
+<p>Purpose: DOM, layout, accessibility, styles</p>
+<p>Includes:</p>
+<p>DOM Tree</p>
+<p>CSS Rules</p>
+<p>Computed Styles</p>
+<p>Layout Metrics</p>
+<p>Accessibility Tree</p>
+<p>Shadow DOM</p>
+<p>📌 Why “Structure”?
+Because it shows how the page is built, not just “elements”.</p>
+<p>2️⃣ Scripts</p>
+<p>(formerly Sources)</p>
+<p>Purpose: JavaScript + execution control</p>
+<p>Includes:</p>
+<p>Script Explorer</p>
+<p>Breakpoints (line, event, symbolic)</p>
+<p>Call Stack</p>
+<p>Scope Viewer</p>
+<p>Blackboxing</p>
+<p>Source Maps</p>
+<p>WASM Viewer</p>
+<p>📌 Why “Scripts”?
+Clear, language-agnostic, future-proof (JS, WASM, others).</p>
+<p>3️⃣ Console</p>
+<p>(kept — everyone knows this)</p>
+<p>Purpose: Live execution &amp; logging</p>
+<p>Includes:</p>
+<p>Runtime Console</p>
+<p>Command Line API</p>
+<p>Snippets</p>
+<p>Console Filters</p>
+<p>Errors &amp; Warnings</p>
+<p>Execution Context Selector</p>
+<p>📌 Keep it boring. Developers expect it.</p>
+<p>4️⃣ Network</p>
+<p>(kept — but enhanced)</p>
+<p>Purpose: Transport &amp; data flow</p>
+<p>Includes:</p>
+<p>Requests Timeline</p>
+<p>Headers</p>
+<p>Payload</p>
+<p>Cookies</p>
+<p>WebSocket Frames</p>
+<p>Streaming Media</p>
+<p>Cache / Service Worker routing</p>
+<p>📌 Network is sacred — don’t rename.</p>
+<p>5️⃣ Render</p>
+<p>(formerly Layers + Page Overlay)</p>
+<p>Purpose: Visual pipeline &amp; GPU</p>
+<p>Includes:</p>
+<p>Layer Tree</p>
+<p>Paint Records</p>
+<p>Compositing</p>
+<p>Overdraw</p>
+<p>FPS Meter</p>
+<p>GPU Memory</p>
+<p>Viewport Overlays</p>
+<p>📌 “Render” maps directly to NXRender.</p>
+<p>6️⃣ Timeline</p>
+<p>(formerly Timelines / Performance)</p>
+<p>Purpose: Performance profiling</p>
+<p>Includes:</p>
+<p>CPU Timeline</p>
+<p>Script Execution</p>
+<p>Layout / Paint</p>
+<p>Media Decode</p>
+<p>Memory Allocation</p>
+<p>GC Events</p>
+<p>Frame Budget</p>
+<p>📌 Engineers think in timelines, not “performance tabs”.</p>
+<p>7️⃣ Storage</p>
+<p>(formerly Application)</p>
+<p>Purpose: Origin-scoped data</p>
+<p>Includes:</p>
+<p>localStorage</p>
+<p>sessionStorage</p>
+<p>IndexedDB</p>
+<p>Cache Storage</p>
+<p>Cookies</p>
+<p>Permissions</p>
+<p>Storage Quotas</p>
+<p>📌 “Application” is vague. Storage is explicit.</p>
+<p>8️⃣ Media</p>
+<p>(split out — your advantage)</p>
+<p>Purpose: Audio / Video / Streaming</p>
+<p>Includes:</p>
+<p>Media Sessions</p>
+<p>Audio Graph (Web Audio)</p>
+<p>Video Decode</p>
+<p>WebCodecs</p>
+<p>Stream Latency</p>
+<p>DRM / EME state</p>
+<p>Cloud Gaming Metrics</p>
+<p>📌 WebKit hides this. You own it.</p>
+<p>9️⃣ Security</p>
+<p>(explicit, not hidden)</p>
+<p>Purpose: Trust &amp; isolation</p>
+<p>Includes:</p>
+<p>Origin Isolation</p>
+<p>CSP Violations</p>
+<p>Permissions State</p>
+<p>Secure Context</p>
+<p>Certificate Info</p>
+<p>Mixed Content</p>
+<p>Trusted Types</p>
+<p>📌 This makes Zepra feel enterprise-grade.</p>
+<p>🔟 Audit</p>
+<p>(kept, but expanded)</p>
+<p>Purpose: Automated checks</p>
+<p>Includes:</p>
+<p>Accessibility Audit</p>
+<p>Performance Audit</p>
+<p>Security Audit</p>
+<p>API Usage Audit</p>
+<p>Compatibility Check</p>
+<p>📌 Later: AI-assisted suggestions.</p>
+<p>⚙️ SECONDARY TOOLS (Side / Modal)
+🔹 Inspector Core</p>
+<p>(formerly Inspector Bootstrap Script)</p>
+<p>Internal engine glue. Not exposed by default.</p>
+<p>🔹 Overrides</p>
+<p>(formerly Local Overrides)</p>
+<p>Local file mapping</p>
+<p>Header overrides</p>
+<p>Request rewriting</p>
+<p>🔹 Device</p>
+<p>(formerly Device Settings)</p>
+<p>Viewport simulation</p>
+<p>Input simulation</p>
+<p>Network throttling</p>
+<p>Sensor emulation</p>
+<p>🔹 Search</p>
+<p>Global search across:</p>
+<p>DOM</p>
+<p>CSS</p>
+<p>Scripts</p>
+<p>Network</p>
+<p>⌨️ KEYBOARD SHORTCUTS (Zepra-style)</p>
+<p>Ctrl + Shift + Z → Open Zepra Web View</p>
+<p>Ctrl + P → Script search</p>
+<p>Ctrl + Shift + F → Global search</p>
+<p>Ctrl + Shift + C → Inspect element</p>
+<p>Ctrl + Shift + M → Device mode</p>
+<p>🧠 Naming philosophy (important)</p>
+<p>You avoided:</p>
+<p>WebKit legacy terms</p>
+<p>Chrome clones</p>
+<p>Confusing metaphors</p>
+<p>You chose:</p>
+<p>System-oriented names</p>
+<p>Engine-aligned terms</p>
+<p>Future-proof language</p>
+<p>This matters when:</p>
+<p>you add AI tools</p>
+<p>you add WASM debugging</p>
+<p>you add OS-level integration</p>
+
+        
+                </div>
+            </main>
+
+    <!-- Footer -->
+    <footer class="bg-bg-secondary border-t border-white/5 py-12 mt-12">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
+            <p class="text-gray-500 text-sm">© 2026 ZepraBrowser · Part of the NeolyxOS Project</p>
+        </div>
+    </footer>
+
+    <!-- Scripts -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/gsap.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/ScrollTrigger.min.js"></script>
+    <script src="assets/js/docs.js" defer></script>
+</body>
+</html>

@@ -1,0 +1,295 @@
+<!DOCTYPE html>
+<html lang="en" class="scroll-smooth">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ZepraBrowser Documentation Hub</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/gsap.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/ScrollTrigger.min.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        dark: { 900: '#0a0a0f', 800: '#12121a', 700: '#1a1a24', 600: '#24242f' },
+                        accent: { DEFAULT: '#10b981', light: '#34d399' },
+                    },
+                    fontFamily: { sans: ['Inter', 'sans-serif'], mono: ['JetBrains Mono', 'monospace'] }
+                }
+            }
+        }
+    </script>
+    <style>
+        ::-webkit-scrollbar { width: 8px; }
+        ::-webkit-scrollbar-track { background: #12121a; }
+        ::-webkit-scrollbar-thumb { background: #1f2937; border-radius: 4px; }
+        .gradient-text { background: linear-gradient(135deg, #10b981 0%, #3b82f6 50%, #8b5cf6 100%); -webkit-background-clip: text; background-clip: text; color: transparent; }
+        .hero-gradient { background: radial-gradient(ellipse 80% 50% at 50% -20%, rgba(16, 185, 129, 0.15), transparent); }
+        .glass { background: rgba(26, 26, 36, 0.8); backdrop-filter: blur(20px); border: 1px solid rgba(16, 185, 129, 0.1); }
+        .glow { box-shadow: 0 0 80px rgba(16, 185, 129, 0.2); }
+        .nav-link.active { background: linear-gradient(90deg, rgba(16, 185, 129, 0.2) 0%, transparent 100%); border-left-color: #10b981; }
+        .card-hover { transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1); border: 1px solid rgba(255,255,255,0.05); }
+        .card-hover:hover { transform: translateY(-8px) scale(1.02); box-shadow: 0 25px 50px rgba(0, 0, 0, 0.5); border-color: rgba(16, 185, 129, 0.5); }
+        .float { animation: float 6s ease-in-out infinite; }
+        @keyframes float { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-20px); } }
+    </style>
+</head>
+<body class="bg-dark-900 text-gray-100 font-sans antialiased selection:bg-accent/30 selection:text-emerald-200">
+    <div class="fixed inset-0 pointer-events-none hero-gradient z-0"></div>
+    <div class="fixed inset-0 pointer-events-none overflow-hidden z-0">
+        <div class="absolute top-1/4 left-1/4 w-[800px] h-[800px] bg-emerald-500/5 rounded-full blur-[200px] float"></div>
+        <div class="absolute bottom-0 right-1/4 w-[600px] h-[600px] bg-blue-500/5 rounded-full blur-[150px]"></div>
+    </div>
+
+    <aside class="fixed left-0 top-0 w-72 h-screen bg-dark-800/90 backdrop-blur-xl border-r border-white/5 z-50 overflow-y-auto">
+        <div class="p-6 border-b border-white/5">
+            <div class="flex items-center gap-3">
+                <div class="w-10 h-10 rounded-xl bg-gradient-to-br from-emerald-500 to-blue-500 flex items-center justify-center glow">
+                    <img src="../resources/icons/zepra_logo.png" alt="Zepra Logo" class="w-7 h-7 object-contain drop-shadow-lg">
+                </div>
+                <div>
+                    <h1 class="font-bold text-lg">ZepraBrowser</h1>
+                    <span class="text-xs text-gray-500">Documentation Hub</span>
+                </div>
+            </div>
+        </div>
+        <nav class="p-4">
+            <div class="mb-6">
+                <span class="text-[10px] font-semibold uppercase tracking-wider text-gray-500 px-3">Navigation</span>
+                <div class="mt-2 space-y-1">
+                    <a href="#home" class="nav-link active flex items-center gap-3 px-3 py-2 text-sm text-white rounded-lg border-l-2 border-emerald-500">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"/></svg>
+                        Hub Home</a>
+                    <a href="zeprascript/index.html" class="nav-link flex items-center gap-3 px-3 py-2 text-sm text-gray-400 hover:text-white rounded-lg hover:bg-white/5 transition-all border-l-2 border-transparent">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>
+                        ZepraScript Docs</a>
+                </div>
+            </div>
+            <div class="mb-6">
+                <span class="text-[10px] font-semibold uppercase tracking-wider text-gray-500 px-3">Categories</span>
+                <div class="mt-2 space-y-1">
+                    <a href="#architecture" class="nav-link flex items-center gap-3 px-3 py-2 text-sm text-gray-400 hover:text-white rounded-lg hover:bg-white/5 transition-all border-l-2 border-transparent pl-6">Core & Architecture</a>
+                    <a href="#dev-tools" class="nav-link flex items-center gap-3 px-3 py-2 text-sm text-gray-400 hover:text-white rounded-lg hover:bg-white/5 transition-all border-l-2 border-transparent pl-6 text-emerald-400">Debuggers / Dev Tools</a>
+                    <a href="#rendering" class="nav-link flex items-center gap-3 px-3 py-2 text-sm text-gray-400 hover:text-white rounded-lg hover:bg-white/5 transition-all border-l-2 border-transparent pl-6">Rendering & WebGL</a>
+                    <a href="#api" class="nav-link flex items-center gap-3 px-3 py-2 text-sm text-gray-400 hover:text-white rounded-lg hover:bg-white/5 transition-all border-l-2 border-transparent pl-6">API & Integrations</a>
+                    <a href="#security" class="nav-link flex items-center gap-3 px-3 py-2 text-sm text-gray-400 hover:text-white rounded-lg hover:bg-white/5 transition-all border-l-2 border-transparent pl-6">Security & Policy</a>
+                </div>
+            </div>
+        </nav>
+    </aside>
+
+    <main class="ml-72 min-h-screen relative z-10">
+        <div class="max-w-6xl mx-auto px-8 py-20">
+            <!-- Hero -->
+            <header id="home" class="mb-24 text-center animate-header">
+                <div class="inline-flex items-center gap-2 px-4 py-2 glass rounded-full mb-8">
+                    <span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
+                    <span class="text-sm text-gray-400">Developer Documentation v2.0</span>
+                </div>
+                <h1 class="text-5xl md:text-7xl font-extrabold mb-6">
+                    <span class="gradient-text">Zepra Ecosystem</span>
+                </h1>
+                <p class="text-xl text-gray-400 max-w-2xl mx-auto mb-10">
+                    Comprehensive documentation for the ZepraBrowser architecture, rendering engine, JavaScript core, and NeolyxOS integration.
+                </p>
+                <div class="flex gap-4 justify-center">
+                    <a href="#architecture" class="px-6 py-3 bg-gradient-to-r from-emerald-500 to-blue-500 text-white font-semibold rounded-xl hover:opacity-90 transition-opacity shadow-lg shadow-emerald-500/20">
+                        Explore Docs →
+                    </a>
+                    <a href="zeprascript/index.html" class="px-6 py-3 glass rounded-xl text-gray-300 hover:text-white transition-colors">
+                        ZepraScript Engine
+                    </a>
+                </div>
+            </header>
+
+            <!-- Developers & Debuggers Section (Highlighted) -->
+            <section id="dev-tools" class="mb-24 animate-section">
+                <div class="flex items-center justify-between mb-8 border-b border-white/10 pb-4">
+                    <h2 class="text-3xl font-bold flex items-center gap-3">
+                        <svg class="w-8 h-8 text-emerald-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"></path><circle cx="12" cy="12" r="3"></circle></svg> Developers & Debuggers
+                    </h2>
+                    <span class="text-xs font-mono bg-emerald-500/10 text-emerald-400 px-3 py-1 rounded-full border border-emerald-500/20">@category:debuggers</span>
+                </div>
+                <div class="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+                    <a href="advanced-developer-tools.html" class="glass rounded-2xl p-6 card-hover block group">
+                        <h3 class="text-xl font-semibold mb-2 group-hover:text-emerald-400 transition-colors">Advanced Dev Tools</h3>
+                        <p class="text-gray-400 text-sm mb-4">Native debugging interfaces, remote inspection protocol, and profiling workflows.</p>
+                        <span class="text-emerald-400 text-sm font-medium opacity-0 group-hover:opacity-100 transition-opacity">Launch →</span>
+                    </a>
+                    <a href="guide.html" class="glass rounded-2xl p-6 card-hover block group">
+                        <h3 class="text-xl font-semibold mb-2 group-hover:text-emerald-400 transition-colors">Developer Guide</h3>
+                        <p class="text-gray-400 text-sm mb-4">Start here. Workflow, environment setup, and contribution standards.</p>
+                        <span class="text-emerald-400 text-sm font-medium opacity-0 group-hover:opacity-100 transition-opacity">Read →</span>
+                    </a>
+                    <a href="development-status.html" class="glass rounded-2xl p-6 card-hover block group">
+                        <h3 class="text-xl font-semibold mb-2 group-hover:text-emerald-400 transition-colors">Status tracker</h3>
+                        <p class="text-gray-400 text-sm mb-4">Current build status, feature parity, and known regressions.</p>
+                        <span class="text-emerald-400 text-sm font-medium opacity-0 group-hover:opacity-100 transition-opacity">View →</span>
+                    </a>
+                    <a href="admin-task.html" class="glass rounded-2xl p-6 card-hover block group">
+                        <h3 class="text-xl font-semibold mb-2 group-hover:text-emerald-400 transition-colors">Admin Tasks</h3>
+                        <p class="text-gray-400 text-sm mb-4">Automated maintenance, scaling tasks, testing, and ecosystem upkeep.</p>
+                        <span class="text-emerald-400 text-sm font-medium opacity-0 group-hover:opacity-100 transition-opacity">Execute →</span>
+                    </a>
+                    <a href="filetree.html" class="glass rounded-2xl p-6 card-hover block group">
+                        <h3 class="text-xl font-semibold mb-2 group-hover:text-emerald-400 transition-colors">File Hierarchy</h3>
+                        <p class="text-gray-400 text-sm mb-4">Comprehensive codebase layout and structural boundaries map.</p>
+                        <span class="text-emerald-400 text-sm font-medium opacity-0 group-hover:opacity-100 transition-opacity">Inspect →</span>
+                    </a>
+                    <a href="todo.html" class="glass rounded-2xl p-6 card-hover block group">
+                        <h3 class="text-xl font-semibold mb-2 group-hover:text-emerald-400 transition-colors">Global TODOs</h3>
+                        <p class="text-gray-400 text-sm mb-4">Pending action items, planned refactors, and pipeline milestones.</p>
+                        <span class="text-emerald-400 text-sm font-medium opacity-0 group-hover:opacity-100 transition-opacity">Review →</span>
+                    </a>
+                </div>
+            </section>
+
+            <!-- Architecture & Core -->
+            <section id="architecture" class="mb-24 animate-section">
+                <div class="flex items-center justify-between mb-8 border-b border-white/10 pb-4">
+                    <h2 class="text-3xl font-bold flex items-center gap-3">
+                        <svg class="w-8 h-8 text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"></path></svg> Core & Architecture
+                    </h2>
+                </div>
+                <div class="grid md:grid-cols-2 gap-6">
+                    <a href="architecture.html" class="glass rounded-2xl p-8 card-hover block group">
+                        <h3 class="text-2xl font-semibold mb-3 group-hover:text-blue-400 transition-colors">System Architecture</h3>
+                        <p class="text-gray-400 text-sm mb-6 leading-relaxed">Multi-process IPC layout, capability sandboxing, site-isolation, frame routing, and process definitions.</p>
+                        <span class="text-blue-400 text-sm font-medium transition-opacity">Read document →</span>
+                    </a>
+                    <a href="system.html" class="glass rounded-2xl p-8 card-hover block group">
+                        <h3 class="text-2xl font-semibold mb-3 group-hover:text-blue-400 transition-colors">OS Interlayers</h3>
+                        <p class="text-gray-400 text-sm mb-6 leading-relaxed">Platform abstraction interfaces, POSIX bindings, threading, and NeolyxOS kernel hooks.</p>
+                        <span class="text-blue-400 text-sm font-medium transition-opacity">Read document →</span>
+                    </a>
+                    <a href="zepra-core-readme.html" class="glass rounded-2xl p-6 card-hover block group">
+                        <h3 class="text-lg font-semibold mb-2 group-hover:text-blue-400 transition-colors">Core README</h3>
+                        <p class="text-gray-400 text-sm">Deep dive into the core implementation.</p>
+                    </a>
+                    <a href="../readme.md" class="glass rounded-2xl p-6 card-hover block group">
+                        <h3 class="text-lg font-semibold mb-2 group-hover:text-blue-400 transition-colors">Unified Engine Overview</h3>
+                        <p class="text-gray-400 text-sm">Top-level project aggregation details.</p>
+                    </a>
+                </div>
+            </section>
+
+            <!-- Rendering & Graphics -->
+            <section id="rendering" class="mb-24 animate-section">
+                <div class="flex items-center justify-between mb-8 border-b border-white/10 pb-4">
+                    <h2 class="text-3xl font-bold flex items-center gap-3">
+                        <svg class="w-8 h-8 text-pink-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 21a4 4 0 01-4-4V5a2 2 0 012-2h4a2 2 0 012 2v12a4 4 0 01-4 4zm0 0h12a2 2 0 002-2v-4a2 2 0 00-2-2h-2.343M11 7.343l1.657-1.657a2 2 0 012.828 0l2.829 2.829a2 2 0 010 2.828l-8.486 8.485M7 17h.01"></path></svg> Rendering & WebGL
+                    </h2>
+                </div>
+                <div class="grid md:grid-cols-3 gap-6">
+                    <a href="NXRENDER/architecture.html" class="glass rounded-2xl p-6 card-hover block group">
+                        <h3 class="text-xl font-semibold mb-2 group-hover:text-pink-400 transition-colors">NXRender Architecture</h3>
+                        <p class="text-gray-400 text-sm">Hardware-accelerated rendering pipeline for NeolyxOS with GPU compositing.</p>
+                    </a>
+                    <a href="NXRENDER/dev.html" class="glass rounded-2xl p-6 card-hover block group">
+                        <h3 class="text-xl font-semibold mb-2 group-hover:text-pink-400 transition-colors">NXRender Dev</h3>
+                        <p class="text-gray-400 text-sm">Display list construction, damage tracking, and swapchain optimizations.</p>
+                    </a>
+                    <a href="webgl.html" class="glass rounded-2xl p-6 card-hover block group">
+                        <h3 class="text-xl font-semibold mb-2 group-hover:text-pink-400 transition-colors">WebGL Implementation</h3>
+                        <p class="text-gray-400 text-sm">Graphics context management, shader compilation pipeline, and API coverage.</p>
+                    </a>
+                </div>
+            </section>
+
+            <!-- API & Integrations -->
+            <section id="api" class="mb-24 animate-section">
+                <div class="flex items-center justify-between mb-8 border-b border-white/10 pb-4">
+                    <h2 class="text-3xl font-bold flex items-center gap-3">
+                        <svg class="w-8 h-8 text-purple-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path></svg> API & Integrations
+                    </h2>
+                </div>
+                <div class="grid md:grid-cols-3 gap-6">
+                    <a href="api-support.html" class="glass rounded-2xl p-6 card-hover block group">
+                        <h3 class="text-lg font-semibold mb-2 group-hover:text-purple-400 transition-colors">Web API Support</h3>
+                        <p class="text-gray-400 text-sm">DOM, CSSOM, Fetch, and WebCrypto adherence metrics.</p>
+                    </a>
+                     <a href="api-blocked-by-design.html" class="glass rounded-2xl p-6 card-hover block group">
+                        <h3 class="text-lg font-semibold mb-2 group-hover:text-purple-400 transition-colors">Blocked APIs (By Design)</h3>
+                        <p class="text-gray-400 text-sm">Legacy, proprietary or insecure APIs deliberately dropped.</p>
+                    </a>
+                    <a href="configuration-system.html" class="glass rounded-2xl p-6 card-hover block group">
+                        <h3 class="text-lg font-semibold mb-2 group-hover:text-purple-400 transition-colors">Configuration Specs</h3>
+                        <p class="text-gray-400 text-sm">Runtime flag injection, config parsing, and persistence.</p>
+                    </a>
+                    <a href="zepra-web.html" class="glass rounded-2xl p-6 card-hover block group">
+                        <h3 class="text-lg font-semibold mb-2 group-hover:text-purple-400 transition-colors">ZepraWeb</h3>
+                        <p class="text-gray-400 text-sm">Browser application layer embedding interface.</p>
+                    </a>
+                    <a href="zepra-web-view.html" class="glass rounded-2xl p-6 card-hover block group">
+                        <h3 class="text-lg font-semibold mb-2 group-hover:text-purple-400 transition-colors">WebView API</h3>
+                        <p class="text-gray-400 text-sm">Headless and embedded WebView implementation guide.</p>
+                    </a>
+                    <a href="search-engine-integration.html" class="glass rounded-2xl p-6 card-hover block group">
+                        <h3 class="text-lg font-semibold mb-2 group-hover:text-purple-400 transition-colors">Search Integrations</h3>
+                        <p class="text-gray-400 text-sm">Omnibox providers, native search APIs, and local indexing.</p>
+                    </a>
+                    <a href="ai.html" class="glass rounded-2xl p-6 card-hover block group">
+                        <h3 class="text-lg font-semibold mb-2 group-hover:text-purple-400 transition-colors">AI Processing</h3>
+                        <p class="text-gray-400 text-sm">LLM bridges, page summarization hooks, and inference pipelines.</p>
+                    </a>
+                </div>
+            </section>
+
+            <!-- Security & Policy -->
+            <section id="security" class="mb-24 animate-section">
+                <div class="flex items-center justify-between mb-8 border-b border-white/10 pb-4">
+                    <h2 class="text-3xl font-bold flex items-center gap-3">
+                        <svg class="w-8 h-8 text-amber-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"></path></svg> Security & Policy
+                    </h2>
+                </div>
+                <div class="grid md:grid-cols-3 gap-6">
+                    <a href="security-model.html" class="glass rounded-2xl p-6 card-hover block group">
+                        <h3 class="text-lg font-semibold mb-2 group-hover:text-amber-400 transition-colors">Security Model</h3>
+                        <p class="text-gray-400 text-sm">Sandboxing enforcement, CSRF protection, and zero-day buffers.</p>
+                    </a>
+                    <a href="tls-ssl-documentation.html" class="glass rounded-2xl p-6 card-hover block group">
+                        <h3 class="text-lg font-semibold mb-2 group-hover:text-amber-400 transition-colors">TLS/SSL Docs</h3>
+                        <p class="text-gray-400 text-sm">Certificate pinning, strict transport security, and crypt libs.</p>
+                    </a>
+                    <a href="zepra-web-api-policy.html" class="glass rounded-2xl p-6 card-hover block group">
+                        <h3 class="text-lg font-semibold mb-2 group-hover:text-amber-400 transition-colors">Web API Policy</h3>
+                        <p class="text-gray-400 text-sm">Permission prompts, device sensors masking, and privacy layers.</p>
+                    </a>
+                    <a href="ketivee-public-license.md" class="glass rounded-2xl p-6 card-hover block group">
+                        <h3 class="text-lg font-semibold mb-2 group-hover:text-amber-400 transition-colors">Ketivee License</h3>
+                        <p class="text-gray-400 text-sm">KSAL-2.0 terms, patent grant details, and open source provisions.</p>
+                    </a>
+                </div>
+            </section>
+
+            <footer class="pt-12 border-t border-white/5 text-center mt-12 pb-8">
+                <div class="text-sm text-gray-500">ZepraBrowser Documentation Hub • © 2026 KetiveeAI</div>
+                <div class="text-xs text-gray-600 mt-2">Designed for the NeolyxOS Project</div>
+            </footer>
+        </div>
+    </main>
+
+    <script>
+        gsap.registerPlugin(ScrollTrigger);
+        gsap.from('.animate-header', { opacity: 0, y: 50, duration: 1, ease: 'power3.out' });
+        gsap.utils.toArray('.animate-section').forEach((section, i) => {
+            gsap.from(section, {
+                scrollTrigger: { trigger: section, start: 'top 85%' },
+                opacity: 0, y: 50, duration: 0.8, ease: 'power3.out', delay: i * 0.1
+            });
+        });
+
+        // Smooth scrolling for sidebar links
+        document.querySelectorAll('.nav-link[href^="#"]').forEach(anchor => {
+            anchor.addEventListener('click', function (e) {
+                e.preventDefault();
+                document.querySelector(this.getAttribute('href')).scrollIntoView({
+                    behavior: 'smooth'
+                });
+            });
+        });
+    </script>
+</body>
+</html>

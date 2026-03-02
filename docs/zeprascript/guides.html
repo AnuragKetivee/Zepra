@@ -1,0 +1,340 @@
+<!DOCTYPE html>
+<html lang="en" class="scroll-smooth">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ZepraScript Integration Guide</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/gsap.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/ScrollTrigger.min.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        dark: { 900: '#0a0a0f', 800: '#12121a', 700: '#1a1a24', 600: '#24242f', 500: '#2d2d3a' },
+                        accent: { DEFAULT: '#6366f1', light: '#818cf8', dark: '#4f46e5' },
+                    },
+                    fontFamily: { sans: ['Inter', 'sans-serif'], mono: ['JetBrains Mono', 'monospace'] }
+                }
+            }
+        }
+    </script>
+    <style>
+        ::-webkit-scrollbar { width: 8px; }
+        ::-webkit-scrollbar-track { background: #12121a; }
+        ::-webkit-scrollbar-thumb { background: #3f3f5a; border-radius: 4px; }
+        .gradient-text { background: linear-gradient(135deg, #6366f1 0%, #a855f7 50%, #ec4899 100%); -webkit-background-clip: text; background-clip: text; color: transparent; }
+        .glass { background: rgba(26, 26, 36, 0.8); backdrop-filter: blur(20px); border: 1px solid rgba(99, 102, 241, 0.1); }
+        .code-block { background: linear-gradient(135deg, #12121a 0%, #1a1a24 100%); }
+        .nav-link.active { background: linear-gradient(90deg, rgba(99, 102, 241, 0.2) 0%, transparent 100%); border-left-color: #6366f1; }
+        .card-hover { transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1); }
+        .card-hover:hover { transform: translateY(-4px); box-shadow: 0 20px 40px rgba(0, 0, 0, 0.4); border-color: rgba(99, 102, 241, 0.5); }
+        .step-number { background: linear-gradient(135deg, #6366f1 0%, #a855f7 100%); }
+    </style>
+</head>
+<body class="bg-dark-900 text-gray-100 font-sans antialiased">
+    <div class="fixed inset-0 pointer-events-none overflow-hidden">
+        <div class="absolute top-0 right-1/4 w-[600px] h-[600px] bg-purple-500/5 rounded-full blur-[150px]"></div>
+        <div class="absolute bottom-0 left-1/4 w-[500px] h-[500px] bg-accent/5 rounded-full blur-[150px]"></div>
+    </div>
+
+    <aside class="fixed left-0 top-0 w-72 h-screen bg-dark-800/90 backdrop-blur-xl border-r border-white/5 z-50 overflow-y-auto">
+        <div class="p-6 border-b border-white/5">
+            <div class="flex items-center gap-3">
+                <div class="w-10 h-10 rounded-xl bg-gradient-to-br from-accent to-purple-500 flex items-center justify-center">
+                    <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/></svg>
+                </div>
+                <div>
+                    <h1 class="font-bold text-lg">ZepraScript</h1>
+                    <span class="text-xs text-gray-500">Integration Guide</span>
+                </div>
+            </div>
+        </div>
+        <nav class="p-4">
+            <div class="mb-6">
+                <span class="text-[10px] font-semibold uppercase tracking-wider text-gray-500 px-3">Documentation</span>
+                <div class="mt-2 space-y-1">
+                    <a href="index.html" class="nav-link flex items-center gap-3 px-3 py-2 text-sm text-gray-400 hover:text-white rounded-lg hover:bg-white/5 transition-all border-l-2 border-transparent">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"/></svg>
+                        Home
+                    </a>
+                    <a href="api.html" class="nav-link flex items-center gap-3 px-3 py-2 text-sm text-gray-400 hover:text-white rounded-lg hover:bg-white/5 transition-all border-l-2 border-transparent">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4"/></svg>
+                        API Reference
+                    </a>
+                    <a href="guides.html" class="nav-link active flex items-center gap-3 px-3 py-2 text-sm text-white rounded-lg border-l-2 border-accent">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"/></svg>
+                        Integration Guide
+                    </a>
+                    <a href="todo.html" class="nav-link flex items-center gap-3 px-3 py-2 text-sm text-gray-400 hover:text-white rounded-lg hover:bg-white/5 transition-all border-l-2 border-transparent">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/></svg>
+                        Roadmap
+                    </a>
+                </div>
+            </div>
+            <div class="mb-6">
+                <span class="text-[10px] font-semibold uppercase tracking-wider text-gray-500 px-3">Steps</span>
+                <div class="mt-2 space-y-1">
+                    <a href="#quick-start" class="nav-link flex items-center gap-3 px-3 py-2 text-sm text-gray-400 hover:text-white rounded-lg hover:bg-white/5 transition-all border-l-2 border-transparent pl-6">Quick Start</a>
+                    <a href="#isolates" class="nav-link flex items-center gap-3 px-3 py-2 text-sm text-gray-400 hover:text-white rounded-lg hover:bg-white/5 transition-all border-l-2 border-transparent pl-6">Isolates</a>
+                    <a href="#sandboxing" class="nav-link flex items-center gap-3 px-3 py-2 text-sm text-gray-400 hover:text-white rounded-lg hover:bg-white/5 transition-all border-l-2 border-transparent pl-6">Sandboxing</a>
+                    <a href="#native" class="nav-link flex items-center gap-3 px-3 py-2 text-sm text-gray-400 hover:text-white rounded-lg hover:bg-white/5 transition-all border-l-2 border-transparent pl-6">Native Functions</a>
+                    <a href="#dom" class="nav-link flex items-center gap-3 px-3 py-2 text-sm text-gray-400 hover:text-white rounded-lg hover:bg-white/5 transition-all border-l-2 border-transparent pl-6">DOM Bindings</a>
+                    <a href="#wasm" class="nav-link flex items-center gap-3 px-3 py-2 text-sm text-gray-400 hover:text-white rounded-lg hover:bg-white/5 transition-all border-l-2 border-transparent pl-6">WebAssembly</a>
+                    <a href="#best-practices" class="nav-link flex items-center gap-3 px-3 py-2 text-sm text-gray-400 hover:text-white rounded-lg hover:bg-white/5 transition-all border-l-2 border-transparent pl-6">Best Practices</a>
+                </div>
+            </div>
+        </nav>
+    </aside>
+
+    <main class="ml-72 min-h-screen">
+        <div class="max-w-4xl mx-auto px-8 py-16">
+            <header class="mb-16 animate-header">
+                <div class="flex items-center gap-3 mb-4">
+                    <span class="px-3 py-1 text-xs font-medium bg-emerald-500/20 text-emerald-400 rounded-full">Beginner Friendly</span>
+                </div>
+                <h1 class="text-5xl font-extrabold gradient-text mb-4">Integration Guide</h1>
+                <p class="text-xl text-gray-400 max-w-2xl">Complete guide for embedding ZepraScript into applications.</p>
+            </header>
+
+            <!-- Step 1 -->
+            <section id="quick-start" class="mb-20 animate-section">
+                <div class="flex items-start gap-4 mb-6">
+                    <div class="step-number w-10 h-10 rounded-xl flex items-center justify-center text-white font-bold flex-shrink-0">1</div>
+                    <div>
+                        <h2 class="text-2xl font-bold">Quick Start</h2>
+                        <p class="text-gray-400 mt-1">Get up and running in minutes.</p>
+                    </div>
+                </div>
+                <div class="code-block rounded-xl border border-white/5 overflow-hidden">
+                    <div class="flex items-center justify-between px-4 py-2 bg-dark-700/50 border-b border-white/5">
+                        <span class="text-xs text-gray-500 font-mono">main.cpp</span>
+                    </div>
+                    <pre class="p-4 text-sm font-mono overflow-x-auto"><code class="text-gray-300"><span class="text-purple-400">#include</span> <span class="text-emerald-400">&lt;zeprascript/zepra_api.hpp&gt;</span>
+<span class="text-purple-400">#include</span> <span class="text-emerald-400">&lt;iostream&gt;</span>
+
+<span class="text-blue-400">int</span> <span class="text-yellow-300">main</span>() {
+    Zepra::<span class="text-accent">initialize</span>();
+    
+    <span class="text-blue-400">auto</span> isolate = Zepra::Isolate::<span class="text-accent">create</span>();
+    <span class="text-blue-400">auto</span> context = isolate-><span class="text-accent">createContext</span>();
+    
+    <span class="text-blue-400">auto</span> result = context-><span class="text-accent">evaluate</span>(<span class="text-emerald-400">"2 + 2"</span>);
+    
+    <span class="text-purple-400">if</span> (result.<span class="text-accent">isSuccess</span>()) {
+        std::cout << <span class="text-emerald-400">"Result: "</span> << result.<span class="text-accent">value</span>().<span class="text-accent">toNumber</span>() << std::endl;
+    }
+    
+    Zepra::<span class="text-accent">shutdown</span>();
+    <span class="text-purple-400">return</span> <span class="text-orange-400">0</span>;
+}</code></pre>
+                </div>
+            </section>
+
+            <!-- Step 2 -->
+            <section id="isolates" class="mb-20 animate-section">
+                <div class="flex items-start gap-4 mb-6">
+                    <div class="step-number w-10 h-10 rounded-xl flex items-center justify-center text-white font-bold flex-shrink-0">2</div>
+                    <div>
+                        <h2 class="text-2xl font-bold">Isolate & Context</h2>
+                        <p class="text-gray-400 mt-1">Create isolated JavaScript environments.</p>
+                    </div>
+                </div>
+                <div class="glass rounded-2xl p-6 mb-6">
+                    <div class="flex items-center gap-3 mb-4 p-3 bg-accent/10 rounded-lg border border-accent/20">
+                        <svg class="w-5 h-5 text-accent" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                        <span class="text-sm"><strong>Use Case:</strong> Create one Isolate per browser tab for complete isolation.</span>
+                    </div>
+                    <div class="grid md:grid-cols-3 gap-4">
+                        <div class="bg-dark-700/50 rounded-xl p-4">
+                            <div class="text-accent text-2xl mb-2">🔒</div>
+                            <div class="font-semibold text-sm">Own Heap</div>
+                            <div class="text-xs text-gray-500">Separate memory</div>
+                        </div>
+                        <div class="bg-dark-700/50 rounded-xl p-4">
+                            <div class="text-purple-400 text-2xl mb-2">♻️</div>
+                            <div class="font-semibold text-sm">Own GC</div>
+                            <div class="text-xs text-gray-500">Independent collection</div>
+                        </div>
+                        <div class="bg-dark-700/50 rounded-xl p-4">
+                            <div class="text-pink-400 text-2xl mb-2">⚡</div>
+                            <div class="font-semibold text-sm">Own JIT</div>
+                            <div class="text-xs text-gray-500">Separate optimization</div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Step 3 -->
+            <section id="sandboxing" class="mb-20 animate-section">
+                <div class="flex items-start gap-4 mb-6">
+                    <div class="step-number w-10 h-10 rounded-xl flex items-center justify-center text-white font-bold flex-shrink-0">3</div>
+                    <div>
+                        <h2 class="text-2xl font-bold">Sandboxing</h2>
+                        <p class="text-gray-400 mt-1">Secure execution of untrusted code.</p>
+                    </div>
+                </div>
+                <div class="code-block rounded-xl border border-white/5 overflow-hidden mb-6">
+                    <pre class="p-4 text-sm font-mono overflow-x-auto"><code class="text-gray-300"><span class="text-purple-400">#include</span> <span class="text-emerald-400">&lt;zeprascript/runtime/Sandbox.h&gt;</span>
+
+ExecutionLimits limits;
+limits.maxHeapBytes = <span class="text-orange-400">50</span> * <span class="text-orange-400">1024</span> * <span class="text-orange-400">1024</span>;      <span class="text-gray-500">// 50MB</span>
+limits.maxStackBytes = <span class="text-orange-400">1024</span> * <span class="text-orange-400">1024</span>;           <span class="text-gray-500">// 1MB</span>
+limits.maxExecutionTime = std::chrono::<span class="text-accent">seconds</span>(<span class="text-orange-400">10</span>);
+
+ResourceMonitor monitor(limits);
+vm-><span class="text-accent">setSandbox</span>(&monitor);</code></pre>
+                </div>
+                <div class="grid grid-cols-3 gap-3">
+                    <div class="glass rounded-xl p-4 text-center card-hover">
+                        <div class="text-xs text-gray-500 mb-1">untrusted()</div>
+                        <div class="text-emerald-400 font-semibold">Strict</div>
+                    </div>
+                    <div class="glass rounded-xl p-4 text-center card-hover">
+                        <div class="text-xs text-gray-500 mb-1">browser()</div>
+                        <div class="text-accent font-semibold">Normal</div>
+                    </div>
+                    <div class="glass rounded-xl p-4 text-center card-hover">
+                        <div class="text-xs text-gray-500 mb-1">strict()</div>
+                        <div class="text-red-400 font-semibold">Maximum</div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Step 4 -->
+            <section id="native" class="mb-20 animate-section">
+                <div class="flex items-start gap-4 mb-6">
+                    <div class="step-number w-10 h-10 rounded-xl flex items-center justify-center text-white font-bold flex-shrink-0">4</div>
+                    <div>
+                        <h2 class="text-2xl font-bold">Native Functions</h2>
+                        <p class="text-gray-400 mt-1">Expose C++ functionality to JavaScript.</p>
+                    </div>
+                </div>
+                <div class="code-block rounded-xl border border-white/5 overflow-hidden">
+                    <pre class="p-4 text-sm font-mono overflow-x-auto"><code class="text-gray-300">Value <span class="text-yellow-300">nativePrint</span>(Context* ctx, <span class="text-purple-400">const</span> std::vector&lt;Value&gt;& args) {
+    <span class="text-purple-400">for</span> (<span class="text-purple-400">const</span> <span class="text-purple-400">auto</span>& arg : args) {
+        std::cout << arg.<span class="text-accent">toString</span>() << <span class="text-emerald-400">" "</span>;
+    }
+    <span class="text-purple-400">return</span> Value::<span class="text-accent">undefined</span>();
+}
+
+<span class="text-purple-400">void</span> <span class="text-yellow-300">setup</span>(Context* context) {
+    <span class="text-purple-400">auto</span> global = context-><span class="text-accent">globalObject</span>();
+    global-><span class="text-accent">set</span>(<span class="text-emerald-400">"print"</span>, Value::<span class="text-accent">createNativeFunction</span>(nativePrint));
+}
+
+<span class="text-gray-500">// JavaScript: print("Hello", "World");</span></code></pre>
+                </div>
+            </section>
+
+            <!-- Step 5 -->
+            <section id="dom" class="mb-20 animate-section">
+                <div class="flex items-start gap-4 mb-6">
+                    <div class="step-number w-10 h-10 rounded-xl flex items-center justify-center text-white font-bold flex-shrink-0">5</div>
+                    <div>
+                        <h2 class="text-2xl font-bold">DOM Bindings</h2>
+                        <p class="text-gray-400 mt-1">Connect JavaScript to your UI layer.</p>
+                    </div>
+                </div>
+                <div class="code-block rounded-xl border border-white/5 overflow-hidden">
+                    <pre class="p-4 text-sm font-mono overflow-x-auto"><code class="text-gray-300"><span class="text-purple-400">#include</span> <span class="text-emerald-400">&lt;zeprascript/browser/DOMBindings.h&gt;</span>
+
+<span class="text-purple-400">void</span> <span class="text-yellow-300">setupDOM</span>(Context* context, Document* doc) {
+    <span class="text-purple-400">auto</span> global = context-><span class="text-accent">globalObject</span>();
+    global-><span class="text-accent">set</span>(<span class="text-emerald-400">"document"</span>, DOMBindings::<span class="text-accent">wrapDocument</span>(doc));
+    global-><span class="text-accent">set</span>(<span class="text-emerald-400">"window"</span>, DOMBindings::<span class="text-accent">wrapWindow</span>(context));
+}</code></pre>
+                </div>
+            </section>
+
+            <!-- Step 6 -->
+            <section id="wasm" class="mb-20 animate-section">
+                <div class="flex items-start gap-4 mb-6">
+                    <div class="step-number w-10 h-10 rounded-xl flex items-center justify-center text-white font-bold flex-shrink-0">6</div>
+                    <div>
+                        <h2 class="text-2xl font-bold">WebAssembly</h2>
+                        <p class="text-gray-400 mt-1">Load and execute WASM modules.</p>
+                    </div>
+                </div>
+                <div class="code-block rounded-xl border border-white/5 overflow-hidden">
+                    <pre class="p-4 text-sm font-mono overflow-x-auto"><code class="text-gray-300"><span class="text-purple-400">#include</span> <span class="text-emerald-400">&lt;zeprascript/wasm/WasmModule.h&gt;</span>
+
+<span class="text-purple-400">auto</span> module = WasmModule::<span class="text-accent">compile</span>(wasmBytes).<span class="text-accent">value</span>();
+
+WasmImports imports;
+imports.<span class="text-accent">addFunction</span>(<span class="text-emerald-400">"env"</span>, <span class="text-emerald-400">"log"</span>, [](<span class="text-blue-400">int32_t</span> val) {
+    std::cout << <span class="text-emerald-400">"WASM: "</span> << val << std::endl;
+});
+
+<span class="text-purple-400">auto</span> instance = module-><span class="text-accent">instantiate</span>(imports);
+Value result = instance-><span class="text-accent">call</span>(<span class="text-emerald-400">"main"</span>, {});</code></pre>
+                </div>
+            </section>
+
+            <!-- Best Practices -->
+            <section id="best-practices" class="mb-16 animate-section">
+                <div class="flex items-start gap-4 mb-6">
+                    <div class="step-number w-10 h-10 rounded-xl flex items-center justify-center text-white font-bold flex-shrink-0">✓</div>
+                    <div>
+                        <h2 class="text-2xl font-bold">Best Practices</h2>
+                        <p class="text-gray-400 mt-1">Follow these for production use.</p>
+                    </div>
+                </div>
+                <div class="grid md:grid-cols-2 gap-4">
+                    <div class="glass rounded-xl p-5 card-hover">
+                        <div class="flex items-center gap-3 mb-2">
+                            <div class="w-8 h-8 rounded-lg bg-accent/20 flex items-center justify-center text-accent">1</div>
+                            <span class="font-semibold">One Isolate per tab</span>
+                        </div>
+                        <p class="text-sm text-gray-400">Complete isolation prevents cross-tab attacks.</p>
+                    </div>
+                    <div class="glass rounded-xl p-5 card-hover">
+                        <div class="flex items-center gap-3 mb-2">
+                            <div class="w-8 h-8 rounded-lg bg-accent/20 flex items-center justify-center text-accent">2</div>
+                            <span class="font-semibold">Always sandbox</span>
+                        </div>
+                        <p class="text-sm text-gray-400">Use ResourceMonitor for untrusted code.</p>
+                    </div>
+                    <div class="glass rounded-xl p-5 card-hover">
+                        <div class="flex items-center gap-3 mb-2">
+                            <div class="w-8 h-8 rounded-lg bg-accent/20 flex items-center justify-center text-accent">3</div>
+                            <span class="font-semibold">Set timeouts</span>
+                        </div>
+                        <p class="text-sm text-gray-400">Prevent infinite loops from freezing UI.</p>
+                    </div>
+                    <div class="glass rounded-xl p-5 card-hover">
+                        <div class="flex items-center gap-3 mb-2">
+                            <div class="w-8 h-8 rounded-lg bg-accent/20 flex items-center justify-center text-accent">4</div>
+                            <span class="font-semibold">Use Handles</span>
+                        </div>
+                        <p class="text-sm text-gray-400">Prevent use-after-free with GC handles.</p>
+                    </div>
+                </div>
+            </section>
+
+            <footer class="pt-12 border-t border-white/5">
+                <div class="flex items-center justify-between">
+                    <div class="text-sm text-gray-500">ZepraScript v1.0.0</div>
+                    <div class="flex gap-4">
+                        <a href="api.html" class="text-sm text-gray-400 hover:text-accent transition-colors">← API Reference</a>
+                        <a href="todo.html" class="text-sm text-gray-400 hover:text-accent transition-colors">Roadmap →</a>
+                    </div>
+                </div>
+            </footer>
+        </div>
+    </main>
+
+    <script>
+        gsap.registerPlugin(ScrollTrigger);
+        gsap.from('.animate-header', { opacity: 0, y: 30, duration: 0.8, ease: 'power3.out' });
+        gsap.utils.toArray('.animate-section').forEach((section, i) => {
+            gsap.from(section, {
+                scrollTrigger: { trigger: section, start: 'top 85%' },
+                opacity: 0, y: 40, duration: 0.6, ease: 'power3.out', delay: i * 0.05
+            });
+        });
+    </script>
+</body>
+</html>

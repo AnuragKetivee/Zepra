@@ -20,7 +20,7 @@ DevToolsUI::DevToolsUI()
     , autoRefreshEnabled(false)
     , refreshInterval(1000) {
     
-    std::cout << "🎨 DevTools UI initialized" << std::endl;
+    std::cout << "[UI] DevTools UI initialized" << std::endl;
     
     // Initialize panel visibility
     panelVisibility[DevToolsPanel::CONSOLE] = true;
@@ -40,7 +40,7 @@ DevToolsUI::DevToolsUI()
 }
 
 DevToolsUI::~DevToolsUI() {
-    std::cout << "🎨 DevTools UI destroyed" << std::endl;
+    std::cout << "[UI] DevTools UI destroyed" << std::endl;
 }
 
 // Initialization
@@ -52,13 +52,13 @@ bool DevToolsUI::initialize(std::shared_ptr<DeveloperTools> tools) {
     setupShortcuts();
     setupCallbacks();
 
-    std::cout << "🎨 DevTools UI initialized successfully" << std::endl;
+    std::cout << "[UI] DevTools UI initialized successfully" << std::endl;
     return true;
 }
 
 void DevToolsUI::shutdown() {
     initialized = false;
-    std::cout << "🎨 DevTools UI shutdown" << std::endl;
+    std::cout << "[UI] DevTools UI shutdown" << std::endl;
 }
 
 bool DevToolsUI::isInitialized() const {
@@ -69,12 +69,12 @@ bool DevToolsUI::isInitialized() const {
 void DevToolsUI::showPanel(DevToolsPanel panel) {
     panelVisibility[panel] = true;
     currentPanel = panel;
-    std::cout << "🎨 Showing panel: " << static_cast<int>(panel) << std::endl;
+    std::cout << "[UI] Showing panel: " << static_cast<int>(panel) << std::endl;
 }
 
 void DevToolsUI::hidePanel(DevToolsPanel panel) {
     panelVisibility[panel] = false;
-    std::cout << "🎨 Hiding panel: " << static_cast<int>(panel) << std::endl;
+    std::cout << "[UI] Hiding panel: " << static_cast<int>(panel) << std::endl;
 }
 
 bool DevToolsUI::isPanelVisible(DevToolsPanel panel) const {
@@ -88,27 +88,27 @@ DevToolsPanel DevToolsUI::getCurrentPanel() const {
 
 void DevToolsUI::setCurrentPanel(DevToolsPanel panel) {
     currentPanel = panel;
-    std::cout << "🎨 Current panel set to: " << static_cast<int>(panel) << std::endl;
+    std::cout << "[UI] Current panel set to: " << static_cast<int>(panel) << std::endl;
 }
 
 // Console Panel
 void DevToolsUI::updateConsole() {
     if (devTools) {
         auto messages = devTools->getConsoleMessages();
-        std::cout << "🎨 Console updated with " << messages.size() << " messages" << std::endl;
+        std::cout << "[UI] Console updated with " << messages.size() << " messages" << std::endl;
     }
 }
 
 void DevToolsUI::clearConsole() {
     if (devTools) {
         devTools->clearConsole();
-        std::cout << "🎨 Console cleared" << std::endl;
+        std::cout << "[UI] Console cleared" << std::endl;
     }
 }
 
 void DevToolsUI::setConsoleFilter(const ConsoleFilter& filter) {
     consoleFilter = filter;
-    std::cout << "🎨 Console filter updated" << std::endl;
+    std::cout << "[UI] Console filter updated" << std::endl;
 }
 
 ConsoleFilter DevToolsUI::getConsoleFilter() const {
@@ -123,8 +123,8 @@ void DevToolsUI::executeConsoleCommand(const String& command) {
     if (devTools) {
         String result = devTools->executeJavaScript(command);
         addConsoleHistory(command);
-        std::cout << "🎨 Console command executed: " << command << std::endl;
-        std::cout << "🎨 Result: " << result << std::endl;
+        std::cout << "[UI] Console command executed: " << command << std::endl;
+        std::cout << "[UI] Result: " << result << std::endl;
     }
 }
 
@@ -141,7 +141,7 @@ void DevToolsUI::addConsoleHistory(const String& command) {
 
 // Elements Panel
 void DevToolsUI::updateDOMTree() {
-    std::cout << "🎨 DOM tree updated" << std::endl;
+    std::cout << "[UI] DOM tree updated" << std::endl;
 }
 
 void DevToolsUI::highlightElement(int nodeId) {
@@ -149,27 +149,27 @@ void DevToolsUI::highlightElement(int nodeId) {
     if (devTools) {
         devTools->highlightNode(nodeId);
     }
-    std::cout << "🎨 Element highlighted: " << nodeId << std::endl;
+    std::cout << "[UI] Element highlighted: " << nodeId << std::endl;
 }
 
 void DevToolsUI::inspectElement(int x, int y) {
     if (devTools) {
         devTools->inspectElement(x, y);
     }
-    std::cout << "🎨 Inspecting element at (" << x << ", " << y << ")" << std::endl;
+    std::cout << "[UI] Inspecting element at (" << x << ", " << y << ")" << std::endl;
 }
 
 void DevToolsUI::expandNode(int nodeId) {
-    std::cout << "🎨 Node expanded: " << nodeId << std::endl;
+    std::cout << "[UI] Node expanded: " << nodeId << std::endl;
 }
 
 void DevToolsUI::collapseNode(int nodeId) {
-    std::cout << "🎨 Node collapsed: " << nodeId << std::endl;
+    std::cout << "[UI] Node collapsed: " << nodeId << std::endl;
 }
 
 void DevToolsUI::selectNode(int nodeId) {
     selectedNodeId = nodeId;
-    std::cout << "🎨 Node selected: " << nodeId << std::endl;
+    std::cout << "[UI] Node selected: " << nodeId << std::endl;
 }
 
 int DevToolsUI::getSelectedNodeId() const {
@@ -185,7 +185,7 @@ void DevToolsUI::updateNetworkLog() {
     if (devTools) {
         auto requests = devTools->getNetworkRequests();
         auto responses = devTools->getNetworkResponses();
-        std::cout << "🎨 Network log updated: " << requests.size() << " requests, " 
+        std::cout << "[UI] Network log updated: " << requests.size() << " requests, " 
                   << responses.size() << " responses" << std::endl;
     }
 }
@@ -193,13 +193,13 @@ void DevToolsUI::updateNetworkLog() {
 void DevToolsUI::clearNetworkLog() {
     if (devTools) {
         devTools->clearNetworkLog();
-        std::cout << "🎨 Network log cleared" << std::endl;
+        std::cout << "[UI] Network log cleared" << std::endl;
     }
 }
 
 void DevToolsUI::setNetworkFilter(const NetworkFilter& filter) {
     networkFilter = filter;
-    std::cout << "🎨 Network filter updated" << std::endl;
+    std::cout << "[UI] Network filter updated" << std::endl;
 }
 
 NetworkFilter DevToolsUI::getNetworkFilter() const {
@@ -211,11 +211,11 @@ void DevToolsUI::setNetworkCallback(std::function<void(const String&)> callback)
 }
 
 void DevToolsUI::exportNetworkLog(const String& filePath) {
-    std::cout << "🎨 Network log exported to: " << filePath << std::endl;
+    std::cout << "[UI] Network log exported to: " << filePath << std::endl;
 }
 
 void DevToolsUI::importNetworkLog(const String& filePath) {
-    std::cout << "🎨 Network log imported from: " << filePath << std::endl;
+    std::cout << "[UI] Network log imported from: " << filePath << std::endl;
 }
 
 // Performance Panel
@@ -224,7 +224,7 @@ void DevToolsUI::startPerformanceRecording() {
     if (devTools) {
         devTools->startPerformanceMonitoring();
     }
-    std::cout << "🎨 Performance recording started" << std::endl;
+    std::cout << "[UI] Performance recording started" << std::endl;
 }
 
 void DevToolsUI::stopPerformanceRecording() {
@@ -232,7 +232,7 @@ void DevToolsUI::stopPerformanceRecording() {
     if (devTools) {
         devTools->stopPerformanceMonitoring();
     }
-    std::cout << "🎨 Performance recording stopped" << std::endl;
+    std::cout << "[UI] Performance recording stopped" << std::endl;
 }
 
 bool DevToolsUI::isPerformanceRecording() const {
@@ -242,12 +242,12 @@ bool DevToolsUI::isPerformanceRecording() const {
 void DevToolsUI::updatePerformanceMetrics() {
     if (devTools) {
         auto metrics = devTools->getPerformanceMetrics();
-        std::cout << "🎨 Performance metrics updated" << std::endl;
+        std::cout << "[UI] Performance metrics updated" << std::endl;
     }
 }
 
 void DevToolsUI::exportPerformanceData(const String& filePath) {
-    std::cout << "🎨 Performance data exported to: " << filePath << std::endl;
+    std::cout << "[UI] Performance data exported to: " << filePath << std::endl;
 }
 
 void DevToolsUI::setPerformanceCallback(std::function<void(const String&)> callback) {
@@ -256,35 +256,35 @@ void DevToolsUI::setPerformanceCallback(std::function<void(const String&)> callb
 
 // Sources Panel
 void DevToolsUI::updateSources() {
-    std::cout << "🎨 Sources updated" << std::endl;
+    std::cout << "[UI] Sources updated" << std::endl;
 }
 
 void DevToolsUI::setBreakpoint(const String& url, int line) {
-    std::cout << "🎨 Breakpoint set: " << url << ":" << line << std::endl;
+    std::cout << "[UI] Breakpoint set: " << url << ":" << line << std::endl;
 }
 
 void DevToolsUI::removeBreakpoint(const String& url, int line) {
-    std::cout << "🎨 Breakpoint removed: " << url << ":" << line << std::endl;
+    std::cout << "[UI] Breakpoint removed: " << url << ":" << line << std::endl;
 }
 
 void DevToolsUI::stepOver() {
-    std::cout << "🎨 Step over executed" << std::endl;
+    std::cout << "[UI] Step over executed" << std::endl;
 }
 
 void DevToolsUI::stepInto() {
-    std::cout << "🎨 Step into executed" << std::endl;
+    std::cout << "[UI] Step into executed" << std::endl;
 }
 
 void DevToolsUI::stepOut() {
-    std::cout << "🎨 Step out executed" << std::endl;
+    std::cout << "[UI] Step out executed" << std::endl;
 }
 
 void DevToolsUI::continueExecution() {
-    std::cout << "🎨 Execution continued" << std::endl;
+    std::cout << "[UI] Execution continued" << std::endl;
 }
 
 void DevToolsUI::pauseExecution() {
-    std::cout << "🎨 Execution paused" << std::endl;
+    std::cout << "[UI] Execution paused" << std::endl;
 }
 
 bool DevToolsUI::isDebugging() const {
@@ -297,7 +297,7 @@ void DevToolsUI::setDebugCallback(std::function<void(const String&)> callback) {
 
 // Application Panel
 void DevToolsUI::updateApplicationData() {
-    std::cout << "🎨 Application data updated" << std::endl;
+    std::cout << "[UI] Application data updated" << std::endl;
 }
 
 void DevToolsUI::inspectLocalStorage() {
@@ -365,19 +365,19 @@ void DevToolsUI::setSecurityCallback(std::function<void(const String&)> callback
 
 // Node.js Panel
 void DevToolsUI::updateNodeModules() {
-    std::cout << "🎨 Node modules updated" << std::endl;
+    std::cout << "[UI] Node modules updated" << std::endl;
 }
 
 void DevToolsUI::executeNodeScript(const String& script) {
     if (devTools) {
         String result = devTools->executeNodeScript(script);
-        std::cout << "🎨 Node.js script executed: " << script.substr(0, 50) << "..." << std::endl;
-        std::cout << "🎨 Result: " << result << std::endl;
+        std::cout << "[UI] Node.js script executed: " << script.substr(0, 50) << "..." << std::endl;
+        std::cout << "[UI] Result: " << result << std::endl;
     }
 }
 
 void DevToolsUI::installNodePackage(const String& packageName, const String& version) {
-    std::cout << "🎨 Installing Node.js package: " << packageName;
+    std::cout << "[UI] Installing Node.js package: " << packageName;
     if (!version.empty()) {
         std::cout << "@" << version;
     }
@@ -385,7 +385,7 @@ void DevToolsUI::installNodePackage(const String& packageName, const String& ver
 }
 
 void DevToolsUI::uninstallNodePackage(const String& packageName) {
-    std::cout << "🎨 Uninstalling Node.js package: " << packageName << std::endl;
+    std::cout << "[UI] Uninstalling Node.js package: " << packageName << std::endl;
 }
 
 std::vector<String> DevToolsUI::getInstalledPackages() const {
@@ -398,19 +398,19 @@ void DevToolsUI::setNodeCallback(std::function<void(const String&)> callback) {
 
 // Settings Panel
 void DevToolsUI::updateSettings() {
-    std::cout << "🎨 Settings updated" << std::endl;
+    std::cout << "[UI] Settings updated" << std::endl;
 }
 
 void DevToolsUI::saveSettings() {
-    std::cout << "🎨 Settings saved" << std::endl;
+    std::cout << "[UI] Settings saved" << std::endl;
 }
 
 void DevToolsUI::loadSettings() {
-    std::cout << "🎨 Settings loaded" << std::endl;
+    std::cout << "[UI] Settings loaded" << std::endl;
 }
 
 void DevToolsUI::resetSettings() {
-    std::cout << "🎨 Settings reset" << std::endl;
+    std::cout << "[UI] Settings reset" << std::endl;
 }
 
 void DevToolsUI::setSettingsCallback(std::function<void(const String&)> callback) {
@@ -422,48 +422,48 @@ void DevToolsUI::render() {
     if (!initialized) return;
     
     renderPanel(currentPanel);
-    std::cout << "🎨 DevTools UI rendered" << std::endl;
+    std::cout << "[UI] DevTools UI rendered" << std::endl;
 }
 
 void DevToolsUI::renderConsole() {
-    std::cout << "🎨 Console panel rendered" << std::endl;
+    std::cout << "[UI] Console panel rendered" << std::endl;
 }
 
 void DevToolsUI::renderElements() {
-    std::cout << "🎨 Elements panel rendered" << std::endl;
+    std::cout << "[UI] Elements panel rendered" << std::endl;
 }
 
 void DevToolsUI::renderNetwork() {
-    std::cout << "🎨 Network panel rendered" << std::endl;
+    std::cout << "[UI] Network panel rendered" << std::endl;
 }
 
 void DevToolsUI::renderPerformance() {
-    std::cout << "🎨 Performance panel rendered" << std::endl;
+    std::cout << "[UI] Performance panel rendered" << std::endl;
 }
 
 void DevToolsUI::renderSources() {
-    std::cout << "🎨 Sources panel rendered" << std::endl;
+    std::cout << "[UI] Sources panel rendered" << std::endl;
 }
 
 void DevToolsUI::renderApplication() {
-    std::cout << "🎨 Application panel rendered" << std::endl;
+    std::cout << "[UI] Application panel rendered" << std::endl;
 }
 
 void DevToolsUI::renderSecurity() {
-    std::cout << "🎨 Security panel rendered" << std::endl;
+    std::cout << "[UI] Security panel rendered" << std::endl;
 }
 
 void DevToolsUI::renderNodeJS() {
-    std::cout << "🎨 Node.js panel rendered" << std::endl;
+    std::cout << "[UI] Node.js panel rendered" << std::endl;
 }
 
 void DevToolsUI::renderSettings() {
-    std::cout << "🎨 Settings panel rendered" << std::endl;
+    std::cout << "[UI] Settings panel rendered" << std::endl;
 }
 
 // Event Handling
 void DevToolsUI::handleMouseClick(int x, int y, int button) {
-    std::cout << "🎨 Mouse click: (" << x << ", " << y << ") button " << button << std::endl;
+    std::cout << "[UI] Mouse click: (" << x << ", " << y << ") button " << button << std::endl;
 }
 
 void DevToolsUI::handleMouseMove(int x, int y) {
@@ -471,7 +471,7 @@ void DevToolsUI::handleMouseMove(int x, int y) {
 }
 
 void DevToolsUI::handleKeyPress(int key, bool ctrl, bool shift, bool alt) {
-    std::cout << "🎨 Key press: " << key;
+    std::cout << "[UI] Key press: " << key;
     if (ctrl) std::cout << " + Ctrl";
     if (shift) std::cout << " + Shift";
     if (alt) std::cout << " + Alt";
@@ -479,22 +479,22 @@ void DevToolsUI::handleKeyPress(int key, bool ctrl, bool shift, bool alt) {
 }
 
 void DevToolsUI::handleScroll(int deltaX, int deltaY) {
-    std::cout << "🎨 Scroll: (" << deltaX << ", " << deltaY << ")" << std::endl;
+    std::cout << "[UI] Scroll: (" << deltaX << ", " << deltaY << ")" << std::endl;
 }
 
 void DevToolsUI::handleResize(int width, int height) {
-    std::cout << "🎨 Resize: " << width << "x" << height << std::endl;
+    std::cout << "[UI] Resize: " << width << "x" << height << std::endl;
 }
 
 // Search and Filter
 void DevToolsUI::searchInPanel(DevToolsPanel panel, const String& query) {
     searchQuery = query;
-    std::cout << "🎨 Search in panel " << static_cast<int>(panel) << ": " << query << std::endl;
+    std::cout << "[UI] Search in panel " << static_cast<int>(panel) << ": " << query << std::endl;
 }
 
 void DevToolsUI::clearSearch() {
     searchQuery.clear();
-    std::cout << "🎨 Search cleared" << std::endl;
+    std::cout << "[UI] Search cleared" << std::endl;
 }
 
 String DevToolsUI::getSearchQuery() const {
@@ -507,26 +507,26 @@ void DevToolsUI::setSearchCallback(std::function<void(const String&)> callback) 
 
 // Export and Import
 void DevToolsUI::exportData(DevToolsPanel panel, const String& filePath) {
-    std::cout << "🎨 Exporting data from panel " << static_cast<int>(panel) << " to " << filePath << std::endl;
+    std::cout << "[UI] Exporting data from panel " << static_cast<int>(panel) << " to " << filePath << std::endl;
 }
 
 void DevToolsUI::importData(DevToolsPanel panel, const String& filePath) {
-    std::cout << "🎨 Importing data to panel " << static_cast<int>(panel) << " from " << filePath << std::endl;
+    std::cout << "[UI] Importing data to panel " << static_cast<int>(panel) << " from " << filePath << std::endl;
 }
 
 void DevToolsUI::exportAllData(const String& directory) {
-    std::cout << "🎨 Exporting all data to " << directory << std::endl;
+    std::cout << "[UI] Exporting all data to " << directory << std::endl;
 }
 
 void DevToolsUI::importAllData(const String& directory) {
-    std::cout << "🎨 Importing all data from " << directory << std::endl;
+    std::cout << "[UI] Importing all data from " << directory << std::endl;
 }
 
 // Theme and Styling
 void DevToolsUI::setTheme(const String& newTheme) {
     theme = newTheme;
     applyTheme();
-    std::cout << "🎨 Theme set to: " << theme << std::endl;
+    std::cout << "[UI] Theme set to: " << theme << std::endl;
 }
 
 String DevToolsUI::getTheme() const {
@@ -535,7 +535,7 @@ String DevToolsUI::getTheme() const {
 
 void DevToolsUI::setFontSize(int size) {
     fontSize = size;
-    std::cout << "🎨 Font size set to: " << fontSize << std::endl;
+    std::cout << "[UI] Font size set to: " << fontSize << std::endl;
 }
 
 int DevToolsUI::getFontSize() const {
@@ -544,7 +544,7 @@ int DevToolsUI::getFontSize() const {
 
 void DevToolsUI::setColorScheme(const String& scheme) {
     colorScheme = scheme;
-    std::cout << "🎨 Color scheme set to: " << colorScheme << std::endl;
+    std::cout << "[UI] Color scheme set to: " << colorScheme << std::endl;
 }
 
 String DevToolsUI::getColorScheme() const {
@@ -555,7 +555,7 @@ String DevToolsUI::getColorScheme() const {
 void DevToolsUI::setLayout(const String& newLayout) {
     layout = newLayout;
     applyLayout();
-    std::cout << "🎨 Layout set to: " << layout << std::endl;
+    std::cout << "[UI] Layout set to: " << layout << std::endl;
 }
 
 String DevToolsUI::getLayout() const {
@@ -564,7 +564,7 @@ String DevToolsUI::getLayout() const {
 
 void DevToolsUI::toggleSidebar() {
     sidebarVisible = !sidebarVisible;
-    std::cout << "🎨 Sidebar " << (sidebarVisible ? "shown" : "hidden") << std::endl;
+    std::cout << "[UI] Sidebar " << (sidebarVisible ? "shown" : "hidden") << std::endl;
 }
 
 bool DevToolsUI::isSidebarVisible() const {
@@ -573,7 +573,7 @@ bool DevToolsUI::isSidebarVisible() const {
 
 void DevToolsUI::toggleBottomPanel() {
     bottomPanelVisible = !bottomPanelVisible;
-    std::cout << "🎨 Bottom panel " << (bottomPanelVisible ? "shown" : "hidden") << std::endl;
+    std::cout << "[UI] Bottom panel " << (bottomPanelVisible ? "shown" : "hidden") << std::endl;
 }
 
 bool DevToolsUI::isBottomPanelVisible() const {
@@ -582,7 +582,7 @@ bool DevToolsUI::isBottomPanelVisible() const {
 
 void DevToolsUI::setPanelSize(DevToolsPanel panel, int width, int height) {
     panelSizes[panel] = std::make_pair(width, height);
-    std::cout << "🎨 Panel " << static_cast<int>(panel) << " size set to " << width << "x" << height << std::endl;
+    std::cout << "[UI] Panel " << static_cast<int>(panel) << " size set to " << width << "x" << height << std::endl;
 }
 
 void DevToolsUI::getPanelSize(DevToolsPanel panel, int& width, int& height) const {
@@ -599,12 +599,12 @@ void DevToolsUI::getPanelSize(DevToolsPanel panel, int& width, int& height) cons
 // Keyboard Shortcuts
 void DevToolsUI::registerShortcut(const String& key, std::function<void()> action) {
     shortcuts[key] = action;
-    std::cout << "🎨 Shortcut registered: " << key << std::endl;
+    std::cout << "[UI] Shortcut registered: " << key << std::endl;
 }
 
 void DevToolsUI::unregisterShortcut(const String& key) {
     shortcuts.erase(key);
-    std::cout << "🎨 Shortcut unregistered: " << key << std::endl;
+    std::cout << "[UI] Shortcut unregistered: " << key << std::endl;
 }
 
 void DevToolsUI::setShortcutCallback(std::function<void(const String&)> callback) {
@@ -614,12 +614,12 @@ void DevToolsUI::setShortcutCallback(std::function<void(const String&)> callback
 // Context Menus
 void DevToolsUI::showContextMenu(int x, int y, DevToolsPanel panel) {
     contextMenuVisible = true;
-    std::cout << "🎨 Context menu shown at (" << x << ", " << y << ") for panel " << static_cast<int>(panel) << std::endl;
+    std::cout << "[UI] Context menu shown at (" << x << ", " << y << ") for panel " << static_cast<int>(panel) << std::endl;
 }
 
 void DevToolsUI::hideContextMenu() {
     contextMenuVisible = false;
-    std::cout << "🎨 Context menu hidden" << std::endl;
+    std::cout << "[UI] Context menu hidden" << std::endl;
 }
 
 bool DevToolsUI::isContextMenuVisible() const {
@@ -628,12 +628,12 @@ bool DevToolsUI::isContextMenuVisible() const {
 
 void DevToolsUI::addContextMenuItem(const String& label, std::function<void()> action) {
     contextMenuItems[label] = action;
-    std::cout << "🎨 Context menu item added: " << label << std::endl;
+    std::cout << "[UI] Context menu item added: " << label << std::endl;
 }
 
 void DevToolsUI::removeContextMenuItem(const String& label) {
     contextMenuItems.erase(label);
-    std::cout << "🎨 Context menu item removed: " << label << std::endl;
+    std::cout << "[UI] Context menu item removed: " << label << std::endl;
 }
 
 // Notifications
@@ -641,12 +641,12 @@ void DevToolsUI::showNotification(const String& message, const String& type) {
     notificationVisible = true;
     notificationMessage = message;
     notificationType = type;
-    std::cout << "🎨 Notification [" << type << "]: " << message << std::endl;
+    std::cout << "[UI] Notification [" << type << "]: " << message << std::endl;
 }
 
 void DevToolsUI::hideNotification() {
     notificationVisible = false;
-    std::cout << "🎨 Notification hidden" << std::endl;
+    std::cout << "[UI] Notification hidden" << std::endl;
 }
 
 bool DevToolsUI::isNotificationVisible() const {
@@ -660,7 +660,7 @@ void DevToolsUI::setNotificationCallback(std::function<void(const String&, const
 // Auto-refresh
 void DevToolsUI::setAutoRefresh(bool enabled) {
     autoRefreshEnabled = enabled;
-    std::cout << "🎨 Auto-refresh " << (enabled ? "enabled" : "disabled") << std::endl;
+    std::cout << "[UI] Auto-refresh " << (enabled ? "enabled" : "disabled") << std::endl;
 }
 
 bool DevToolsUI::isAutoRefreshEnabled() const {
@@ -669,7 +669,7 @@ bool DevToolsUI::isAutoRefreshEnabled() const {
 
 void DevToolsUI::setRefreshInterval(int milliseconds) {
     refreshInterval = milliseconds;
-    std::cout << "🎨 Refresh interval set to " << milliseconds << "ms" << std::endl;
+    std::cout << "[UI] Refresh interval set to " << milliseconds << "ms" << std::endl;
 }
 
 int DevToolsUI::getRefreshInterval() const {
@@ -687,12 +687,12 @@ std::vector<String> DevToolsUI::getErrors() const {
 
 void DevToolsUI::clearErrors() {
     errors.clear();
-    std::cout << "🎨 Errors cleared" << std::endl;
+    std::cout << "[UI] Errors cleared" << std::endl;
 }
 
 // Private Methods
 void DevToolsUI::initializePanels() {
-    std::cout << "🎨 Panels initialized" << std::endl;
+    std::cout << "[UI] Panels initialized" << std::endl;
 }
 
 void DevToolsUI::setupShortcuts() {
@@ -701,15 +701,15 @@ void DevToolsUI::setupShortcuts() {
     registerShortcut("Ctrl+Shift+I", []() { std::cout << "Ctrl+Shift+I - Open Inspector" << std::endl; });
     registerShortcut("Ctrl+Shift+J", []() { std::cout << "Ctrl+Shift+J - Open Console" << std::endl; });
     registerShortcut("Ctrl+Shift+N", []() { std::cout << "Ctrl+Shift+N - Open Network" << std::endl; });
-    std::cout << "🎨 Default shortcuts registered" << std::endl;
+    std::cout << "[UI] Default shortcuts registered" << std::endl;
 }
 
 void DevToolsUI::setupCallbacks() {
-    std::cout << "🎨 Callbacks setup completed" << std::endl;
+    std::cout << "[UI] Callbacks setup completed" << std::endl;
 }
 
 void DevToolsUI::updatePanelData() {
-    std::cout << "🎨 Panel data updated" << std::endl;
+    std::cout << "[UI] Panel data updated" << std::endl;
 }
 
 void DevToolsUI::renderPanel(DevToolsPanel panel) {
@@ -727,56 +727,56 @@ void DevToolsUI::renderPanel(DevToolsPanel panel) {
 }
 
 void DevToolsUI::handlePanelEvent(DevToolsPanel panel, int x, int y, int button) {
-    std::cout << "🎨 Panel event: " << static_cast<int>(panel) << " at (" << x << ", " << y << ")" << std::endl;
+    std::cout << "[UI] Panel event: " << static_cast<int>(panel) << " at (" << x << ", " << y << ")" << std::endl;
 }
 
 void DevToolsUI::processConsoleCommand(const String& command) {
-    std::cout << "🎨 Processing console command: " << command << std::endl;
+    std::cout << "[UI] Processing console command: " << command << std::endl;
 }
 
 void DevToolsUI::updateConsoleHistory() {
-    std::cout << "🎨 Console history updated" << std::endl;
+    std::cout << "[UI] Console history updated" << std::endl;
 }
 
 void DevToolsUI::filterConsoleMessages() {
-    std::cout << "🎨 Console messages filtered" << std::endl;
+    std::cout << "[UI] Console messages filtered" << std::endl;
 }
 
 void DevToolsUI::filterNetworkRequests() {
-    std::cout << "🎨 Network requests filtered" << std::endl;
+    std::cout << "[UI] Network requests filtered" << std::endl;
 }
 
 void DevToolsUI::exportPanelData(DevToolsPanel panel, const String& filePath) {
-    std::cout << "🎨 Panel data exported: " << static_cast<int>(panel) << " to " << filePath << std::endl;
+    std::cout << "[UI] Panel data exported: " << static_cast<int>(panel) << " to " << filePath << std::endl;
 }
 
 void DevToolsUI::importPanelData(DevToolsPanel panel, const String& filePath) {
-    std::cout << "🎨 Panel data imported: " << static_cast<int>(panel) << " from " << filePath << std::endl;
+    std::cout << "[UI] Panel data imported: " << static_cast<int>(panel) << " from " << filePath << std::endl;
 }
 
 void DevToolsUI::savePanelState() {
-    std::cout << "🎨 Panel state saved" << std::endl;
+    std::cout << "[UI] Panel state saved" << std::endl;
 }
 
 void DevToolsUI::loadPanelState() {
-    std::cout << "🎨 Panel state loaded" << std::endl;
+    std::cout << "[UI] Panel state loaded" << std::endl;
 }
 
 void DevToolsUI::applyTheme() {
-    std::cout << "🎨 Theme applied: " << theme << std::endl;
+    std::cout << "[UI] Theme applied: " << theme << std::endl;
 }
 
 void DevToolsUI::applyLayout() {
-    std::cout << "🎨 Layout applied: " << layout << std::endl;
+    std::cout << "[UI] Layout applied: " << layout << std::endl;
 }
 
 void DevToolsUI::showError(const String& error) {
     errors.push_back(error);
-    std::cout << "🎨 Error: " << error << std::endl;
+    std::cout << "[UI] Error: " << error << std::endl;
 }
 
 void DevToolsUI::logActivity(const String& activity) {
-    std::cout << "🎨 Activity: " << activity << std::endl;
+    std::cout << "[UI] Activity: " << activity << std::endl;
 }
 
 } // namespace zepra

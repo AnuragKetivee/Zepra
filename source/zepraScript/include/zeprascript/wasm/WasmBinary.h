@@ -324,6 +324,9 @@ public:
         return true;
     }
     
+    // Alias for readFixedU8 (compatibility)
+    bool readByte(uint8_t* out) { return readFixedU8(out); }
+    
     bool readFixedU16(uint16_t* out) {
         if (bytesRemain() < 2) return false;
         *out = cur_[0] | (uint16_t(cur_[1]) << 8);

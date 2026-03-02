@@ -1,33 +1,27 @@
 /**
  * @file html_parser.cpp
- * @brief HTML parsing implementation
+ * @brief HTML parser implementation stub
  */
 
-#include "webcore/html_parser.hpp"
+#include "html_parser.hpp"
 #include <algorithm>
 #include <cctype>
-#include <sstream>
 
 namespace Zepra::WebCore {
 
-// =============================================================================
-// HTMLTokenizer Implementation
-// =============================================================================
-
+// HTMLTokenizer
 HTMLTokenizer::HTMLTokenizer(const std::string& html) : html_(html), pos_(0) {}
 
 bool HTMLTokenizer::hasMoreTokens() const {
-    return pos_ < html_.size();
+    return pos_ < html_.length();
 }
 
 char HTMLTokenizer::current() const {
-    if (pos_ >= html_.size()) return '\0';
-    return html_[pos_];
+    return pos_ < html_.length() ? html_[pos_] : '\0';
 }
 
 char HTMLTokenizer::peek(size_t offset) const {
-    if (pos_ + offset >= html_.size()) return '\0';
-    return html_[pos_ + offset];
+    return (pos_ + offset) < html_.length() ? html_[pos_ + offset] : '\0';
 }
 
 void HTMLTokenizer::advance(size_t count) {
@@ -35,43 +29,29 @@ void HTMLTokenizer::advance(size_t count) {
 }
 
 bool HTMLTokenizer::match(const std::string& str) const {
-    if (pos_ + str.size() > html_.size()) return false;
-    for (size_t i = 0; i < str.size(); ++i) {
-        if (std::tolower(html_[pos_ + i]) != std::tolower(str[i])) return false;
-    }
-    return true;
+    return html_.compare(pos_, str.length(), str) == 0;
 }
 
 void HTMLTokenizer::consumeWhitespace() {
-    while (pos_ < html_.size() && std::isspace(html_[pos_])) {
-        pos_++;
+    while (pos_ < html_.length() && std::isspace(html_[pos_])) {
+        ++pos_;
     }
 }
 
 std::string HTMLTokenizer::consumeTagName() {
     std::string name;
-    while (pos_ < html_.size()) {
-        char c = html_[pos_];
-        if (std::isalnum(c) || c == '-' || c == '_' || c == ':') {
-            name += std::tolower(c);
-            pos_++;
-        } else {
-            break;
-        }
+    while (pos_ < html_.length() && !std::isspace(html_[pos_]) && 
+           html_[pos_] != '>' && html_[pos_] != '/') {
+        name += std::tolower(html_[pos_++]);
     }
     return name;
 }
 
 std::string HTMLTokenizer::consumeAttributeName() {
     std::string name;
-    while (pos_ < html_.size()) {
-        char c = html_[pos_];
-        if (std::isalnum(c) || c == '-' || c == '_' || c == ':' || c == '.') {
-            name += std::tolower(c);
-            pos_++;
-        } else {
-            break;
-        }
+    while (pos_ < html_.length() && !std::isspace(html_[pos_]) && 
+           html_[pos_] != '=' && html_[pos_] != '>' && html_[pos_] != '/') {
+        name += std::tolower(html_[pos_++]);
     }
     return name;
 }
@@ -81,22 +61,18 @@ std::string HTMLTokenizer::consumeAttributeValue() {
     if (current() == '=') {
         advance();
         consumeWhitespace();
-    } else {
-        return "";
     }
     
     std::string value;
     char quote = current();
     if (quote == '"' || quote == '\'') {
         advance();
-        while (pos_ < html_.size() && html_[pos_] != quote) {
+        while (pos_ < html_.length() && current() != quote) {
             value += html_[pos_++];
         }
         if (current() == quote) advance();
     } else {
-        // Unquoted value
-        while (pos_ < html_.size() && !std::isspace(html_[pos_]) && 
-               html_[pos_] != '>' && html_[pos_] != '/') {
+        while (pos_ < html_.length() && !std::isspace(current()) && current() != '>') {
             value += html_[pos_++];
         }
     }
@@ -105,32 +81,24 @@ std::string HTMLTokenizer::consumeAttributeValue() {
 
 std::string HTMLTokenizer::consumeText() {
     std::string text;
-    while (pos_ < html_.size() && html_[pos_] != '<') {
+    while (pos_ < html_.length() && current() != '<') {
         text += html_[pos_++];
     }
-    return text;
+    return decodeEntities(text);
 }
 
 std::string HTMLTokenizer::consumeComment() {
     std::string comment;
-    // Skip <!--
-    advance(4);
-    while (pos_ + 2 < html_.size()) {
-        if (html_[pos_] == '-' && html_[pos_+1] == '-' && html_[pos_+2] == '>') {
-            advance(3);
-            break;
-        }
+    while (pos_ < html_.length() && !match("-->")) {
         comment += html_[pos_++];
     }
+    if (match("-->")) advance(3);
     return comment;
 }
 
 std::string HTMLTokenizer::consumeDoctype() {
     std::string doctype;
-    // Skip <!DOCTYPE
-    advance(9);
-    consumeWhitespace();
-    while (pos_ < html_.size() && html_[pos_] != '>') {
+    while (pos_ < html_.length() && current() != '>') {
         doctype += html_[pos_++];
     }
     if (current() == '>') advance();
@@ -138,79 +106,40 @@ std::string HTMLTokenizer::consumeDoctype() {
 }
 
 std::string HTMLTokenizer::consumeRawText(const std::string& endTag) {
-    std::string content;
-    std::string endPattern = "</" + endTag;
-    
-    while (pos_ < html_.size()) {
-        // Check for end tag
-        if (match(endPattern)) {
-            break;
+    std::string text;
+    std::string lower;
+    while (pos_ < html_.length()) {
+        if (current() == '<' && peek() == '/') {
+            lower.clear();
+            for (size_t i = 2; i < endTag.length() + 3 && (pos_ + i) < html_.length(); ++i) {
+                lower += std::tolower(html_[pos_ + i]);
+            }
+            if (lower.find(endTag) == 0) break;
         }
-        content += html_[pos_++];
+        text += html_[pos_++];
     }
-    return content;
+    return text;
 }
 
 std::string HTMLTokenizer::decodeEntities(const std::string& text) {
     std::string result;
-    result.reserve(text.size());
-    
-    for (size_t i = 0; i < text.size(); ++i) {
+    for (size_t i = 0; i < text.length(); ++i) {
         if (text[i] == '&') {
-            // Named entities
-            if (text.compare(i, 5, "&amp;") == 0) {
-                result += '&'; i += 4;
-            } else if (text.compare(i, 4, "&lt;") == 0) {
-                result += '<'; i += 3;
-            } else if (text.compare(i, 4, "&gt;") == 0) {
-                result += '>'; i += 3;
-            } else if (text.compare(i, 6, "&quot;") == 0) {
-                result += '"'; i += 5;
-            } else if (text.compare(i, 6, "&apos;") == 0) {
-                result += '\''; i += 5;
-            } else if (text.compare(i, 6, "&nbsp;") == 0) {
-                result += ' '; i += 5;
-            } else if (text.compare(i, 6, "&copy;") == 0) {
-                result += "©"; i += 5;
-            } else if (i + 2 < text.size() && text[i + 1] == '#') {
-                // Numeric entity &#NNN; or &#xHHH;
-                size_t start = i + 2;
-                bool hex = (text[start] == 'x' || text[start] == 'X');
-                if (hex) start++;
-                
-                size_t end = start;
-                while (end < text.size() && text[end] != ';') end++;
-                
-                if (end < text.size() && text[end] == ';') {
-                    std::string num = text.substr(start, end - start);
-                    try {
-                        int code = hex ? std::stoi(num, nullptr, 16) : std::stoi(num);
-                        if (code < 128) {
-                            result += static_cast<char>(code);
-                        } else {
-                            // UTF-8 encode
-                            if (code < 0x800) {
-                                result += static_cast<char>(0xC0 | (code >> 6));
-                                result += static_cast<char>(0x80 | (code & 0x3F));
-                            } else {
-                                result += static_cast<char>(0xE0 | (code >> 12));
-                                result += static_cast<char>(0x80 | ((code >> 6) & 0x3F));
-                                result += static_cast<char>(0x80 | (code & 0x3F));
-                            }
-                        }
-                        i = end;
-                    } catch (...) {
-                        result += text[i];
-                    }
-                } else {
-                    result += text[i];
-                }
-            } else {
-                result += text[i];
+            size_t end = text.find(';', i);
+            if (end != std::string::npos) {
+                std::string entity = text.substr(i + 1, end - i - 1);
+                if (entity == "lt") result += '<';
+                else if (entity == "gt") result += '>';
+                else if (entity == "amp") result += '&';
+                else if (entity == "quot") result += '"';
+                else if (entity == "apos") result += '\'';
+                else if (entity == "nbsp") result += ' ';
+                else result += text.substr(i, end - i + 1);
+                i = end;
+                continue;
             }
-        } else {
-            result += text[i];
         }
+        result += text[i];
     }
     return result;
 }
@@ -218,117 +147,75 @@ std::string HTMLTokenizer::decodeEntities(const std::string& text) {
 HTMLToken HTMLTokenizer::nextToken() {
     HTMLToken token;
     
-    while (pos_ < html_.size()) {
-        if (current() == '<') {
-            // Comment
-            if (match("<!--")) {
-                token.type = HTMLTokenType::Comment;
-                token.data = consumeComment();
-                return token;
-            }
-            
-            // DOCTYPE
-            if (match("<!DOCTYPE") || match("<!doctype")) {
-                token.type = HTMLTokenType::DOCTYPE;
-                token.data = consumeDoctype();
-                return token;
-            }
-            
-            // End tag
-            if (peek() == '/') {
-                advance(2); // Skip </
-                token.type = HTMLTokenType::EndTag;
-                token.name = consumeTagName();
-                consumeWhitespace();
-                if (current() == '>') advance();
-                return token;
-            }
-            
-            // Start tag
-            advance(); // Skip <
-            token.type = HTMLTokenType::StartTag;
-            token.name = consumeTagName();
-            
-            // Parse attributes
-            while (pos_ < html_.size()) {
-                consumeWhitespace();
-                if (current() == '>' || current() == '/') break;
-                
-                std::string attrName = consumeAttributeName();
-                if (attrName.empty()) break;
-                
-                std::string attrValue = consumeAttributeValue();
-                token.attributes.push_back({attrName, attrValue});
-            }
-            
-            // Self-closing?
-            if (current() == '/') {
-                token.selfClosing = true;
-                advance();
-            }
-            if (current() == '>') advance();
-            
-            return token;
-        }
+    if (!hasMoreTokens()) {
+        token.type = HTMLTokenType::EndOfFile;
+        return token;
+    }
+    
+    if (current() != '<') {
+        token.type = HTMLTokenType::Text;
+        token.data = consumeText();
+        return token;
+    }
+    
+    advance(); // Skip '<'
+    
+    if (match("!--")) {
+        advance(3);
+        token.type = HTMLTokenType::Comment;
+        token.data = consumeComment();
+        return token;
+    }
+    
+    if (match("!DOCTYPE") || match("!doctype")) {
+        advance(8);
+        token.type = HTMLTokenType::DOCTYPE;
+        token.data = consumeDoctype();
+        return token;
+    }
+    
+    if (current() == '/') {
+        advance();
+        token.type = HTMLTokenType::EndTag;
+        token.name = consumeTagName();
+        consumeWhitespace();
+        if (current() == '>') advance();
+        return token;
+    }
+    
+    token.type = HTMLTokenType::StartTag;
+    token.name = consumeTagName();
+    
+    // Parse attributes
+    while (pos_ < html_.length() && current() != '>' && current() != '/') {
+        consumeWhitespace();
+        if (current() == '>' || current() == '/') break;
         
-        // Text content
-        std::string text = consumeText();
-        if (!text.empty()) {
-            // Trim and normalize whitespace
-            std::string normalized;
-            bool lastWasSpace = true;
-            for (char c : text) {
-                if (std::isspace(c)) {
-                    if (!lastWasSpace) {
-                        normalized += ' ';
-                        lastWasSpace = true;
-                    }
-                } else {
-                    normalized += c;
-                    lastWasSpace = false;
-                }
-            }
-            
-            // Trim trailing space
-            if (!normalized.empty() && normalized.back() == ' ') {
-                normalized.pop_back();
-            }
-            
-            if (!normalized.empty()) {
-                token.type = HTMLTokenType::Text;
-                token.data = normalized;
-                return token;
-            }
+        std::string attrName = consumeAttributeName();
+        consumeWhitespace();
+        std::string attrValue;
+        if (current() == '=') {
+            attrValue = consumeAttributeValue();
+        }
+        if (!attrName.empty()) {
+            token.attributes.emplace_back(attrName, attrValue);
         }
     }
     
-    token.type = HTMLTokenType::EndOfFile;
+    if (current() == '/') {
+        token.selfClosing = true;
+        advance();
+    }
+    if (current() == '>') advance();
+    
     return token;
 }
 
-// =============================================================================
-// HTMLParser Implementation
-// =============================================================================
-
+// HTMLParser
 std::unique_ptr<DOMDocument> HTMLParser::parse(const std::string& html) {
     document_ = std::make_unique<DOMDocument>();
-    
-    // Create basic structure
-    auto htmlEl = document_->createElement("html");
-    DOMElement* htmlPtr = htmlEl.get();
-    document_->appendChild(std::move(htmlEl));
-    document_->setDocumentElement(htmlPtr);
-    
-    auto head = document_->createElement("head");
-    auto body = document_->createElement("body");
-    DOMElement* bodyPtr = body.get();
-    
-    htmlPtr->appendChild(std::move(head));
-    htmlPtr->appendChild(std::move(body));
-    
-    openElements_.push(bodyPtr);
-    
     HTMLTokenizer tokenizer(html);
+    
     while (tokenizer.hasMoreTokens()) {
         HTMLToken token = tokenizer.nextToken();
         if (token.type == HTMLTokenType::EndOfFile) break;
@@ -340,30 +227,10 @@ std::unique_ptr<DOMDocument> HTMLParser::parse(const std::string& html) {
 
 std::unique_ptr<DOMElement> HTMLParser::parseFragment(const std::string& html) {
     auto doc = parse(html);
-    
-    // Extract body content
-    auto result = doc->createElement("div");
-    
-    // Find body
-    std::function<DOMElement*(DOMNode*)> findBody = [&](DOMNode* node) -> DOMElement* {
-        if (node->nodeType() == NodeType::Element) {
-            auto* el = static_cast<DOMElement*>(node);
-            if (el->tagName() == "body") return el;
-        }
-        for (auto& child : node->childNodes()) {
-            if (auto* found = findBody(child.get())) return found;
-        }
-        return nullptr;
-    };
-    
-    if (auto* body = findBody(doc.get())) {
-        // Clone children to result
-        for (auto& child : body->childNodes()) {
-            (void)child; // Would need proper cloning
-        }
+    if (doc && doc->body()) {
+        // Return first child of body
     }
-    
-    return result;
+    return nullptr;
 }
 
 void HTMLParser::processToken(const HTMLToken& token) {
@@ -386,60 +253,58 @@ void HTMLParser::processToken(const HTMLToken& token) {
 }
 
 void HTMLParser::processStartTag(const HTMLToken& token) {
-    auto element = document_->createElement(token.name);
+    auto element = std::make_unique<DOMElement>(token.name);
     
-    // Apply attributes
     for (const auto& [name, value] : token.attributes) {
         element->setAttribute(name, value);
     }
     
-    if (!openElements_.empty()) {
-        DOMElement* parent = openElements_.top();
-        DOMElement* elPtr = element.get();
-        parent->appendChild(std::move(element));
-        
-        // Don't push void elements
-        if (!token.selfClosing && !isVoidElement(token.name)) {
-            openElements_.push(elPtr);
+    element->setOwnerDocument(document_.get());
+    
+    DOMElement* elemPtr = element.get();
+    
+    if (openElements_.empty()) {
+        document_->appendChild(std::move(element));
+        if (!document_->documentElement()) {
+            document_->setDocumentElement(elemPtr);
         }
+    } else {
+        currentElement()->appendChild(std::move(element));
+    }
+    
+    if (!token.selfClosing && !isVoidElement(token.name)) {
+        openElements_.push(elemPtr);
     }
 }
 
 void HTMLParser::processEndTag(const HTMLToken& token) {
-    // Find matching open element
-    std::stack<DOMElement*> temp;
-    bool found = false;
-    
-    while (!openElements_.empty()) {
-        DOMElement* el = openElements_.top();
-        if (el->tagName() == token.name) {
-            openElements_.pop();
-            found = true;
-            break;
-        }
-        // Save for restoration if not found
-        temp.push(el);
+    if (!openElements_.empty() && currentElement()->tagName() == token.name) {
         openElements_.pop();
-    }
-    
-    // Restore if not found (malformed HTML)
-    if (!found) {
-        while (!temp.empty()) {
-            openElements_.push(temp.top());
-            temp.pop();
-        }
     }
 }
 
 void HTMLParser::processText(const HTMLToken& token) {
-    if (!openElements_.empty() && !token.data.empty()) {
-        auto text = document_->createTextNode(token.data);
-        openElements_.top()->appendChild(std::move(text));
+    if (token.data.empty()) return;
+    
+    auto text = std::make_unique<DOMText>(token.data);
+    text->setOwnerDocument(document_.get());
+    
+    if (!openElements_.empty()) {
+        currentElement()->appendChild(std::move(text));
+    } else {
+        document_->appendChild(std::move(text));
     }
 }
 
 void HTMLParser::processComment(const HTMLToken& token) {
-    (void)token; // Comments are ignored in this simple parser
+    auto comment = std::make_unique<DOMComment>(token.data);
+    comment->setOwnerDocument(document_.get());
+    
+    if (!openElements_.empty()) {
+        currentElement()->appendChild(std::move(comment));
+    } else {
+        document_->appendChild(std::move(comment));
+    }
 }
 
 DOMElement* HTMLParser::currentElement() const {
@@ -447,11 +312,7 @@ DOMElement* HTMLParser::currentElement() const {
 }
 
 void HTMLParser::pushElement(std::unique_ptr<DOMElement> element) {
-    DOMElement* ptr = element.get();
-    if (!openElements_.empty()) {
-        openElements_.top()->appendChild(std::move(element));
-    }
-    openElements_.push(ptr);
+    openElements_.push(element.get());
 }
 
 void HTMLParser::popElement() {
@@ -461,12 +322,7 @@ void HTMLParser::popElement() {
 }
 
 bool HTMLParser::isElementInScope(const std::string& tagName) const {
-    std::stack<DOMElement*> temp = openElements_;
-    while (!temp.empty()) {
-        if (temp.top()->tagName() == tagName) return true;
-        temp.pop();
-    }
-    return false;
+    return false; // Stub
 }
 
 bool HTMLParser::isVoidElement(const std::string& tagName) const {
@@ -474,76 +330,48 @@ bool HTMLParser::isVoidElement(const std::string& tagName) const {
         "area", "base", "br", "col", "embed", "hr", "img", "input",
         "link", "meta", "param", "source", "track", "wbr"
     };
-    return std::find(voidElements.begin(), voidElements.end(), tagName) != voidElements.end();
+    std::string lower = tagName;
+    std::transform(lower.begin(), lower.end(), lower.begin(), ::tolower);
+    return std::find(voidElements.begin(), voidElements.end(), lower) != voidElements.end();
 }
 
 bool HTMLParser::isFormattingElement(const std::string& tagName) const {
-    static const std::vector<std::string> formattingElements = {
-        "a", "b", "big", "code", "em", "font", "i", "nobr", "s",
-        "small", "strike", "strong", "tt", "u"
-    };
-    return std::find(formattingElements.begin(), formattingElements.end(), tagName) != formattingElements.end();
+    return false; // Stub
 }
 
 void HTMLParser::adoptionAgencyAlgorithm(const std::string& tagName) {
-    (void)tagName; // Advanced algorithm not implemented
+    // Stub
 }
 
 void HTMLParser::fosterParent(std::unique_ptr<DOMNode> node) {
-    (void)node; // Foster parenting not implemented
+    // Stub
 }
 
-// =============================================================================
-// HTMLSerializer Implementation
-// =============================================================================
-
+// HTMLSerializer
 std::string HTMLSerializer::serialize(DOMNode* node) {
     if (!node) return "";
     
-    switch (node->nodeType()) {
-        case NodeType::Element:
-            return serializeElement(static_cast<DOMElement*>(node));
-        case NodeType::Text:
-            return serializeText(static_cast<DOMText*>(node));
-        case NodeType::Document: {
-            std::string result = "<!DOCTYPE html>\n";
-            for (auto& child : node->childNodes()) {
-                result += serialize(child.get());
-            }
-            return result;
-        }
-        default:
-            return "";
+    if (node->nodeType() == NodeType::Element) {
+        return serializeElement(static_cast<DOMElement*>(node));
+    } else if (node->nodeType() == NodeType::Text) {
+        return serializeText(static_cast<DOMText*>(node));
     }
+    return "";
 }
 
 std::string HTMLSerializer::serializeElement(DOMElement* element) {
     std::string result = "<" + element->tagName();
     
-    // Serialize attributes
     for (const auto& [name, value] : element->attributes()) {
         result += " " + name + "=\"" + escapeAttribute(value) + "\"";
     }
+    result += ">";
     
-    // Void elements
-    static const std::vector<std::string> voidElements = {
-        "area", "base", "br", "col", "embed", "hr", "img", "input",
-        "link", "meta", "param", "source", "track", "wbr"
-    };
-    
-    bool isVoid = std::find(voidElements.begin(), voidElements.end(), 
-                            element->tagName()) != voidElements.end();
-    
-    if (isVoid) {
-        result += " />";
-    } else {
-        result += ">";
-        for (auto& child : element->childNodes()) {
-            result += serialize(child.get());
-        }
-        result += "</" + element->tagName() + ">";
+    for (const auto& child : element->childNodes()) {
+        result += serialize(child.get());
     }
     
+    result += "</" + element->tagName() + ">";
     return result;
 }
 
@@ -555,9 +383,9 @@ std::string HTMLSerializer::escapeHTML(const std::string& text) {
     std::string result;
     for (char c : text) {
         switch (c) {
-            case '&': result += "&amp;"; break;
             case '<': result += "&lt;"; break;
             case '>': result += "&gt;"; break;
+            case '&': result += "&amp;"; break;
             default: result += c;
         }
     }
@@ -568,10 +396,8 @@ std::string HTMLSerializer::escapeAttribute(const std::string& value) {
     std::string result;
     for (char c : value) {
         switch (c) {
-            case '&': result += "&amp;"; break;
             case '"': result += "&quot;"; break;
-            case '<': result += "&lt;"; break;
-            case '>': result += "&gt;"; break;
+            case '&': result += "&amp;"; break;
             default: result += c;
         }
     }

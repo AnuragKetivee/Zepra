@@ -57,9 +57,10 @@ Object* Module::getNamespace() {
 }
 
 // ============================================================================
-// ModuleLoader
+// ModuleLoader - DISABLED: Implementation moved to module_loader.cpp
 // ============================================================================
 
+/* Disabled - duplicate definition in module_loader.cpp
 ModuleLoader::ModuleLoader() {}
 
 ModuleLoader& ModuleLoader::instance() {
@@ -93,6 +94,7 @@ Module* ModuleLoader::loadModule(const std::string& specifier, const std::string
     
     return modulePtr;
 }
+*/
 
 Module* ModuleLoader::getModule(const std::string& specifier) const {
     auto it = moduleCache_.find(specifier);
@@ -241,9 +243,11 @@ Promise* ModuleLoader::dynamicImport(const std::string& specifier, const std::st
     return promise;
 }
 
+/* Disabled - duplicate definition in module_loader.cpp
 void ModuleLoader::registerBuiltinModule(const std::string& name, Object* exports) {
     builtinModules_[name] = exports;
 }
+*/
 
 } // namespace Zepra::Runtime
 

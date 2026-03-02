@@ -1,0 +1,470 @@
+<!DOCTYPE html>
+<!--
+    test_layout.html - Layout Engine Test Page
+    
+    Tests CSS box model and layout behavior.
+    Similar to WebKit LayoutTests.
+-->
+<html>
+
+<head>
+    <meta charset="UTF-8">
+    <title>Layout Engine Tests</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, sans-serif;
+            margin: 0;
+            padding: 20px;
+        }
+
+        .test-section {
+            margin: 20px 0;
+            padding: 15px;
+            border: 1px solid #ddd;
+            background: #f9f9f9;
+        }
+
+        .test-box {
+            background: #4a90d9;
+            color: white;
+            padding: 10px;
+            margin: 5px;
+        }
+
+        /* Box Model Test */
+        .box-model-test {
+            width: 200px;
+            height: 100px;
+            margin: 20px;
+            padding: 15px;
+            border: 5px solid #333;
+            background: #e0e0e0;
+        }
+
+        /* Display Tests */
+        .display-block {
+            display: block;
+            background: #ff6b6b;
+            margin: 5px 0;
+        }
+
+        .display-inline {
+            display: inline;
+            background: #4ecdc4;
+            padding: 5px;
+        }
+
+        .display-inline-block {
+            display: inline-block;
+            background: #45b7d1;
+            padding: 10px;
+        }
+
+        .display-none {
+            display: none;
+        }
+
+        /* Flexbox Tests */
+        .flex-container {
+            display: flex;
+            gap: 10px;
+            background: #f0f0f0;
+            padding: 10px;
+        }
+
+        .flex-row {
+            flex-direction: row;
+        }
+
+        .flex-column {
+            flex-direction: column;
+        }
+
+        .flex-wrap {
+            flex-wrap: wrap;
+        }
+
+        .flex-center {
+            justify-content: center;
+            align-items: center;
+        }
+
+        .flex-space-between {
+            justify-content: space-between;
+        }
+
+        .flex-item {
+            background: #6c5ce7;
+            color: white;
+            padding: 15px 20px;
+            text-align: center;
+        }
+
+        .flex-grow {
+            flex-grow: 1;
+        }
+
+        /* Grid Tests */
+        .grid-container {
+            display: grid;
+            gap: 10px;
+            padding: 10px;
+            background: #f0f0f0;
+        }
+
+        .grid-2x2 {
+            grid-template-columns: 1fr 1fr;
+        }
+
+        .grid-3col {
+            grid-template-columns: repeat(3, 1fr);
+        }
+
+        .grid-auto {
+            grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
+        }
+
+        .grid-item {
+            background: #00b894;
+            color: white;
+            padding: 20px;
+            text-align: center;
+        }
+
+        /* Position Tests */
+        .position-container {
+            position: relative;
+            width: 300px;
+            height: 200px;
+            background: #ddd;
+        }
+
+        .position-absolute {
+            position: absolute;
+            width: 50px;
+            height: 50px;
+            background: #e74c3c;
+        }
+
+        .top-left {
+            top: 0;
+            left: 0;
+        }
+
+        .top-right {
+            top: 0;
+            right: 0;
+        }
+
+        .bottom-left {
+            bottom: 0;
+            left: 0;
+        }
+
+        .bottom-right {
+            bottom: 0;
+            right: 0;
+        }
+
+        .center-absolute {
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+        }
+
+        /* Float Tests */
+        .float-container {
+            overflow: auto;
+        }
+
+        .float-left {
+            float: left;
+            width: 100px;
+            height: 100px;
+            background: #2ecc71;
+            margin: 5px;
+        }
+
+        .float-right {
+            float: right;
+            width: 100px;
+            height: 100px;
+            background: #e67e22;
+            margin: 5px;
+        }
+
+        .clear-both {
+            clear: both;
+        }
+
+        /* Width/Height Tests */
+        .width-100 {
+            width: 100%;
+        }
+
+        .width-50 {
+            width: 50%;
+        }
+
+        .max-width-300 {
+            max-width: 300px;
+        }
+
+        .min-width-100 {
+            min-width: 100px;
+        }
+
+        /* Margin Tests */
+        .margin-auto {
+            margin: 0 auto;
+            width: 200px;
+            background: #9b59b6;
+            color: white;
+            text-align: center;
+            padding: 10px;
+        }
+
+        .margin-collapse-parent {
+            background: #f0f0f0;
+        }
+
+        .margin-collapse-child {
+            margin: 20px 0;
+            background: #3498db;
+            color: white;
+            padding: 10px;
+        }
+
+        /* Overflow Tests */
+        .overflow-hidden {
+            overflow: hidden;
+            width: 150px;
+            height: 100px;
+            background: #ecf0f1;
+        }
+
+        .overflow-scroll {
+            overflow: scroll;
+            width: 150px;
+            height: 100px;
+            background: #ecf0f1;
+        }
+
+        .overflow-auto {
+            overflow: auto;
+            width: 150px;
+            height: 100px;
+            background: #ecf0f1;
+        }
+    </style>
+</head>
+
+<body>
+    <h1>Layout Engine Tests</h1>
+
+    <!-- Box Model -->
+    <section class="test-section">
+        <h2>1. Box Model</h2>
+        <div class="box-model-test" id="box-model">
+            Content Box (200x100)<br>
+            + Padding: 15px<br>
+            + Border: 5px<br>
+            + Margin: 20px
+        </div>
+        <p><strong>Expected:</strong> Total width = 200 + 30 + 10 = 240px (content-box)</p>
+    </section>
+
+    <!-- Display Types -->
+    <section class="test-section">
+        <h2>2. Display Types</h2>
+        <div>
+            <div class="display-block">Block 1</div>
+            <div class="display-block">Block 2</div>
+        </div>
+        <div>
+            <span class="display-inline">Inline 1</span>
+            <span class="display-inline">Inline 2</span>
+            <span class="display-inline">Inline 3</span>
+        </div>
+        <div>
+            <div class="display-inline-block">Inline-Block 1</div>
+            <div class="display-inline-block">Inline-Block 2</div>
+        </div>
+        <div class="display-none">This should be hidden</div>
+    </section>
+
+    <!-- Flexbox -->
+    <section class="test-section">
+        <h2>3. Flexbox Layout</h2>
+
+        <h3>Row Direction</h3>
+        <div class="flex-container flex-row">
+            <div class="flex-item">1</div>
+            <div class="flex-item">2</div>
+            <div class="flex-item">3</div>
+        </div>
+
+        <h3>Column Direction</h3>
+        <div class="flex-container flex-column">
+            <div class="flex-item">A</div>
+            <div class="flex-item">B</div>
+            <div class="flex-item">C</div>
+        </div>
+
+        <h3>Center Aligned</h3>
+        <div class="flex-container flex-center" style="height: 100px;">
+            <div class="flex-item">Centered</div>
+        </div>
+
+        <h3>Space Between</h3>
+        <div class="flex-container flex-space-between">
+            <div class="flex-item">Left</div>
+            <div class="flex-item">Center</div>
+            <div class="flex-item">Right</div>
+        </div>
+
+        <h3>Flex Grow</h3>
+        <div class="flex-container">
+            <div class="flex-item">Fixed</div>
+            <div class="flex-item flex-grow">Flex Grow</div>
+            <div class="flex-item">Fixed</div>
+        </div>
+    </section>
+
+    <!-- Grid -->
+    <section class="test-section">
+        <h2>4. Grid Layout</h2>
+
+        <h3>2x2 Grid</h3>
+        <div class="grid-container grid-2x2">
+            <div class="grid-item">1</div>
+            <div class="grid-item">2</div>
+            <div class="grid-item">3</div>
+            <div class="grid-item">4</div>
+        </div>
+
+        <h3>3 Column Grid</h3>
+        <div class="grid-container grid-3col">
+            <div class="grid-item">A</div>
+            <div class="grid-item">B</div>
+            <div class="grid-item">C</div>
+            <div class="grid-item">D</div>
+            <div class="grid-item">E</div>
+            <div class="grid-item">F</div>
+        </div>
+    </section>
+
+    <!-- Positioning -->
+    <section class="test-section">
+        <h2>5. Positioning</h2>
+        <div class="position-container">
+            <div class="position-absolute top-left"></div>
+            <div class="position-absolute top-right"></div>
+            <div class="position-absolute bottom-left"></div>
+            <div class="position-absolute bottom-right"></div>
+            <div class="position-absolute center-absolute" style="background: #3498db;"></div>
+        </div>
+    </section>
+
+    <!-- Floats -->
+    <section class="test-section">
+        <h2>6. Float Layout</h2>
+        <div class="float-container">
+            <div class="float-left">Float Left</div>
+            <div class="float-right">Float Right</div>
+            <p>Text flows around the floated elements. This paragraph should appear between the two floated boxes.</p>
+            <div class="clear-both"></div>
+        </div>
+    </section>
+
+    <!-- Margin Auto Centering -->
+    <section class="test-section">
+        <h2>7. Margin Auto Centering</h2>
+        <div class="margin-auto">Centered with margin: auto</div>
+    </section>
+
+    <!-- Overflow -->
+    <section class="test-section">
+        <h2>8. Overflow Behavior</h2>
+        <div style="display: flex; gap: 20px;">
+            <div>
+                <p>overflow: hidden</p>
+                <div class="overflow-hidden">
+                    Lorem ipsum dolor sit amet, consectetur adipiscing elit.
+                    Sed do eiusmod tempor incididunt ut labore et dolore magna aliqua.
+                </div>
+            </div>
+            <div>
+                <p>overflow: scroll</p>
+                <div class="overflow-scroll">
+                    Lorem ipsum dolor sit amet, consectetur adipiscing elit.
+                    Sed do eiusmod tempor incididunt ut labore et dolore magna aliqua.
+                </div>
+            </div>
+            <div>
+                <p>overflow: auto</p>
+                <div class="overflow-auto">
+                    Lorem ipsum dolor sit amet, consectetur adipiscing elit.
+                    Sed do eiusmod tempor incididunt ut labore et dolore magna aliqua.
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- JavaScript Tests -->
+    <section class="test-section">
+        <h2>Layout Test Results</h2>
+        <div id="results"></div>
+    </section>
+
+    <script>
+        function runLayoutTests() {
+            const results = [];
+
+            // Test 1: Box Model
+            const boxModel = document.getElementById('box-model');
+            const boxStyle = window.getComputedStyle(boxModel);
+            results.push({
+                name: 'Box Model - Width',
+                passed: boxStyle.width === '200px'
+            });
+            results.push({
+                name: 'Box Model - Padding',
+                passed: boxStyle.padding === '15px'
+            });
+
+            // Test 2: Display None
+            const hiddenEl = document.querySelector('.display-none');
+            const hiddenStyle = window.getComputedStyle(hiddenEl);
+            results.push({
+                name: 'Display None - Hidden',
+                passed: hiddenStyle.display === 'none'
+            });
+
+            // Test 3: Flex Direction
+            const flexRow = document.querySelector('.flex-row');
+            const flexRowStyle = window.getComputedStyle(flexRow);
+            results.push({
+                name: 'Flexbox - Row Direction',
+                passed: flexRowStyle.flexDirection === 'row'
+            });
+
+            // Display results
+            const container = document.getElementById('results');
+            let html = '<ul>';
+            let passCount = 0;
+            results.forEach(r => {
+                if (r.passed) passCount++;
+                html += `<li style="color: ${r.passing ? 'green' : 'red'}">
+                    ${r.passed ? '✓' : '✗'} ${r.name}
+                </li>`;
+            });
+            html += `</ul><p><strong>${passCount}/${results.length} tests passed</strong></p>`;
+            container.innerHTML = html;
+        }
+
+        window.onload = runLayoutTests;
+    </script>
+</body>
+
+</html>

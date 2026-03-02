@@ -80,6 +80,22 @@ public:
      */
     bool shouldCollect() const;
     
+    /**
+     * @brief Visit all GC roots
+     * @param visitor Callback receiving each root Object*
+     */
+    template<typename Visitor>
+    void visitRoots(Visitor&& visitor) {
+        for (void* ptr : roots_) {
+            if (ptr) visitor(static_cast<Runtime::Object*>(ptr));
+        }
+    }
+    
+    /**
+     * @brief Get all allocated objects for traversal
+     */
+    const std::vector<void*>& getAllObjects() const { return objects_; }
+    
 private:
     void mark();
     void markObject(void* obj);

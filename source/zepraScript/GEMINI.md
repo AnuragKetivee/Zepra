@@ -2,7 +2,7 @@
 
 **Project:** ZebraScript JavaScript Engine  
 **Purpose:** Guide for AI assistants (Gemini, Claude, GPT, etc.) to maintain, edit, and extend this codebase  
-**Last Updated:** 2024-12-07
+**Last Updated:** 2026-03-01
 
 ---
 
@@ -33,6 +33,7 @@ This document helps AI models understand how to work with the ZebraScript codeba
 ### When Adding Features
 
 **Checklist:**
+
 - [ ] Create header file with forward declarations
 - [ ] Implement in corresponding .cpp file
 - [ ] Add to CMakeLists.txt if new files
@@ -340,6 +341,7 @@ return count;
 ### If Build is Broken
 
 1. **Clean build directory**
+
    ```bash
    rm -rf build
    cmake -B build
@@ -347,6 +349,7 @@ return count;
    ```
 
 2. **Check for missing dependencies**
+
    ```bash
    cmake -B build 2>&1 | grep "Could not find"
    ```
@@ -359,11 +362,13 @@ return count;
 ### If Tests Are Failing
 
 1. **Run single test**
+
    ```bash
    ./build/tests/unit/value_tests --gtest_filter=ValueTests.NumberCreation
    ```
 
 2. **Run with debugger**
+
    ```bash
    gdb --args ./build/tests/unit/value_tests --gtest_filter=ValueTests.NumberCreation
    ```
@@ -377,11 +382,13 @@ return count;
 ### If Performance Regresses
 
 1. **Run benchmarks**
+
    ```bash
    ./build/benchmarks/bench_execution --benchmark_out=results.json
    ```
 
 2. **Compare with baseline**
+
    ```bash
    python tools/compare_benchmarks.py baseline.json results.json
    ```
@@ -397,6 +404,7 @@ return count;
 ## Contact and Resources
 
 ### Documentation
+
 - Architecture: `docs/architecture.md`
 - Bytecode Spec: `docs/bytecode-spec.md`
 - JIT Design: `docs/jit-tiers.md`
@@ -404,12 +412,14 @@ return count;
 - Debug Protocol: `docs/native-debug-protocol.md`
 
 ### External Resources
+
 - ECMAScript Spec: https://tc39.es/ecma262/
 - Test262: https://github.com/tc39/test262
 - JavaScriptCore: https://webkit.org/blog/tag/javascriptcore/
 - V8 Design: https://v8.dev/docs
 
 ### Project Structure
+
 - Core Engine: `src/` and `include/zeprascript/`
 - DevTools: `zepra-devtools/`
 - CDP Extension: `cdp-extension/`
@@ -421,18 +431,15 @@ return count;
 
 ## Revision History
 
-| Version | Date | Changes |
-|---------|------|---------|
-| 1.0.0 | 2024-12-07 | Initial version |
+| Version | Date       | Changes                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                        |
+| ------- | ---------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 1.0.0   | 2024-12-07 | Initial version                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                |
+| 1.1.0   | 2026-03-01 | Stabilization: implemented core utils (unicode, string_builder, platform), syntax checker, GC safe-points + write barriers in VM, BigInt Object integration (bigint_object.hpp, Value isBigInt/asBigInt), WASM fixes (buildExports, LEB128 init expressions + instruction dispatch, executeStartFunction), stub cleanup (interpreter debug stepping, stack frame inspector, memory pool slab allocator, native function binding, script engine embedding API), GC hardening (incremental mark dedup, sweep delegation). 266/267 tests passing. |
+| 1.2.0   | 2026-03-01 | VM optimization: global*object.cpp refactored (builtin factory delegation, Error hierarchy with ES2022 cause, URI encoding, queueMicrotask, globalThis), async.cpp (AsyncExecutionContext state machine, MicrotaskQueue), WasmStackManager (platform stack probing), shapeId* on Object + shape transitions, ICManager in VM + IC-wired OP_GET_PROPERTY, OP_GET_GLOBAL single-lookup optimization, MicrotaskQueue drain after run(), OP_DEBUGGER dispatch. 266/267 tests passing.                                                              |
 
 ---
 
-**Remember:** This codebase prioritizes performance, security, and maintainability. When in doubt, look at existing code for patterns and ask questions in comments.. [Coding Standards](#coding-standards)
-6. [Common Maintenance Tasks](#common-maintenance-tasks)
-7. [Testing Guidelines](#testing-guidelines)
-8. [Performance Considerations](#performance-considerations)
-9. [Security Guidelines](#security-guidelines)
-10. [AI Assistant Instructions](#ai-assistant-instructions)
+**Remember:** This codebase prioritizes performance, security, and maintainability. When in doubt, look at existing code for patterns and ask questions in comments.. [Coding Standards](#coding-standards) 6. [Common Maintenance Tasks](#common-maintenance-tasks) 7. [Testing Guidelines](#testing-guidelines) 8. [Performance Considerations](#performance-considerations) 9. [Security Guidelines](#security-guidelines) 10. [AI Assistant Instructions](#ai-assistant-instructions)
 
 ---
 
@@ -569,7 +576,7 @@ docs/                  # Documentation
 class DebugAPI {
     // Use function pointers that default to nullptr
     PausedCallback paused_callback_ = nullptr;
-    
+
     void notifyPaused(const StackFrame& frame) {
         if (paused_callback_) {  // Zero overhead if not set
             paused_callback_(frame);
@@ -626,12 +633,12 @@ class MyClass {
 public:
     MyClass();
     ~MyClass();
-    
+
     void publicMethod();
-    
+
 private:
     void privateMethod();
-    
+
     int member_variable_;  // Use trailing underscore
 };
 
@@ -756,7 +763,7 @@ namespace Zepra::Builtins {
 class ArrayPrototype {
 public:
     // Existing methods...
-    
+
     // Add new method
     static Value findLast(const FunctionCallInfo& info);
 };
@@ -770,38 +777,38 @@ public:
 Value ArrayPrototype::findLast(const FunctionCallInfo& info) {
     // Get 'this' value
     Value thisValue = info.thisValue();
-    
+
     // Convert to object
     Object* obj = thisValue.toObject();
     if (!obj) {
         throw TypeError("Array.prototype.findLast called on null or undefined");
     }
-    
+
     // Get callback function
     if (info.argumentCount() < 1 || !info.argument(0).isFunction()) {
         throw TypeError("Array.prototype.findLast requires a function");
     }
-    
+
     Function* callback = info.argument(0).asFunction();
     Value thisArg = info.argumentCount() > 1 ? info.argument(1) : Value::undefined();
-    
+
     // Get array length
     int64_t length = obj->getLength();
-    
+
     // Iterate backwards
     for (int64_t i = length - 1; i >= 0; --i) {
         Value element = obj->get(i);
-        
+
         // Call callback(element, index, array)
         std::vector<Value> args = {element, Value(i), thisValue};
         Value result = callback->call(thisArg, args);
-        
+
         // Check result
         if (result.toBoolean()) {
             return element;
         }
     }
-    
+
     return Value::undefined();
 }
 ```
@@ -811,7 +818,7 @@ Value ArrayPrototype::findLast(const FunctionCallInfo& info) {
 ```cpp
 void GlobalObject::initializeArrayPrototype() {
     // Existing methods...
-    
+
     // Register new method
     array_prototype_->defineOwnProperty(
         "findLast",
@@ -831,7 +838,7 @@ TEST(ArrayTests, FindLast) {
         const found = arr.findLast(x => x > 3);
         found; // Should be 5
     )");
-    
+
     EXPECT_EQ(result.asNumber(), 5);
 }
 
@@ -842,7 +849,7 @@ TEST(ArrayTests, FindLastNotFound) {
         const found = arr.findLast(x => x > 10);
         found; // Should be undefined
     )");
-    
+
     EXPECT_TRUE(result.isUndefined());
 }
 ```
@@ -856,9 +863,9 @@ TEST(ArrayTests, FindLastNotFound) {
 ```cpp
 enum class Opcode : uint8_t {
     // Existing opcodes...
-    
+
     OP_NULLISH_COALESCE,  // a ?? b - use b if a is null/undefined
-    
+
     // Continue with other opcodes...
 };
 ```
@@ -869,22 +876,22 @@ enum class Opcode : uint8_t {
 void BytecodeGenerator::visitNullishCoalesceExpression(NullishCoalesceExpression* expr) {
     // Evaluate left side
     expr->left()->accept(this);
-    
+
     // Duplicate value for checking
     emit(Opcode::OP_DUP);
-    
+
     // Check if null or undefined
     emit(Opcode::OP_IS_NULLISH);
-    
+
     // If not nullish, jump over right side
     size_t skipLabel = emitJump(Opcode::OP_JUMP_IF_FALSE);
-    
+
     // Pop the duplicated value
     emit(Opcode::OP_POP);
-    
+
     // Evaluate right side
     expr->right()->accept(this);
-    
+
     // Patch jump
     patchJump(skipLabel);
 }
@@ -896,10 +903,10 @@ void BytecodeGenerator::visitNullishCoalesceExpression(NullishCoalesceExpression
 void Interpreter::execute() {
     while (true) {
         Opcode op = readOpcode();
-        
+
         switch (op) {
             // Existing cases...
-            
+
             case Opcode::OP_NULLISH_COALESCE: {
                 Value left = pop();
                 if (left.isNull() || left.isUndefined()) {
@@ -910,7 +917,7 @@ void Interpreter::execute() {
                 }
                 break;
             }
-            
+
             // Other cases...
         }
     }
@@ -923,24 +930,24 @@ void Interpreter::execute() {
 void BaselineJIT::compileNullishCoalesce() {
     // Pop left value from stack
     popToRegister(rax);
-    
+
     // Check if null (0x02 in tagged pointer)
     cmp(rax, 0x02);
     je(useRightSide);
-    
+
     // Check if undefined (0x06 in tagged pointer)
     cmp(rax, 0x06);
     je(useRightSide);
-    
+
     // Left side is not nullish, use it
     pushRegister(rax);
     jmp(done);
-    
+
     // Left side is nullish, use right side
     Label useRightSide = defineLabel();
     popToRegister(rax);  // Get right value
     pushRegister(rax);
-    
+
     Label done = defineLabel();
 }
 ```
@@ -984,22 +991,22 @@ namespace Zepra::Browser {
 class ClipboardAPI {
 public:
     explicit ClipboardAPI(VM* vm);
-    
+
     // Clipboard.writeText(text)
     Promise* writeText(const std::string& text);
-    
+
     // Clipboard.readText()
     Promise* readText();
-    
+
     // Clipboard.write(items)
     Promise* write(const std::vector<ClipboardItem>& items);
-    
+
     // Clipboard.read()
     Promise* read();
-    
+
 private:
     VM* vm_;
-    
+
     // Platform-specific implementations
     void writeTextToClipboard(const std::string& text);
     std::string readTextFromClipboard();
@@ -1020,7 +1027,7 @@ ClipboardAPI::ClipboardAPI(VM* vm) : vm_(vm) {}
 
 Promise* ClipboardAPI::writeText(const std::string& text) {
     auto promise = vm_->createPromise();
-    
+
     // Perform async clipboard write
     vm_->scheduleTask([this, promise, text]() {
         try {
@@ -1030,13 +1037,13 @@ Promise* ClipboardAPI::writeText(const std::string& text) {
             promise->reject(Value::createError(e.what()));
         }
     });
-    
+
     return promise;
 }
 
 Promise* ClipboardAPI::readText() {
     auto promise = vm_->createPromise();
-    
+
     // Perform async clipboard read
     vm_->scheduleTask([this, promise]() {
         try {
@@ -1046,7 +1053,7 @@ Promise* ClipboardAPI::readText() {
             promise->reject(Value::createError(e.what()));
         }
     });
-    
+
     return promise;
 }
 
@@ -1057,13 +1064,13 @@ void ClipboardAPI::writeTextToClipboard(const std::string& text) {
     if (!OpenClipboard(nullptr)) {
         throw std::runtime_error("Failed to open clipboard");
     }
-    
+
     EmptyClipboard();
-    
+
     HGLOBAL hMem = GlobalAlloc(GMEM_MOVEABLE, text.size() + 1);
     memcpy(GlobalLock(hMem), text.c_str(), text.size() + 1);
     GlobalUnlock(hMem);
-    
+
     SetClipboardData(CF_TEXT, hMem);
     CloseClipboard();
 }
@@ -1089,13 +1096,13 @@ void ClipboardAPI::writeTextToClipboard(const std::string& text) {
 ```cpp
 void WindowObject::initializeNavigator() {
     auto navigator = Object::create(vm_);
-    
+
     // Existing properties...
-    
+
     // Add clipboard API
     auto clipboard = Object::create(vm_);
     clipboard_api_ = std::make_unique<ClipboardAPI>(vm_);
-    
+
     clipboard->defineOwnProperty(
         "writeText",
         Value::createNativeFunction([this](const FunctionCallInfo& info) {
@@ -1106,14 +1113,14 @@ void WindowObject::initializeNavigator() {
             return Value::createPromise(clipboard_api_->writeText(text));
         })
     );
-    
+
     clipboard->defineOwnProperty(
         "readText",
         Value::createNativeFunction([this](const FunctionCallInfo& info) {
             return Value::createPromise(clipboard_api_->readText());
         })
     );
-    
+
     navigator->defineOwnProperty("clipboard", Value::createObject(clipboard));
 }
 ```
@@ -1123,14 +1130,14 @@ void WindowObject::initializeNavigator() {
 ```cpp
 TEST(ClipboardTests, WriteText) {
     auto vm = VM::create();
-    
+
     auto result = vm->execute(R"(
         (async () => {
             await navigator.clipboard.writeText('Hello World');
             return 'success';
         })();
     )");
-    
+
     EXPECT_TRUE(result.isPromise());
     auto value = result.asPromise()->awaitResult();
     EXPECT_EQ(value.asString(), "success");
@@ -1138,16 +1145,16 @@ TEST(ClipboardTests, WriteText) {
 
 TEST(ClipboardTests, ReadText) {
     auto vm = VM::create();
-    
+
     // Pre-populate clipboard
     navigator.clipboard.writeTextSync("Test Data");
-    
+
     auto result = vm->execute(R"(
         (async () => {
             return await navigator.clipboard.readText();
         })();
     )");
-    
+
     auto value = result.asPromise()->awaitResult();
     EXPECT_EQ(value.asString(), "Test Data");
 }
@@ -1173,7 +1180,7 @@ Value Array::get(int64_t index) {
 struct PropertyCache {
     Structure* structure;  // Object shape
     size_t offset;         // Property offset
-    
+
     bool isValid(Structure* current) const {
         return structure == current;
     }
@@ -1186,14 +1193,14 @@ Value Array::get(int64_t index, PropertyCache* cache) {
             reinterpret_cast<uint8_t*>(this) + cache->offset
         );
     }
-    
+
     // Slow path: compute and update cache
     size_t offset = structure_->getPropertyOffset(index);
     if (cache) {
         cache->structure = structure_;
         cache->offset = offset;
     }
-    
+
     return *reinterpret_cast<Value*>(
         reinterpret_cast<uint8_t*>(this) + offset
     );
@@ -1206,11 +1213,11 @@ Value Array::get(int64_t index, PropertyCache* cache) {
 case Opcode::OP_GET_ELEMENT: {
     Value array = pop();
     Value index = pop();
-    
+
     // Check cache
     PropertyCache* cache = getCurrentCache();
     Value result = array.asObject()->get(index.asNumber(), cache);
-    
+
     push(result);
     break;
 }
@@ -1256,7 +1263,7 @@ TEST(ValueTests, StringCreation) {
 TEST(ValueTests, TypeConversion) {
     Value num = Value::createNumber(123);
     EXPECT_EQ(num.toString(), "123");
-    
+
     Value str = Value::createString("456");
     EXPECT_EQ(str.toNumber(), 456.0);
 }
@@ -1268,22 +1275,22 @@ TEST(ValueTests, TypeConversion) {
 // tests/integration/promise_tests.cpp
 TEST(PromiseTests, BasicResolve) {
     auto vm = VM::create();
-    
+
     auto result = vm->execute(R"(
         let resolved = false;
         const promise = new Promise(resolve => {
             resolve(42);
         });
-        
+
         promise.then(value => {
             resolved = value;
         });
-        
+
         // Wait for microtask queue
         await promise;
         resolved;
     )");
-    
+
     EXPECT_EQ(result.asNumber(), 42);
 }
 ```
@@ -1297,7 +1304,7 @@ TEST(PromiseTests, BasicResolve) {
 
 static void BM_ArrayPush(benchmark::State& state) {
     auto vm = VM::create();
-    
+
     for (auto _ : state) {
         vm->execute(R"(
             const arr = [];
@@ -1393,7 +1400,7 @@ struct Object {
     bool is_frozen;            // 1 byte
     uint8_t flags;             // 1 byte
     uint16_t property_count;   // 2 bytes
-    
+
     // Cold fields (accessed rarely)
     std::string name;
     std::vector<Value> props;
@@ -1436,7 +1443,7 @@ Value Array::get(int64_t index) {
     if (index < 0 || index >= static_cast<int64_t>(elements_.size())) {
         return Value::undefined();
     }
-    
+
     return elements_[index];
 }
 ```
@@ -1478,7 +1485,7 @@ obj->setProperty("x", value);  // Safe
 void throwError(const std::string& user_input) {
     // ❌ BAD: Direct inclusion
     throw Error("Invalid input: " + user_input);
-    
+
     // ✅ GOOD: Sanitize
     std::string sanitized = escapeString(user_input);
     throw Error("Invalid input: " + sanitized);
@@ -1510,5 +1517,6 @@ void throwError(const std::string& user_input) {
    - Update docs/ if adding major features
    - Keep GEMINI.md updated
 
-## Dont delete this file just keep it upadate  
- Use bash TODO.md for all relevent tasks
+## Dont delete this file just keep it upadate
+
+Use bash TODO.md for all relevent tasks

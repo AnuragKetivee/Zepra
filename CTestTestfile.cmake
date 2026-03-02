@@ -1,6 +1,6 @@
 # CMake generated Testfile for 
-# Source directory: F:/ketivee_org_project/zepra
-# Build directory: F:/ketivee_org_project/zepra
+# Source directory: /home/swana/dev/search/zepra
+# Build directory: /home/swana/dev/search/zepra
 # 
 # This file includes the relevant testing commands required for 
 # testing this directory and lists subdirectories to be tested as well.

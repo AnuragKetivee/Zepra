@@ -181,7 +181,7 @@ void WasmGlobal::setValue(WasmValue v) {
 
 WasmModule::WasmModule() = default;
 
-WasmModule* WasmModule::parse(const uint8_t* bytes, size_t length) {
+std::unique_ptr<WasmModule> WasmModule::parse(const uint8_t* bytes, size_t length) {
     WasmParser parser(bytes, length);
     return parser.parse();
 }
@@ -211,8 +211,8 @@ WasmParser::WasmParser(const uint8_t* bytes, size_t length)
     : data_(bytes), length_(length), pos_(0) {
 }
 
-WasmModule* WasmParser::parse() {
-    auto* module = new WasmModule();
+std::unique_ptr<WasmModule> WasmParser::parse() {
+    auto module = std::make_unique<WasmModule>();
     
     // Check magic number
     if (length_ < 8) {
@@ -235,7 +235,7 @@ WasmModule* WasmParser::parse() {
         uint32_t sectionLen = readVarU32();
         size_t sectionEnd = pos_ + sectionLen;
         
-        parseSection(module, sectionId, sectionLen);
+        parseSection(module.get(), sectionId, sectionLen);
         
         pos_ = sectionEnd;  // Skip any unread bytes
     }
@@ -598,8 +598,8 @@ WasmInstance::WasmInstance(WasmModule* module, const ImportObject& imports)
     executeStartFunction();
 }
 
-WasmInstance* WasmInstance::instantiate(WasmModule* module, const ImportObject& imports) {
-    return new WasmInstance(module, imports);
+std::unique_ptr<WasmInstance> WasmInstance::instantiate(WasmModule* module, const ImportObject& imports) {
+    return std::make_unique<WasmInstance>(module, imports);
 }
 
 void WasmInstance::resolveImports(const ImportObject& imports) {
@@ -634,6 +634,78 @@ void WasmInstance::resolveImports(const ImportObject& imports) {
     }
 }
 
+// LEB128 signed 32-bit reader for init expressions
+static int32_t readLEB128_i32(const std::vector<uint8_t>& data, size_t& pos) {
+    int32_t result = 0;
+    int shift = 0;
+    uint8_t byte;
+    do {
+        if (pos >= data.size()) return 0;
+        byte = data[pos++];
+        result |= static_cast<int32_t>(byte & 0x7F) << shift;
+        shift += 7;
+    } while (byte & 0x80);
+    // Sign-extend
+    if (shift < 32 && (byte & 0x40)) {
+        result |= -(1 << shift);
+    }
+    return result;
+}
+
+static int64_t readLEB128_i64(const std::vector<uint8_t>& data, size_t& pos) {
+    int64_t result = 0;
+    int shift = 0;
+    uint8_t byte;
+    do {
+        if (pos >= data.size()) return 0;
+        byte = data[pos++];
+        result |= static_cast<int64_t>(byte & 0x7F) << shift;
+        shift += 7;
+    } while (byte & 0x80);
+    if (shift < 64 && (byte & 0x40)) {
+        result |= -(static_cast<int64_t>(1) << shift);
+    }
+    return result;
+}
+
+// Evaluate a WASM init expression to produce WasmValue
+static WasmValue evaluateInitExpr(const std::vector<uint8_t>& expr) {
+    WasmValue val;
+    val.i64 = 0;
+    val.type = ValType::I32;
+    
+    if (expr.empty()) return val;
+    
+    size_t pos = 0;
+    uint8_t opcode = expr[pos++];
+    
+    switch (opcode) {
+        case Opcode::I32_CONST:
+            val.type = ValType::I32;
+            val.i32 = readLEB128_i32(expr, pos);
+            break;
+        case Opcode::I64_CONST:
+            val.type = ValType::I64;
+            val.i64 = readLEB128_i64(expr, pos);
+            break;
+        case Opcode::F32_CONST:
+            val.type = ValType::F32;
+            if (pos + sizeof(float) <= expr.size()) {
+                std::memcpy(&val.f32, &expr[pos], sizeof(float));
+            }
+            break;
+        case Opcode::F64_CONST:
+            val.type = ValType::F64;
+            if (pos + sizeof(double) <= expr.size()) {
+                std::memcpy(&val.f64, &expr[pos], sizeof(double));
+            }
+            break;
+        default:
+            break;
+    }
+    return val;
+}
+
 void WasmInstance::initializeMemories() {
     for (const auto& memType : module_->memories_) {
         memories_.push_back(std::make_unique<WasmMemory>(memType));
@@ -643,12 +715,12 @@ void WasmInstance::initializeMemories() {
     for (const auto& seg : module_->dataSegments_) {
         if (seg.memoryIdx < memories_.size()) {
             WasmMemory* mem = memories_[seg.memoryIdx].get();
-            // Evaluate offset expression (simplified: assume i32.const)
-            uint32_t offset = 0;
-            if (seg.offsetExpr.size() >= 2 && seg.offsetExpr[0] == Opcode::I32_CONST) {
-                offset = static_cast<uint32_t>(seg.offsetExpr[1]);
+            WasmValue offsetVal = evaluateInitExpr(seg.offsetExpr);
+            uint32_t offset = static_cast<uint32_t>(offsetVal.i32);
+            
+            if (offset + seg.data.size() <= mem->byteLength()) {
+                std::memcpy(mem->buffer() + offset, seg.data.data(), seg.data.size());
             }
-            std::memcpy(mem->buffer() + offset, seg.data.data(), seg.data.size());
         }
     }
 }
@@ -664,24 +736,8 @@ void WasmInstance::initializeGlobals() {
         const auto& gt = module_->globalTypes_[i];
         const auto& initExpr = module_->globalInits_[i];
         
-        WasmValue initVal;
+        WasmValue initVal = evaluateInitExpr(initExpr);
         initVal.type = gt.valType;
-        initVal.i64 = 0;
-        
-        // Simplified: parse i32.const / i64.const / f32.const / f64.const
-        if (!initExpr.empty()) {
-            uint8_t opcode = initExpr[0];
-            switch (opcode) {
-                case Opcode::I32_CONST:
-                    initVal.i32 = static_cast<int32_t>(initExpr[1]);
-                    break;
-                case Opcode::I64_CONST:
-                    initVal.i64 = static_cast<int64_t>(initExpr[1]);
-                    break;
-                default:
-                    break;
-            }
-        }
         
         globals_.push_back(std::make_unique<WasmGlobal>(gt, initVal));
     }
@@ -690,22 +746,31 @@ void WasmInstance::initializeGlobals() {
 void WasmInstance::buildExports() {
     for (const auto& exp : module_->exports_) {
         switch (exp.desc.kind) {
-            case ExportDesc::Kind::Func:
-                // Would wrap function in JS-callable form
+            case ExportDesc::Kind::Func: {
+                // Store function index so callExport can invoke it
+                uint32_t funcIdx = exp.desc.idx;
+                if (funcIdx < functions_.size()) {
+                    exports_->set(exp.name, functions_[funcIdx]);
+                } else {
+                    // Function is defined in this module (beyond imports)
+                    // Store the index as a number for now; callExport resolves it
+                    exports_->set(exp.name, Value::number(static_cast<double>(funcIdx)));
+                }
                 break;
+            }
             case ExportDesc::Kind::Memory:
                 if (exp.desc.idx < memories_.size()) {
-                    // exports_->set(exp.name, memories_[exp.desc.idx].get());
+                    exports_->set(exp.name, Value::object(memories_[exp.desc.idx].get()));
                 }
                 break;
             case ExportDesc::Kind::Table:
                 if (exp.desc.idx < tables_.size()) {
-                    // exports_->set(exp.name, tables_[exp.desc.idx].get());
+                    exports_->set(exp.name, Value::object(tables_[exp.desc.idx].get()));
                 }
                 break;
             case ExportDesc::Kind::Global:
                 if (exp.desc.idx < globals_.size()) {
-                    // exports_->set(exp.name, globals_[exp.desc.idx].get());
+                    exports_->set(exp.name, Value::object(globals_[exp.desc.idx].get()));
                 }
                 break;
         }
@@ -714,7 +779,9 @@ void WasmInstance::buildExports() {
 
 void WasmInstance::executeStartFunction() {
     if (module_->startFuncIdx_ >= 0) {
-        // Would call the start function
+        uint32_t funcIdx = static_cast<uint32_t>(module_->startFuncIdx_);
+        WasmInterpreter interp(this);
+        interp.execute(funcIdx, {});  // start function takes no args
     }
 }
 
@@ -843,15 +910,36 @@ void WasmInterpreter::executeInstruction(uint8_t opcode, const uint8_t*& ip) {
         }
             
         case Opcode::I32_CONST: {
-            // Simplified LEB128 reading
-            int32_t val = static_cast<int32_t>(*ip++);
-            push(WasmValue::fromI32(val));
+            // LEB128 signed 32-bit
+            int32_t result = 0;
+            uint32_t shift = 0;
+            uint8_t byte;
+            do {
+                byte = *ip++;
+                result |= static_cast<int32_t>(byte & 0x7F) << shift;
+                shift += 7;
+            } while (byte & 0x80);
+            if (shift < 32 && (byte & 0x40)) {
+                result |= -(1 << shift);
+            }
+            push(WasmValue::fromI32(result));
             break;
         }
             
         case Opcode::I64_CONST: {
-            int64_t val = static_cast<int64_t>(*ip++);
-            push(WasmValue::fromI64(val));
+            // LEB128 signed 64-bit
+            int64_t result = 0;
+            uint32_t shift = 0;
+            uint8_t byte;
+            do {
+                byte = *ip++;
+                result |= static_cast<int64_t>(byte & 0x7F) << shift;
+                shift += 7;
+            } while (byte & 0x80);
+            if (shift < 64 && (byte & 0x40)) {
+                result |= -(static_cast<int64_t>(1) << shift);
+            }
+            push(WasmValue::fromI64(result));
             break;
         }
             
@@ -973,11 +1061,13 @@ void WasmInterpreter::executeInstruction(uint8_t opcode, const uint8_t*& ip) {
 WebAssemblyObject::WebAssemblyObject() = default;
 
 WasmModule* WebAssemblyObject::Module(const std::vector<uint8_t>& bytes) {
-    return WasmModule::parse(bytes.data(), bytes.size());
+    auto module = WasmModule::parse(bytes.data(), bytes.size());
+    return module.release();
 }
 
 WasmInstance* WebAssemblyObject::Instance(WasmModule* module, const ImportObject& imports) {
-    return WasmInstance::instantiate(module, imports);
+    auto instance = WasmInstance::instantiate(module, imports);
+    return instance.release();
 }
 
 WasmMemory* WebAssemblyObject::Memory(const MemoryType& descriptor) {
@@ -995,9 +1085,7 @@ WasmGlobal* WebAssemblyObject::Global(const GlobalType& descriptor, WasmValue va
 bool WebAssemblyObject::validate(const std::vector<uint8_t>& bytes) {
     try {
         auto module = WasmModule::parse(bytes.data(), bytes.size());
-        bool valid = module && module->validate();
-        delete module;
-        return valid;
+        return module && module->validate();
     } catch (...) {
         return false;
     }

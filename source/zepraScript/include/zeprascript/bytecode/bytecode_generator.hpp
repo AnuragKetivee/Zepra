@@ -122,6 +122,7 @@ private:
     void compileExportDeclaration(const Frontend::ExportDecl* decl);
     void compileClassDeclaration(const Frontend::ClassDecl* decl);
     void compileForOfStatement(const Frontend::ForOfStmt* stmt);
+    void compileSwitchStatement(const Frontend::SwitchStmt* stmt);
     
     // Expression compilation
     void compileExpression(const Frontend::Expression* expr);

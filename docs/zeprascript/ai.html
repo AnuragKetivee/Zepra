@@ -1,0 +1,427 @@
+<!DOCTYPE html>
+<html lang="en" class="scroll-smooth">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI System - ZepraScript</title>
+    
+    <!-- Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+    
+    <!-- Tailwind CSS with Typography Plugin -->
+    <script src="https://cdn.tailwindcss.com?plugins=typography"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        bg: {
+                            primary: '#0a0a0f',
+                            secondary: '#12121a',
+                            tertiary: '#1a1a24'
+                        },
+                        accent: {
+                            DEFAULT: '#8b5cf6', // Violet for AI
+                            light: '#a78bfa',
+                            dark: '#7c3aed',
+                            glow: 'rgba(139, 92, 246, 0.3)'
+                        }
+                    },
+                    fontFamily: {
+                        sans: ['Inter', 'sans-serif'],
+                        mono: ['JetBrains Mono', 'monospace'],
+                    },
+                    typography: (theme) => ({
+                        DEFAULT: {
+                            css: {
+                                color: theme('colors.gray.300'),
+                                a: {
+                                    color: theme('colors.violet.400'),
+                                    '&:hover': {
+                                        color: theme('colors.violet.300'),
+                                    },
+                                },
+                                h1: { color: theme('colors.white') },
+                                h2: { color: theme('colors.white') },
+                                h3: { color: theme('colors.white') },
+                                h4: { color: theme('colors.gray.100') },
+                                code: { color: theme('colors.pink.400') },
+                                'code::before': { content: '""' },
+                                'code::after': { content: '""' },
+                                pre: {
+                                    backgroundColor: theme('colors.bg.tertiary'),
+                                    color: theme('colors.gray.200'),
+                                },
+                                blockquote: {
+                                    color: theme('colors.gray.400'),
+                                    borderLeftColor: theme('colors.violet.500'),
+                                },
+                            },
+                        },
+                    }),
+                }
+            }
+        }
+    </script>
+
+    <style>
+        /* Custom Scrollbar */
+        ::-webkit-scrollbar {
+            width: 10px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #0a0a0f;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #2d2d3a;
+            border-radius: 5px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #3f3f4e;
+        }
+
+        /* Ambient Glow Background */
+        .bg-grid {
+            position: fixed;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background-image: linear-gradient(rgba(139, 92, 246, 0.03) 1px, transparent 1px),
+            linear-gradient(90deg, rgba(139, 92, 246, 0.03) 1px, transparent 1px);
+            background-size: 50px 50px;
+            pointer-events: none;
+            z-index: -1;
+        }
+        
+        .glow-orb {
+            position: fixed;
+            width: 600px; height: 600px;
+            background: radial-gradient(circle, rgba(139, 92, 246, 0.15) 0%, transparent 70%);
+            border-radius: 50%;
+            filter: blur(80px);
+            pointer-events: none;
+            z-index: -1;
+            animation: float 10s infinite ease-in-out;
+        }
+        .orb-1 { top: -200px; left: -100px; animation-delay: 0s; }
+        .orb-2 { bottom: -200px; right: -100px; animation-delay: -5s; }
+
+        @keyframes float {
+            0%, 100% { transform: translate(0, 0); }
+            50% { transform: translate(20px, 40px); }
+        }
+
+        /* Animations */
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        .animate-fade-in { animation: fadeIn 0.6s ease-out forwards; }
+        .animate-fade-up { animation: fadeIn 0.8s ease-out 0.2s forwards; opacity: 0; }
+        
+        /* Card Styles */
+        .card {
+            background: rgba(18, 18, 26, 0.6);
+            backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.05);
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        .card:hover {
+            border-color: rgba(139, 92, 246, 0.4);
+            transform: translateY(-2px);
+            box-shadow: 0 8px 30px rgba(0, 0, 0, 0.2);
+        }
+
+        /* Code Block Styling */
+        .code-block {
+            position: relative;
+            border-radius: 0.75rem;
+            overflow: hidden;
+            background: #1a1a24;
+            border: 1px solid rgba(255, 255, 255, 0.05);
+        }
+        .copy-btn {
+            position: absolute;
+            top: 0.75rem; right: 0.75rem;
+            padding: 0.25rem 0.5rem;
+            border-radius: 0.375rem;
+            background: rgba(255, 255, 255, 0.1);
+            color: #9ca3af;
+            font-size: 0.75rem;
+            opacity: 0;
+            transition: opacity 0.2s;
+        }
+        .code-block:hover .copy-btn { opacity: 1; }
+
+        /* Method Signature */
+        .method-signature {
+            font-family: 'JetBrains Mono', monospace;
+            background: rgba(139, 92, 246, 0.1);
+            border-left: 3px solid #8b5cf6;
+            padding: 0.75rem 1rem;
+            margin: 1rem 0;
+            border-radius: 0.25rem;
+            color: #e2e8f0;
+        }
+
+        /* Badge */
+        .badge {
+            display: inline-flex;
+            align-items: center;
+            padding: 0.125rem 0.5rem;
+            border-radius: 9999px;
+            font-size: 0.75rem;
+            font-weight: 600;
+            background: rgba(139, 92, 246, 0.2);
+            color: #c4b5fd;
+            border: 1px solid rgba(139, 92, 246, 0.3);
+        }
+    </style>
+</head>
+<body class="antialiased min-h-screen relative selection:bg-violet-500/30 selection:text-violet-200 bg-bg-primary text-gray-300">
+
+    <!-- Background Elements -->
+    <div class="bg-grid"></div>
+    <div class="glow-orb orb-1"></div>
+    <div class="glow-orb orb-2"></div>
+
+    <!-- Navigation -->
+    <nav class="fixed top-0 w-full z-50 bg-bg-primary/80 backdrop-blur-md border-b border-white/5">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex items-center justify-between h-16">
+                <!-- Logo -->
+                <div class="flex items-center gap-3">
+                    <a href="../index.html" class="flex items-center gap-3">
+                        <div class="w-8 h-8 rounded-lg bg-gradient-to-br from-violet-500 to-fuchsia-600 flex items-center justify-center text-white font-bold text-lg">Z</div>
+                        <span class="text-xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-white to-gray-400">
+                            ZepraScript
+                        </span>
+                    </a>
+                </div>
+
+                <!-- Desktop Menu -->
+                <div class="hidden md:block">
+                    <div class="flex items-center gap-8">
+                        <a href="../index.html" class="text-sm font-medium text-gray-400 hover:text-white transition-colors">Overview</a>
+                        <a href="api.html" class="text-sm font-medium text-gray-400 hover:text-white transition-colors">API Reference</a>
+                        <a href="../ai.html" class="text-sm font-medium text-white transition-colors border-b-2 border-violet-500 pb-4 mt-4">AI System</a>
+                        <a href="guides.html" class="text-sm font-medium text-gray-400 hover:text-white transition-colors">Guides</a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Main Content Layout -->
+    <div class="pt-24 pb-12 sm:pt-32 sm:pb-16 lg:pb-24 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div class="flex flex-col lg:flex-row gap-12">
+            
+            <!-- Sidebar (Desktop) -->
+            <aside class="hidden lg:block w-64 shrink-0">
+                <div class="sticky top-32 space-y-8">
+                    <div class="space-y-4">
+                        <h3 class="text-xs font-bold text-gray-500 uppercase tracking-wider">On This Page</h3>
+                        <nav id="toc" class="text-sm text-gray-400 space-y-2 border-l border-white/10 pl-4">
+                            <a href="#overview" class="block hover:text-white border-l-2 border-transparent hover:border-violet-500 -ml-[17px] pl-[15px] transition-all">Overview</a>
+                            <a href="#configuration" class="block hover:text-white border-l-2 border-transparent hover:border-violet-500 -ml-[17px] pl-[15px] transition-all">Configuration</a>
+                            <a href="#ollama-integration" class="block hover:text-white border-l-2 border-transparent hover:border-violet-500 -ml-[17px] pl-[15px] transition-all">Ollama Integration</a>
+                            <a href="#api-reference" class="block hover:text-white border-l-2 border-transparent hover:border-violet-500 -ml-[17px] pl-[15px] transition-all">API Reference</a>
+                            <a href="#examples" class="block hover:text-white border-l-2 border-transparent hover:border-violet-500 -ml-[17px] pl-[15px] transition-all">Examples</a>
+                        </nav>
+                    </div>
+                    
+                    <div class="p-4 rounded-xl bg-violet-500/10 border border-violet-500/20">
+                        <h4 class="text-sm font-bold text-violet-200 mb-2">Powered by Ollama</h4>
+                        <p class="text-xs text-violet-300/80">
+                            Run LLMs locally and connect them directly to ZepraScript for enhanced capabilities.
+                        </p>
+                    </div>
+                </div>
+            </aside>
+
+            <!-- Content Area -->
+            <main class="flex-1 min-w-0">
+                <!-- Page Header -->
+                <div class="flex items-center gap-6 mb-12 border-b border-white/10 pb-8 animate-fade-in">
+                    <div class="w-20 h-20 rounded-2xl bg-gradient-to-br from-violet-600 to-indigo-600 shadow-lg shadow-violet-500/20 flex items-center justify-center shrink-0">
+                        <svg class="w-10 h-10 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z" />
+                        </svg>
+                    </div>
+                    <div>
+                        <div class="flex items-center gap-3 mb-2">
+                            <h1 class="text-4xl font-bold text-white tracking-tight">AI System</h1>
+                            <span class="badge">Stable</span>
+                        </div>
+                        <p class="text-gray-400 text-lg">Native integration with local LLMs via Ollama for intelligent scripting.</p>
+                    </div>
+                </div>
+
+                <div class="prose prose-invert prose-violet max-w-none animate-fade-up space-y-12">
+
+                    <!-- Overview Section -->
+                    <section id="overview">
+                        <h2>Overview</h2>
+                        <p>
+                            ZepraScript's AI subsystem bridges the gap between traditional scripting and generative AI. 
+                            Instead of relying on external cloud APIs with high latency and costs, ZepraScript is designed 
+                            to work seamlessly with <a href="https://ollama.com" target="_blank">Ollama</a> running locally on your machine.
+                        </p>
+                        <p>
+                            This allows you to verify code, summarize text, generate content, and create intelligent 
+                            agents directly within your ZepraScript applications, with zero data leaving your device.
+                        </p>
+                    </section>
+
+                    <!-- Configuration Section -->
+                    <section id="configuration">
+                        <h2>Configuration</h2>
+                        <p>Before using the AI APIs, you need to point ZepraScript to your Ollama instance. By default, it looks for Ollama on <code>localhost:11434</code>.</p>
+                        
+                        <div class="code-block group">
+                            <button class="copy-btn">Copy</button>
+                            <pre><code class="language-javascript">import { ai } from 'zepra:ai';
+
+// Configure the provider (optional if using defaults)
+ai.configure({
+    provider: 'ollama',
+    endpoint: 'http://localhost:11434',
+    defaultModel: 'llama3' // or 'mistral', 'gemma', etc.
+});</code></pre>
+                        </div>
+                    </section>
+
+                    <!-- Ollama Integration -->
+                    <section id="ollama-integration">
+                        <h2>Ollama Integration</h2>
+                        <p>
+                            Ensure you have Ollama installed and a model pulled. Run this in your terminal:
+                        </p>
+                        <div class="code-block group">
+                            <button class="copy-btn">Copy</button>
+                            <pre><code class="language-bash">ollama run llama3</code></pre>
+                        </div>
+                        <p>Once the model is ready, ZepraScript can communicate with it immediately.</p>
+                    </section>
+
+                    <!-- API Reference -->
+                    <section id="api-reference">
+                        <h2>API Reference</h2>
+
+                        <!-- chat() -->
+                        <div class="card p-6 rounded-xl mb-8">
+                            <h3 class="mt-0 text-violet-300">ai.chat(options)</h3>
+                            <div class="method-signature">Promise&lt;ChatResponse&gt; chat(options: ChatOptions)</div>
+                            <p>Sends a chat prompt to the model and returns the response.</p>
+                            
+                            <h4>Parameters</h4>
+                            <ul class="text-sm">
+                                <li><code>model</code> (string, optional): The model to use (default: configured default).</li>
+                                <li><code>messages</code> (Array): Array of message objects <code>{ role: 'user'|'assistant'|'system', content: string }</code>.</li>
+                                <li><code>stream</code> (boolean): Whether to stream the response (default: false).</li>
+                            </ul>
+                        </div>
+
+                        <!-- generate() -->
+                        <div class="card p-6 rounded-xl mb-8">
+                            <h3 class="mt-0 text-violet-300">ai.generate(prompt)</h3>
+                            <div class="method-signature">Promise&lt;string&gt; generate(prompt: string, options?: GenOptions)</div>
+                            <p>Simple completion method for single-turn tasks.</p>
+                        </div>
+
+                        <!-- embeddings() -->
+                        <div class="card p-6 rounded-xl mb-8">
+                            <h3 class="mt-0 text-violet-300">ai.embeddings(input)</h3>
+                            <div class="method-signature">Promise&lt;number[]&gt; embeddings(input: string)</div>
+                            <p>Generates vector embeddings for the given text, useful for semantic search and RAG applications.</p>
+                        </div>
+                    </section>
+
+                    <!-- Examples -->
+                    <section id="examples">
+                        <h2>Real-World Examples</h2>
+
+                        <h3>1. Intelligent Text Summarizer</h3>
+                        <p>Summarize long articles or logs using Llama 3.</p>
+                        <div class="code-block group">
+                            <button class="copy-btn">Copy</button>
+                            <pre><code class="language-javascript">import { ai } from 'zepra:ai';
+
+async function summarizeLog(logContent) {
+    console.log("Analyzing logs...");
+    
+    const summary = await ai.chat({
+        model: 'llama3',
+        messages: [
+            { role: 'system', content: 'You are a devops assistant. Summarize the following error log concisely.' },
+            { role: 'user', content: logContent }
+        ]
+    });
+
+    return summary.message.content;
+}
+
+// Usage
+const errorLog = "Error: Connection timed out at 14:00. Retrying... Failed. Database unreachable.";
+summarizeLog(errorLog).then(console.log);</code></pre>
+                        </div>
+
+                        <h3>2. Code Review Agent</h3>
+                        <p>Ask the AI to review a snippet of code.</p>
+                        <div class="code-block group">
+                            <button class="copy-btn">Copy</button>
+                            <pre><code class="language-javascript">const codeSnippet = `
+function add(a, b) {
+    return a + b;
+}`;
+
+const review = await ai.generate(
+    `Review this JavaScript code and suggest improvements:\n\n${codeSnippet}`
+);
+
+console.log(review);</code></pre>
+                        </div>
+
+                        <h3>3. Semantic Search (RAG)</h3>
+                        <p>Using embeddings to find related documents.</p>
+                        <div class="code-block group">
+                            <button class="copy-btn">Copy</button>
+                            <pre><code class="language-javascript">const docs = ["Login page logic", "Database schema", "User authentication flow"];
+const query = "How do users sign in?";
+
+// Generate embeddings
+const queryVec = await ai.embeddings(query);
+const docVecs = await Promise.all(docs.map(d => ai.embeddings(d)));
+
+// Calculate similarity (pseudo-code for cosine similarity)
+const bestMatch = findClosestVector(queryVec, docVecs);
+console.log("Most relevant doc:", docs[bestMatch.index]);</code></pre>
+                        </div>
+                    </section>
+
+                </div>
+            </main>
+        </div>
+    </div>
+
+    <!-- Footer -->
+    <footer class="bg-bg-secondary border-t border-white/5 py-12 mt-12">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
+            <p class="text-gray-500 text-sm">© 2026 ZepraBrowser · AI System Documentation</p>
+        </div>
+    </footer>
+
+    <script>
+        // Simple Copy to Clipboard
+        document.querySelectorAll('.copy-btn').forEach(btn => {
+            btn.addEventListener('click', () => {
+                const code = btn.nextElementSibling.innerText;
+                navigator.clipboard.writeText(code);
+                const original = btn.innerText;
+                btn.innerText = 'Copied!';
+                setTimeout(() => btn.innerText = original, 2000);
+            });
+        });
+    </script>
+</body>
+</html>

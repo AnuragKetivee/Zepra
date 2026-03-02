@@ -13,6 +13,7 @@
 #include <memory>
 #include <stack>
 #include <unordered_map>
+#include "inline_cache.hpp"
 
 namespace Zepra::Runtime {
 
@@ -22,6 +23,8 @@ class Object;
 class Function;
 class GCHeap;
 class RuntimeUpvalue;
+class ResourceMonitor;
+struct SandboxConfig;
 
 }  // namespace Zepra::Runtime
 
@@ -83,6 +86,19 @@ struct ExceptionHandler {
 };
 
 /**
+ * @brief Generator frame for yield suspension/resumption
+ */
+struct GeneratorFrame {
+    Function* function = nullptr;
+    size_t suspendedIP = 0;          // IP when yielded
+    std::vector<Value> savedStack;    // Stack state at yield
+    size_t stackBase = 0;             // Base slot in stack
+    Value thisValue;                  // 'this' binding
+    bool isCompleted = false;         // Generator finished
+    bool isStarted = false;           // Has been called at least once
+};
+
+/**
  * @brief Virtual Machine for executing JavaScript bytecode
  */
 class VM {
@@ -99,6 +115,11 @@ public:
      * @brief Call a function
      */
     Value call(Function* fn, Value thisValue, const std::vector<Value>& args);
+    
+    /**
+     * @brief Resume a suspended generator
+     */
+    Value resumeGenerator(GeneratorFrame* frame, Value yieldVal, const std::vector<Value>& args);
     
     /**
      * @brief Construct an object
@@ -146,9 +167,49 @@ public:
      */
     void setModulePath(const std::string& path) { currentModulePath_ = path; }
     const std::string& currentModulePath() const { return currentModulePath_; }
-
+    
+    /**
+     * @brief Set module loader for ES module support
+     */
+    void setModuleLoader(class ModuleLoader* loader) { moduleLoader_ = loader; }
+    class ModuleLoader* moduleLoader() const { return moduleLoader_; }
+    
+    /**
+     * @brief Get current executing VM (for callbacks from builtins)
+     */
+    static VM* current() { return currentVM_; }
+    
+    /**
+     * @brief Execute a callback function (for array methods like map/filter/reduce)
+     */
+    Value executeCallback(Function* fn, Value thisValue, const std::vector<Value>& args);
+    
+    /**
+     * @brief Configure sandbox for execution limits and security
+     */
+    void setSandbox(ResourceMonitor* monitor) { resourceMonitor_ = monitor; }
+    ResourceMonitor* resourceMonitor() const { return resourceMonitor_; }
+    
+    /**
+     * @brief Set GC heap for safe-point and write barrier integration
+     */
+    void setGCHeap(GCHeap* heap) { gcHeap_ = heap; }
+    GCHeap* gcHeap() const { return gcHeap_; }
+    
+    /**
+     * @brief Check if execution should be terminated (timeout/limit)
+     */
+    bool shouldTerminate() const;
+    
+    /**
+     * @brief Request termination of current execution
+     */
+    void requestTermination() { terminationRequested_ = true; }
+    bool isTerminationRequested() const { return terminationRequested_; }
     
 private:
+    // Thread-local current VM for callback execution
+    static thread_local VM* currentVM_;
     // Bytecode execution
     void run();
     void dispatch(Zepra::Bytecode::Opcode op);
@@ -231,6 +292,20 @@ private:
     
     // Module loading
     std::string currentModulePath_;
+    class ModuleLoader* moduleLoader_ = nullptr;  // Owned externally or by Context
+    
+    // Generator support
+    GeneratorFrame* currentGenerator_ = nullptr;  // Active generator being executed
+    bool isYielding_ = false;                     // Set when yield suspends execution
+    Value yieldedValue_;                          // Value passed to yield
+    
+    // Sandbox/Security support
+    ResourceMonitor* resourceMonitor_ = nullptr;  // Resource limit tracking
+    GCHeap* gcHeap_ = nullptr;                    // GC heap for safe-points/barriers
+    ICManager icManager_;                          // Inline cache for property access
+    bool terminationRequested_ = false;           // Termination flag
+    uint64_t instructionCounter_ = 0;             // For periodic limit checks
+    static constexpr uint64_t LIMIT_CHECK_INTERVAL = 1000;  // Check every N instructions
 };
 
 } // namespace Zepra::Runtime

@@ -1,28 +1,26 @@
 /**
  * @file dom.cpp
- * @brief DOM implementation
+ * @brief DOM Node implementation stubs
  */
 
-#include "webcore/dom.hpp"
-#include <algorithm>
-#include <sstream>
+#include "dom.hpp"
 
 namespace Zepra::WebCore {
 
-// =============================================================================
+// ============================================================================
 // DOMNode
-// =============================================================================
+// ============================================================================
 
 DOMNode::DOMNode(NodeType type) : nodeType_(type) {}
+
 DOMNode::~DOMNode() = default;
 
 DOMNode* DOMNode::previousSibling() const {
     if (!parent_) return nullptr;
     
-    const auto& siblings = parent_->children_;
-    for (size_t i = 1; i < siblings.size(); ++i) {
-        if (siblings[i].get() == this) {
-            return siblings[i - 1].get();
+    for (size_t i = 0; i < parent_->children_.size(); ++i) {
+        if (parent_->children_[i].get() == this && i > 0) {
+            return parent_->children_[i-1].get();
         }
     }
     return nullptr;
@@ -31,46 +29,51 @@ DOMNode* DOMNode::previousSibling() const {
 DOMNode* DOMNode::nextSibling() const {
     if (!parent_) return nullptr;
     
-    const auto& siblings = parent_->children_;
-    for (size_t i = 0; i + 1 < siblings.size(); ++i) {
-        if (siblings[i].get() == this) {
-            return siblings[i + 1].get();
+    for (size_t i = 0; i < parent_->children_.size(); ++i) {
+        if (parent_->children_[i].get() == this && i + 1 < parent_->children_.size()) {
+            return parent_->children_[i+1].get();
         }
     }
     return nullptr;
 }
 
 DOMNode* DOMNode::appendChild(std::unique_ptr<DOMNode> child) {
+    if (!child) return nullptr;
+    
     child->parent_ = this;
-    child->document_ = document_;
+    child->document_ = this->document_;
     DOMNode* ptr = child.get();
     children_.push_back(std::move(child));
     return ptr;
 }
 
 DOMNode* DOMNode::insertBefore(std::unique_ptr<DOMNode> child, DOMNode* refChild) {
-    if (!refChild) return appendChild(std::move(child));
+    if (!child) return nullptr;
     
     child->parent_ = this;
-    child->document_ = document_;
+    child->document_ = this->document_;
     DOMNode* ptr = child.get();
     
-    for (auto it = children_.begin(); it != children_.end(); ++it) {
-        if (it->get() == refChild) {
-            children_.insert(it, std::move(child));
-            return ptr;
+    if (!refChild) {
+        children_.push_back(std::move(child));
+    } else {
+        for (auto it = children_.begin(); it != children_.end(); ++it) {
+            if (it->get() == refChild) {
+                children_.insert(it, std::move(child));
+                return ptr;
+            }
         }
+        children_.push_back(std::move(child));
     }
-    
-    return appendChild(std::move(child));
+    return ptr;
 }
 
 std::unique_ptr<DOMNode> DOMNode::removeChild(DOMNode* child) {
     for (auto it = children_.begin(); it != children_.end(); ++it) {
         if (it->get() == child) {
             std::unique_ptr<DOMNode> removed = std::move(*it);
-            removed->parent_ = nullptr;
             children_.erase(it);
+            removed->parent_ = nullptr;
             return removed;
         }
     }
@@ -78,12 +81,14 @@ std::unique_ptr<DOMNode> DOMNode::removeChild(DOMNode* child) {
 }
 
 DOMNode* DOMNode::replaceChild(std::unique_ptr<DOMNode> newChild, DOMNode* oldChild) {
+    if (!newChild || !oldChild) return nullptr;
+    
     for (auto it = children_.begin(); it != children_.end(); ++it) {
         if (it->get() == oldChild) {
             newChild->parent_ = this;
-            newChild->document_ = document_;
+            newChild->document_ = this->document_;
+            oldChild->parent_ = nullptr;
             DOMNode* ptr = newChild.get();
-            (*it)->parent_ = nullptr;
             *it = std::move(newChild);
             return ptr;
         }
@@ -93,42 +98,41 @@ DOMNode* DOMNode::replaceChild(std::unique_ptr<DOMNode> newChild, DOMNode* oldCh
 
 bool DOMNode::contains(DOMNode* other) const {
     if (!other) return false;
+    if (this == other) return true;
     
-    DOMNode* node = other;
-    while (node) {
-        if (node == this) return true;
-        node = node->parent_;
+    for (const auto& child : children_) {
+        if (child->contains(other)) return true;
     }
     return false;
 }
 
-// =============================================================================
+// ============================================================================
 // DOMText
-// =============================================================================
+// ============================================================================
 
-DOMText::DOMText(const std::string& data) 
+DOMText::DOMText(const std::string& data)
     : DOMNode(NodeType::Text), data_(data) {}
 
 std::unique_ptr<DOMNode> DOMText::cloneNode(bool) const {
     return std::make_unique<DOMText>(data_);
 }
 
-// =============================================================================
+// ============================================================================
 // DOMComment
-// =============================================================================
+// ============================================================================
 
-DOMComment::DOMComment(const std::string& data) 
+DOMComment::DOMComment(const std::string& data)
     : DOMNode(NodeType::Comment), data_(data) {}
 
 std::unique_ptr<DOMNode> DOMComment::cloneNode(bool) const {
     return std::make_unique<DOMComment>(data_);
 }
 
-// =============================================================================
+// ============================================================================
 // DOMElement
-// =============================================================================
+// ============================================================================
 
-DOMElement::DOMElement(const std::string& tagName) 
+DOMElement::DOMElement(const std::string& tagName)
     : DOMNode(NodeType::Element), tagName_(tagName) {}
 
 std::string DOMElement::getAttribute(const std::string& name) const {
@@ -150,87 +154,94 @@ bool DOMElement::hasAttribute(const std::string& name) const {
 
 std::vector<std::string> DOMElement::classList() const {
     std::vector<std::string> classes;
-    std::istringstream iss(className());
-    std::string cls;
-    while (iss >> cls) {
-        classes.push_back(cls);
+    std::string cls = className();
+    // Split by whitespace
+    size_t start = 0, end;
+    while ((end = cls.find(' ', start)) != std::string::npos) {
+        if (end > start) classes.push_back(cls.substr(start, end - start));
+        start = end + 1;
     }
+    if (start < cls.length()) classes.push_back(cls.substr(start));
     return classes;
 }
 
+std::string DOMElement::innerHTML() const {
+    // Stub
+    return "";
+}
+
+void DOMElement::setInnerHTML(const std::string& html) {
+    // Clear children first
+    children_.clear();
+    // Would parse HTML here - stub
+}
+
 std::string DOMElement::textContent() const {
-    std::string content;
+    std::string result;
     for (const auto& child : children_) {
         if (child->nodeType() == NodeType::Text) {
-            content += static_cast<DOMText*>(child.get())->data();
+            result += child->nodeValue();
         } else if (child->nodeType() == NodeType::Element) {
-            content += static_cast<DOMElement*>(child.get())->textContent();
+            result += static_cast<DOMElement*>(child.get())->textContent();
         }
     }
-    return content;
+    return result;
 }
 
 void DOMElement::setTextContent(const std::string& text) {
     children_.clear();
-    appendChild(std::make_unique<DOMText>(text));
+    if (!text.empty()) {
+        appendChild(std::make_unique<DOMText>(text));
+    }
+}
+
+std::string DOMElement::outerHTML() const {
+    // Stub
+    return "";
 }
 
 DOMElement* DOMElement::getElementById(const std::string& id) {
     if (this->id() == id) return this;
-    
     for (const auto& child : children_) {
         if (child->nodeType() == NodeType::Element) {
-            if (DOMElement* found = static_cast<DOMElement*>(child.get())->getElementById(id)) {
-                return found;
-            }
+            DOMElement* el = static_cast<DOMElement*>(child.get());
+            DOMElement* found = el->getElementById(id);
+            if (found) return found;
         }
     }
     return nullptr;
 }
 
-std::vector<DOMElement*> DOMElement::getElementsByTagName(const std::string& tagName) {
-    std::vector<DOMElement*> elements;
-    
-    if (tagName_ == tagName || tagName == "*") {
-        elements.push_back(this);
-    }
-    
+std::vector<DOMElement*> DOMElement::getElementsByTagName(const std::string& name) {
+    std::vector<DOMElement*> result;
     for (const auto& child : children_) {
         if (child->nodeType() == NodeType::Element) {
-            auto childElements = static_cast<DOMElement*>(child.get())->getElementsByTagName(tagName);
-            elements.insert(elements.end(), childElements.begin(), childElements.end());
+            DOMElement* el = static_cast<DOMElement*>(child.get());
+            if (el->tagName() == name || name == "*") {
+                result.push_back(el);
+            }
+            auto childResults = el->getElementsByTagName(name);
+            result.insert(result.end(), childResults.begin(), childResults.end());
         }
     }
-    
-    return elements;
+    return result;
 }
 
 std::vector<DOMElement*> DOMElement::getElementsByClassName(const std::string& className) {
-    std::vector<DOMElement*> elements;
-    
-    auto classes = classList();
-    if (std::find(classes.begin(), classes.end(), className) != classes.end()) {
-        elements.push_back(this);
-    }
-    
-    for (const auto& child : children_) {
-        if (child->nodeType() == NodeType::Element) {
-            auto childElements = static_cast<DOMElement*>(child.get())->getElementsByClassName(className);
-            elements.insert(elements.end(), childElements.begin(), childElements.end());
-        }
-    }
-    
-    return elements;
+    std::vector<DOMElement*> result;
+    // Stub
+    return result;
 }
 
-DOMElement* DOMElement::querySelector(const std::string&) {
-    // TODO: Implement CSS selector matching
+DOMElement* DOMElement::querySelector(const std::string& selector) {
+    // Stub
     return nullptr;
 }
 
-std::vector<DOMElement*> DOMElement::querySelectorAll(const std::string&) {
-    // TODO: Implement CSS selector matching
-    return {};
+std::vector<DOMElement*> DOMElement::querySelectorAll(const std::string& selector) {
+    std::vector<DOMElement*> result;
+    // Stub
+    return result;
 }
 
 std::string DOMElement::style(const std::string& property) const {
@@ -242,8 +253,6 @@ void DOMElement::setStyle(const std::string& property, const std::string& value)
     styleMap_[property] = value;
 }
 
-
-
 std::unique_ptr<DOMNode> DOMElement::cloneNode(bool deep) const {
     auto clone = std::make_unique<DOMElement>(tagName_);
     clone->attributes_ = attributes_;
@@ -254,13 +263,12 @@ std::unique_ptr<DOMNode> DOMElement::cloneNode(bool deep) const {
             clone->appendChild(child->cloneNode(true));
         }
     }
-    
     return clone;
 }
 
-// =============================================================================
+// ============================================================================
 // DOMDocument
-// =============================================================================
+// ============================================================================
 
 DOMDocument::DOMDocument() : DOMNode(NodeType::Document) {
     document_ = this;
@@ -270,9 +278,9 @@ DOMElement* DOMDocument::body() const {
     if (!documentElement_) return nullptr;
     for (const auto& child : documentElement_->childNodes()) {
         if (child->nodeType() == NodeType::Element) {
-            auto elem = static_cast<DOMElement*>(child.get());
-            if (elem->tagName() == "body" || elem->tagName() == "BODY") {
-                return elem;
+            DOMElement* el = static_cast<DOMElement*>(child.get());
+            if (el->tagName() == "BODY" || el->tagName() == "body") {
+                return el;
             }
         }
     }
@@ -283,9 +291,9 @@ DOMElement* DOMDocument::head() const {
     if (!documentElement_) return nullptr;
     for (const auto& child : documentElement_->childNodes()) {
         if (child->nodeType() == NodeType::Element) {
-            auto elem = static_cast<DOMElement*>(child.get());
-            if (elem->tagName() == "head" || elem->tagName() == "HEAD") {
-                return elem;
+            DOMElement* el = static_cast<DOMElement*>(child.get());
+            if (el->tagName() == "HEAD" || el->tagName() == "head") {
+                return el;
             }
         }
     }
@@ -295,12 +303,11 @@ DOMElement* DOMDocument::head() const {
 std::string DOMDocument::title() const {
     DOMElement* h = head();
     if (!h) return "";
-    
     for (const auto& child : h->childNodes()) {
         if (child->nodeType() == NodeType::Element) {
-            auto elem = static_cast<DOMElement*>(child.get());
-            if (elem->tagName() == "title" || elem->tagName() == "TITLE") {
-                return elem->textContent();
+            DOMElement* el = static_cast<DOMElement*>(child.get());
+            if (el->tagName() == "TITLE" || el->tagName() == "title") {
+                return el->textContent();
             }
         }
     }
@@ -308,22 +315,7 @@ std::string DOMDocument::title() const {
 }
 
 void DOMDocument::setTitle(const std::string& title) {
-    DOMElement* h = head();
-    if (!h) return;
-    
-    for (const auto& child : h->childNodes()) {
-        if (child->nodeType() == NodeType::Element) {
-            auto elem = static_cast<DOMElement*>(child.get());
-            if (elem->tagName() == "title" || elem->tagName() == "TITLE") {
-                elem->setTextContent(title);
-                return;
-            }
-        }
-    }
-    
-    auto titleElem = createElement("title");
-    titleElem->setTextContent(title);
-    h->appendChild(std::move(titleElem));
+    // Stub
 }
 
 std::unique_ptr<DOMElement> DOMDocument::createElement(const std::string& tagName) {
@@ -359,37 +351,25 @@ std::vector<DOMElement*> DOMDocument::getElementsByTagName(const std::string& ta
 }
 
 std::vector<DOMElement*> DOMDocument::getElementsByClassName(const std::string& className) {
-    if (documentElement_) {
-        return documentElement_->getElementsByClassName(className);
-    }
     return {};
 }
 
 DOMElement* DOMDocument::querySelector(const std::string& selector) {
-    if (documentElement_) {
-        return documentElement_->querySelector(selector);
-    }
     return nullptr;
 }
 
 std::vector<DOMElement*> DOMDocument::querySelectorAll(const std::string& selector) {
-    if (documentElement_) {
-        return documentElement_->querySelectorAll(selector);
-    }
     return {};
 }
 
 std::unique_ptr<DOMNode> DOMDocument::cloneNode(bool deep) const {
     auto clone = std::make_unique<DOMDocument>();
-    
     if (deep && documentElement_) {
         auto elemClone = documentElement_->cloneNode(true);
-        clone->documentElement_ = static_cast<DOMElement*>(clone->appendChild(std::move(elemClone)));
+        clone->setDocumentElement(static_cast<DOMElement*>(elemClone.get()));
+        clone->appendChild(std::move(elemClone));
     }
-    
     return clone;
 }
-
-
 
 } // namespace Zepra::WebCore

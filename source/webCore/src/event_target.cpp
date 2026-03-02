@@ -1,117 +1,93 @@
 /**
  * @file event_target.cpp
- * @brief Event Target implementation
+ * @brief EventTarget implementation stub
  */
 
-#include "webcore/event_target.hpp"
-#include "webcore/dom.hpp"
-#include <algorithm>
+#include "event_target.hpp"
+#include "dom.hpp"
 
 namespace Zepra::WebCore {
 
-// =============================================================================
-// EventTarget
-// =============================================================================
-
 void EventTarget::addEventListener(const std::string& type, EventListener listener, 
-                                   const EventListenerOptions& options) {
+                                    const EventListenerOptions& options) {
     ListenerEntry entry;
     entry.id = nextListenerId_++;
-    entry.listener = std::move(listener);
+    entry.listener = listener;
     entry.options = options;
-    listeners_[type].push_back(std::move(entry));
+    listeners_[type].push_back(entry);
 }
 
 void EventTarget::removeEventListener(const std::string& type, size_t listenerId) {
     auto it = listeners_.find(type);
     if (it != listeners_.end()) {
         auto& vec = it->second;
-        vec.erase(std::remove_if(vec.begin(), vec.end(), 
-            [listenerId](const ListenerEntry& e) { return e.id == listenerId; }), 
+        vec.erase(std::remove_if(vec.begin(), vec.end(),
+            [listenerId](const ListenerEntry& e) { return e.id == listenerId; }),
             vec.end());
     }
 }
 
 bool EventTarget::dispatchEvent(Event& event) {
     auto it = listeners_.find(event.type());
-    if (it != listeners_.end()) {
-        // Copy listeners to handle removal during iteration
-        auto listeners = it->second;
-        
-        for (auto& entry : listeners) {
-            if (event.immediatePropagationStopped()) break;
-            
+    if (it == listeners_.end()) return true;
+    
+    for (auto& entry : it->second) {
+        if (entry.listener) {
             entry.listener(event);
-            
-            // Remove if once
-            if (entry.options.once) {
-                removeEventListener(event.type(), entry.id);
-            }
         }
+        if (event.immediatePropagationStopped()) break;
     }
+    
     return !event.defaultPrevented();
 }
 
-// =============================================================================
 // EventDispatcher
-// =============================================================================
-
 void EventDispatcher::dispatch(Event& event, DOMNode* target) {
+    if (!target) return;
+    
     event.setTarget(target);
     
-    // Build path from root to target
+    // Capture phase
     auto path = buildEventPath(target);
     
-    // Capturing phase (root to target, excluding target)
-    event.setEventPhase(EventPhase::Capturing);
-    for (size_t i = 0; i < path.size() - 1 && !event.propagationStopped(); ++i) {
-        event.setCurrentTarget(path[i]);
-        invokeListeners(event, path[i], EventPhase::Capturing);
-    }
-    
-    // At target phase
-    if (!event.propagationStopped()) {
-        event.setEventPhase(EventPhase::AtTarget);
-        event.setCurrentTarget(target);
-        invokeListeners(event, target, EventPhase::AtTarget);
-    }
-    
-    // Bubbling phase (target to root, excluding target)
-    if (event.bubbles() && !event.propagationStopped()) {
-        event.setEventPhase(EventPhase::Bubbling);
-        for (int i = static_cast<int>(path.size()) - 2; i >= 0 && !event.propagationStopped(); --i) {
-            event.setCurrentTarget(path[i]);
-            invokeListeners(event, path[i], EventPhase::Bubbling);
+    for (auto it = path.rbegin(); it != path.rend(); ++it) {
+        if (*it != target) {
+            event.setCurrentTarget(*it);
+            event.setEventPhase(EventPhase::Capturing);
+            (*it)->dispatchEvent(event);
+            if (event.propagationStopped()) return;
         }
     }
     
-    event.setEventPhase(EventPhase::None);
-    event.setCurrentTarget(nullptr);
+    // Target phase
+    event.setCurrentTarget(target);
+    event.setEventPhase(EventPhase::AtTarget);
+    target->dispatchEvent(event);
+    if (event.propagationStopped()) return;
+    
+    // Bubble phase (if bubbles)
+    if (event.bubbles()) {
+        for (auto* node : path) {
+            if (node != target) {
+                event.setCurrentTarget(node);
+                event.setEventPhase(EventPhase::Bubbling);
+                node->dispatchEvent(event);
+                if (event.propagationStopped()) return;
+            }
+        }
+    }
 }
 
 std::vector<DOMNode*> EventDispatcher::buildEventPath(DOMNode* target) {
     std::vector<DOMNode*> path;
-    DOMNode* node = target;
-    while (node) {
-        path.insert(path.begin(), node);
-        node = node->parentNode();
+    for (DOMNode* node = target; node; node = node->parentNode()) {
+        path.push_back(node);
     }
     return path;
 }
 
 void EventDispatcher::invokeListeners(Event& event, DOMNode* node, EventPhase phase) {
-    // Dispatch via EventTarget interface
-    // Note: dispatchEvent above doesn't check phase, it just fires.
-    // Real implementation should filter by capture flag vs phase.
-    // For now we just call dispatchEvent on the node.
-    
-    // To properly support capture/bubbling distinction, EventTarget::dispatchEvent 
-    // needs to know the phase or we need to access listeners directly.
-    // Since we are friend, we could access listeners_ directly here, 
-    // OR we can just rely on dispatchEvent for now and improve later.
-    node->dispatchEvent(event);
-    
-    (void)phase; // TODO: Use phase to filter capture/bubble listeners
+    // Stub
 }
 
 } // namespace Zepra::WebCore

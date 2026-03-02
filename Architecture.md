@@ -797,19 +797,33 @@ cmake --build build --target zepra-browser
 ### ✅ Completed
 - ZepraScript JavaScript Engine (full implementation)
 - WebCore Rendering Engine (DOM, CSS, Layout)
-- Browser Window Demo (SDL2)
+- Browser Window Demo (NXRENDER native X11/OpenGL)
 - DevTools Protocol (Chrome CDP)
 - Authentication System (Ketivee SSO)
+- **Zepra Stack Libraries:**
+  - NxBase - Buffer, string, memory utilities
+  - NxJSON - JSON parser/serializer
+  - NxHTTP - HTTP client (replaces libcurl)
+  - NxXML - XML/HTML parser
+  - NxCrypto - TLS/crypto abstraction
+- **ZepraWebView Developer Tools:**
+  - Console tab with real ZepraScript logs
+  - Network tab with request monitoring
+  - Security tab with CORS/TLS info
+  - ConsoleLog, NetworkMonitor, SecurityChecker modules
 
 ### 🔄 In Progress
-- GPU Acceleration (WebGPU)
-- Extension System
-- Media Support
+- GPU Acceleration (WebGPU + NxGfx)
+- NXRender widget integration
+- HTML content rendering in viewport
+- NXAudio browser integration
 
 ### 📋 Planned
 - Service Workers
 - WebRTC
 - PWA Support
+- Extensions System
+- WebAssembly execution
 
 ---
 
@@ -819,9 +833,11 @@ cmake --build build --target zepra-browser
 2. Browser tests require ZepraScript to be built first
 3. Use `FILETREE.md` for quick reference of all files
 4. See `docs/` for detailed API documentation
+5. **USE_ZEPRA_STACK=ON** to build with custom libraries
+6. **USE_NXRENDER=ON** for native X11/OpenGL rendering
 
 ---
 
-**Last Updated:** 2025-12-08
-**Version:** 1.0.0
+**Last Updated:** 2025-12-14
+**Version:** 1.1.0
 **Maintainer:** Swanaya

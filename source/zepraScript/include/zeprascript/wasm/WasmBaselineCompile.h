@@ -565,6 +565,7 @@ private:
     
     // Memory addressing
     void emitBoundsCheck(uint32_t offset);
+    void emitBoundsCheck64(uint32_t offset, bool isMemory64);
     ValueLocation computeAddress(uint32_t memIndex, uint32_t offset);
     
     // Control flow
@@ -621,6 +622,18 @@ private:
     // Exception handling state
     std::vector<size_t> tryStack_;  // Indices into controlStack_ for active try blocks
     bool hasExceptionHandling_ = false;
+    
+    // Tier-up state (for OSR to optimized tier)
+    int32_t* tierUpCounterPtr_ = nullptr;       // Pointer to tier-up counter
+    void* tierUpSlowPath_ = nullptr;            // Tier-up slow path handler
+    uint32_t currentLoopIndex_ = 0;             // Current loop index for OSR
+    
+    struct OSRPoint {
+        uint32_t loopIndex;
+        size_t codeOffset;
+        size_t stackHeight;
+    };
+    std::vector<OSRPoint> tierUpOSRPoints_;     // OSR entry points for this function
 };
 
 // =============================================================================

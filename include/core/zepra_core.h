@@ -15,7 +15,6 @@
 #include <queue>
 
 // Forward declarations
-struct CURL;
 struct json_object;
 
 namespace ZepraCore {
@@ -384,9 +383,6 @@ private:
     // Threading
     mutable std::mutex m_mutex;
     std::atomic<bool> m_initialized;
-    
-    // CURL handle for downloads
-    CURL* m_curlHandle;
     
     // Disable copy constructor and assignment
     ZepraCore(const ZepraCore&) = delete;

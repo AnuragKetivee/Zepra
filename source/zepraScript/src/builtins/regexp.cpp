@@ -156,6 +156,44 @@ Value RegExpBuiltin::exec(Runtime::Context*, const std::vector<Value>& args) {
 
 Object* RegExpBuiltin::createRegExpPrototype() {
     Object* proto = new Object();
+
+    proto->set("test", Value::object(
+        new Runtime::Function("test", [](const Runtime::FunctionCallInfo& info) -> Value {
+            if (!info.thisValue().isObject()) return Value::boolean(false);
+            RegExpObject* re = dynamic_cast<RegExpObject*>(info.thisValue().asObject());
+            if (!re || info.argumentCount() < 1) return Value::boolean(false);
+            std::string str;
+            if (info.argument(0).isString()) {
+                str = static_cast<Runtime::String*>(info.argument(0).asObject())->value();
+            } else {
+                str = info.argument(0).toString();
+            }
+            return Value::boolean(re->test(str));
+        }, 1)));
+
+    proto->set("exec", Value::object(
+        new Runtime::Function("exec", [](const Runtime::FunctionCallInfo& info) -> Value {
+            if (!info.thisValue().isObject()) return Value::null();
+            RegExpObject* re = dynamic_cast<RegExpObject*>(info.thisValue().asObject());
+            if (!re || info.argumentCount() < 1) return Value::null();
+            std::string str;
+            if (info.argument(0).isString()) {
+                str = static_cast<Runtime::String*>(info.argument(0).asObject())->value();
+            } else {
+                str = info.argument(0).toString();
+            }
+            return re->exec(str);
+        }, 1)));
+
+    proto->set("toString", Value::object(
+        new Runtime::Function("toString", [](const Runtime::FunctionCallInfo& info) -> Value {
+            if (!info.thisValue().isObject()) return Value::undefined();
+            RegExpObject* re = dynamic_cast<RegExpObject*>(info.thisValue().asObject());
+            if (!re) return Value::undefined();
+            std::string result = "/" + re->pattern() + "/" + re->flags();
+            return Value::string(new Runtime::String(result));
+        }, 0)));
+
     return proto;
 }
 

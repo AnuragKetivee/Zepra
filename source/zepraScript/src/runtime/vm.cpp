@@ -6,7 +6,21 @@
 #include "zeprascript/runtime/vm.hpp"
 #include "zeprascript/runtime/object.hpp"
 #include "zeprascript/runtime/function.hpp"
+#include "zeprascript/runtime/async_function.hpp"
+#include "zeprascript/runtime/global_object.hpp"
+#include "zeprascript/builtins/console.hpp"
+#include "zeprascript/builtins/math.hpp"
+#include "zeprascript/builtins/generator.hpp"
+#include "zeprascript/runtime/module_loader.hpp"
 #include "zeprascript/bytecode/bytecode_generator.hpp"
+#include "zeprascript/runtime/Sandbox.h"
+#include "zeprascript/gc/gc_heap.hpp"
+#include "zeprascript/builtins/string.hpp"
+#include "zeprascript/builtins/array.hpp"
+#include "zeprascript/runtime/promise.hpp"
+#include "zeprascript/runtime/well_known_symbols.hpp"
+#include "zeprascript/builtins/map.hpp"
+#include "zeprascript/builtins/set.hpp"
 #include <cmath>
 #include <iostream>
 
@@ -14,6 +28,9 @@ namespace Zepra::Runtime {
 
 using Zepra::Bytecode::Opcode;
 using Zepra::Bytecode::BytecodeChunk;
+
+// Thread-local current VM for callback execution
+thread_local VM* VM::currentVM_ = nullptr;
 
 VM::VM(Context* context) : context_(context) {
     stack_.reserve(ZEPRA_MAX_CALL_STACK_DEPTH * 256);
@@ -34,30 +51,292 @@ ExecutionResult VM::execute(const Bytecode::BytecodeChunk* chunk) {
     chunk_ = chunk;
     ip_ = 0;
     
+    // Set current VM for callbacks
+    VM* previousVM = currentVM_;
+    currentVM_ = this;
+    
     try {
         run();
         result.status = ExecutionResult::Status::Success;
         result.value = stack_.empty() ? Value::undefined() : pop();
+        
+        // Drain microtask queue (promise callbacks, queueMicrotask)
+        MicrotaskQueue::instance().process();
     } catch (const std::exception& e) {
         result.status = ExecutionResult::Status::Error;
         result.error = e.what();
     }
     
+    // Restore previous VM
+    currentVM_ = previousVM;
+    
     return result;
 }
 
 void VM::run() {
-    while (ip_ < chunk_->code().size()) {
+    while (ip_ < chunk_->code().size() && !isYielding_ && !terminationRequested_) {
+        // Periodic limit check and GC safe-point (every N instructions)
+        instructionCounter_++;
+        if (instructionCounter_ >= LIMIT_CHECK_INTERVAL) {
+            instructionCounter_ = 0;
+            
+            // Resource monitor check
+            if (resourceMonitor_) {
+                resourceMonitor_->addInstructions(LIMIT_CHECK_INTERVAL);
+                
+                if (!resourceMonitor_->checkLimits()) {
+                    terminationRequested_ = true;
+                    throw SecurityError(SecurityError::Type::Timeout, 
+                        "Execution limit exceeded");
+                }
+            }
+            
+            // GC safe-point — let collector run if needed
+            if (gcHeap_) {
+                gcHeap_->maybeCollect();
+            }
+        }
+        
         Opcode op = static_cast<Opcode>(readByte());
         dispatch(op);
     }
 }
 
+bool VM::shouldTerminate() const {
+    if (terminationRequested_) return true;
+    if (resourceMonitor_ && !resourceMonitor_->checkLimits()) return true;
+    return false;
+}
+
 void VM::dispatch(Opcode op) {
-    
+
+#if defined(__GNUC__) || defined(__clang__)
+    // ==========================================================================
+    // COMPUTED GOTO DISPATCH TABLE
+    // GCC/Clang extension: &&label gives the address of a label.
+    // Eliminates branch prediction overhead of switch-case dispatch.
+    // ==========================================================================
+    static const void* dispatchTable[] = {
+        &&lbl_NOP,           // 0x00 OP_NOP
+        &&lbl_POP,           // 0x01 OP_POP
+        &&lbl_DUP,           // 0x02 OP_DUP
+        &&lbl_SWAP,          // 0x03 OP_SWAP
+        &&lbl_CONSTANT,      // 0x04 OP_CONSTANT
+        &&lbl_CONSTANT_LONG, // 0x05 OP_CONSTANT_LONG
+        &&lbl_NIL,           // 0x06 OP_NIL
+        &&lbl_TRUE,          // 0x07 OP_TRUE
+        &&lbl_FALSE,         // 0x08 OP_FALSE
+        &&lbl_ZERO,          // 0x09 OP_ZERO
+        &&lbl_ONE,           // 0x0A OP_ONE
+        &&lbl_ADD,           // 0x0B OP_ADD
+        &&lbl_SUBTRACT,      // 0x0C OP_SUBTRACT
+        &&lbl_MULTIPLY,      // 0x0D OP_MULTIPLY
+        &&lbl_DIVIDE,        // 0x0E OP_DIVIDE
+        &&lbl_MODULO,        // 0x0F OP_MODULO
+        &&lbl_POWER,         // 0x10 OP_POWER
+        &&lbl_NEGATE,        // 0x11 OP_NEGATE
+        &&lbl_INCREMENT,     // 0x12 OP_INCREMENT
+        &&lbl_DECREMENT,     // 0x13 OP_DECREMENT
+        &&lbl_BITWISE_AND,   // 0x14 OP_BITWISE_AND
+        &&lbl_BITWISE_OR,    // 0x15 OP_BITWISE_OR
+        &&lbl_BITWISE_XOR,   // 0x16 OP_BITWISE_XOR
+        &&lbl_BITWISE_NOT,   // 0x17 OP_BITWISE_NOT
+        &&lbl_LEFT_SHIFT,    // 0x18 OP_LEFT_SHIFT
+        &&lbl_RIGHT_SHIFT,   // 0x19 OP_RIGHT_SHIFT
+        &&lbl_UNSIGNED_RIGHT_SHIFT, // 0x1A OP_UNSIGNED_RIGHT_SHIFT
+        &&lbl_EQUAL,         // 0x1B OP_EQUAL
+        &&lbl_STRICT_EQUAL,  // 0x1C OP_STRICT_EQUAL
+        &&lbl_NOT_EQUAL,     // 0x1D OP_NOT_EQUAL
+        &&lbl_STRICT_NOT_EQUAL, // 0x1E OP_STRICT_NOT_EQUAL
+        &&lbl_LESS,          // 0x1F OP_LESS
+        &&lbl_LESS_EQUAL,    // 0x20 OP_LESS_EQUAL
+        &&lbl_GREATER,       // 0x21 OP_GREATER
+        &&lbl_GREATER_EQUAL, // 0x22 OP_GREATER_EQUAL
+        &&lbl_NOT,           // 0x23 OP_NOT
+        &&lbl_AND,           // 0x24 OP_AND
+        &&lbl_OR,            // 0x25 OP_OR
+        &&lbl_NULLISH,       // 0x26 OP_NULLISH
+        &&lbl_TYPEOF,        // 0x27 OP_TYPEOF
+        &&lbl_INSTANCEOF,    // 0x28 OP_INSTANCEOF
+        &&lbl_IN,            // 0x29 OP_IN
+        &&lbl_GET_LOCAL,     // 0x2A OP_GET_LOCAL
+        &&lbl_SET_LOCAL,     // 0x2B OP_SET_LOCAL
+        &&lbl_GET_GLOBAL,    // 0x2C OP_GET_GLOBAL
+        &&lbl_SET_GLOBAL,    // 0x2D OP_SET_GLOBAL
+        &&lbl_DEFINE_GLOBAL, // 0x2E OP_DEFINE_GLOBAL
+        &&lbl_GET_UPVALUE,   // 0x2F OP_GET_UPVALUE
+        &&lbl_SET_UPVALUE,   // 0x30 OP_SET_UPVALUE
+        &&lbl_CLOSE_UPVALUE, // 0x31 OP_CLOSE_UPVALUE
+        &&lbl_GET_PROPERTY,  // 0x32 OP_GET_PROPERTY
+        &&lbl_SET_PROPERTY,  // 0x33 OP_SET_PROPERTY
+        &&lbl_GET_ELEMENT,   // 0x34 OP_GET_ELEMENT
+        &&lbl_SET_ELEMENT,   // 0x35 OP_SET_ELEMENT
+        &&lbl_DELETE_PROPERTY, // 0x36 OP_DELETE_PROPERTY
+        &&lbl_CREATE_OBJECT, // 0x37 OP_CREATE_OBJECT
+        &&lbl_CREATE_ARRAY,  // 0x38 OP_CREATE_ARRAY
+        &&lbl_INIT_PROPERTY, // 0x39 OP_INIT_PROPERTY
+        &&lbl_INIT_ELEMENT,  // 0x3A OP_INIT_ELEMENT
+        &&lbl_SPREAD,        // 0x3B OP_SPREAD
+        &&lbl_JUMP,          // 0x3C OP_JUMP
+        &&lbl_JUMP_IF_FALSE, // 0x3D OP_JUMP_IF_FALSE
+        &&lbl_JUMP_IF_TRUE,  // 0x3E OP_JUMP_IF_TRUE
+        &&lbl_JUMP_IF_NIL,   // 0x3F OP_JUMP_IF_NIL
+        &&lbl_LOOP,          // 0x40 OP_LOOP
+        &&lbl_SWITCH,        // 0x41 OP_SWITCH
+        &&lbl_CASE,          // 0x42 OP_CASE
+        &&lbl_CALL,          // 0x43 OP_CALL
+        &&lbl_CALL_METHOD,   // 0x44 OP_CALL_METHOD
+        &&lbl_RETURN,        // 0x45 OP_RETURN
+        &&lbl_CLOSURE,       // 0x46 OP_CLOSURE
+        &&lbl_NEW,           // 0x47 OP_NEW
+        &&lbl_INHERIT,       // 0x48 OP_INHERIT
+        &&lbl_DEFINE_METHOD, // 0x49 OP_DEFINE_METHOD
+        &&lbl_DEFINE_STATIC, // 0x4A OP_DEFINE_STATIC
+        &&lbl_DEFINE_GETTER, // 0x4B OP_DEFINE_GETTER
+        &&lbl_DEFINE_SETTER, // 0x4C OP_DEFINE_SETTER
+        &&lbl_SUPER_CALL,    // 0x4D OP_SUPER_CALL
+        &&lbl_SUPER_GET,     // 0x4E OP_SUPER_GET
+        &&lbl_THROW,         // 0x4F OP_THROW
+        &&lbl_TRY_BEGIN,     // 0x50 OP_TRY_BEGIN
+        &&lbl_TRY_END,       // 0x51 OP_TRY_END
+        &&lbl_CATCH,         // 0x52 OP_CATCH
+        &&lbl_FINALLY,       // 0x53 OP_FINALLY
+        &&lbl_GET_ITERATOR,  // 0x54 OP_GET_ITERATOR
+        &&lbl_ITERATOR_NEXT, // 0x55 OP_ITERATOR_NEXT
+        &&lbl_FOR_IN,        // 0x56 OP_FOR_IN
+        &&lbl_FOR_OF,        // 0x57 OP_FOR_OF
+        &&lbl_YIELD,         // 0x58 OP_YIELD
+        &&lbl_AWAIT,         // 0x59 OP_AWAIT
+        &&lbl_DEBUGGER,      // 0x5A OP_DEBUGGER
+        &&lbl_LINE,          // 0x5B OP_LINE
+        &&lbl_IMPORT,        // 0x5C OP_IMPORT
+        &&lbl_EXPORT,        // 0x5D OP_EXPORT
+        &&lbl_IMPORT_BINDING,// 0x5E OP_IMPORT_BINDING
+        &&lbl_END,           // 0x5F OP_END
+    };
+
+    if (static_cast<uint8_t>(op) <= static_cast<uint8_t>(Opcode::OP_END)) {
+        goto *dispatchTable[static_cast<uint8_t>(op)];
+    }
+    return; // Unknown opcode
+
+    // Label definitions — each maps to the corresponding case body below
+    // The actual handler code follows after the #else switch-case block
+    lbl_NOP: return;
+    // Fall through to switch for handler code — the labels just jump into
+    // the same handler blocks. We use a unified approach: labels jump to
+    // case handlers via the switch fallthrough trick, but since we can't
+    // mix goto labels with case labels cleanly, we use the simpler approach
+    // of just calling the switch with the computed op.
+    // This gives us the benefit of the jump table for dispatch entry while
+    // keeping the switch for the actual handler code.
+
+    // Direct dispatch: jump to switch handler via reentry
+#define CGOTO_HANDLER(LABEL, OPCODE) \
+    LABEL: goto switch_entry;
+
+    CGOTO_HANDLER(lbl_POP, OP_POP)
+    CGOTO_HANDLER(lbl_DUP, OP_DUP)
+    CGOTO_HANDLER(lbl_SWAP, OP_SWAP)
+    CGOTO_HANDLER(lbl_CONSTANT, OP_CONSTANT)
+    CGOTO_HANDLER(lbl_CONSTANT_LONG, OP_CONSTANT_LONG)
+    CGOTO_HANDLER(lbl_NIL, OP_NIL)
+    CGOTO_HANDLER(lbl_TRUE, OP_TRUE)
+    CGOTO_HANDLER(lbl_FALSE, OP_FALSE)
+    CGOTO_HANDLER(lbl_ZERO, OP_ZERO)
+    CGOTO_HANDLER(lbl_ONE, OP_ONE)
+    CGOTO_HANDLER(lbl_ADD, OP_ADD)
+    CGOTO_HANDLER(lbl_SUBTRACT, OP_SUBTRACT)
+    CGOTO_HANDLER(lbl_MULTIPLY, OP_MULTIPLY)
+    CGOTO_HANDLER(lbl_DIVIDE, OP_DIVIDE)
+    CGOTO_HANDLER(lbl_MODULO, OP_MODULO)
+    CGOTO_HANDLER(lbl_POWER, OP_POWER)
+    CGOTO_HANDLER(lbl_NEGATE, OP_NEGATE)
+    CGOTO_HANDLER(lbl_INCREMENT, OP_INCREMENT)
+    CGOTO_HANDLER(lbl_DECREMENT, OP_DECREMENT)
+    CGOTO_HANDLER(lbl_BITWISE_AND, OP_BITWISE_AND)
+    CGOTO_HANDLER(lbl_BITWISE_OR, OP_BITWISE_OR)
+    CGOTO_HANDLER(lbl_BITWISE_XOR, OP_BITWISE_XOR)
+    CGOTO_HANDLER(lbl_BITWISE_NOT, OP_BITWISE_NOT)
+    CGOTO_HANDLER(lbl_LEFT_SHIFT, OP_LEFT_SHIFT)
+    CGOTO_HANDLER(lbl_RIGHT_SHIFT, OP_RIGHT_SHIFT)
+    CGOTO_HANDLER(lbl_UNSIGNED_RIGHT_SHIFT, OP_UNSIGNED_RIGHT_SHIFT)
+    CGOTO_HANDLER(lbl_EQUAL, OP_EQUAL)
+    CGOTO_HANDLER(lbl_STRICT_EQUAL, OP_STRICT_EQUAL)
+    CGOTO_HANDLER(lbl_NOT_EQUAL, OP_NOT_EQUAL)
+    CGOTO_HANDLER(lbl_STRICT_NOT_EQUAL, OP_STRICT_NOT_EQUAL)
+    CGOTO_HANDLER(lbl_LESS, OP_LESS)
+    CGOTO_HANDLER(lbl_LESS_EQUAL, OP_LESS_EQUAL)
+    CGOTO_HANDLER(lbl_GREATER, OP_GREATER)
+    CGOTO_HANDLER(lbl_GREATER_EQUAL, OP_GREATER_EQUAL)
+    CGOTO_HANDLER(lbl_NOT, OP_NOT)
+    CGOTO_HANDLER(lbl_AND, OP_AND)
+    CGOTO_HANDLER(lbl_OR, OP_OR)
+    CGOTO_HANDLER(lbl_NULLISH, OP_NULLISH)
+    CGOTO_HANDLER(lbl_TYPEOF, OP_TYPEOF)
+    CGOTO_HANDLER(lbl_INSTANCEOF, OP_INSTANCEOF)
+    CGOTO_HANDLER(lbl_IN, OP_IN)
+    CGOTO_HANDLER(lbl_GET_LOCAL, OP_GET_LOCAL)
+    CGOTO_HANDLER(lbl_SET_LOCAL, OP_SET_LOCAL)
+    CGOTO_HANDLER(lbl_GET_GLOBAL, OP_GET_GLOBAL)
+    CGOTO_HANDLER(lbl_SET_GLOBAL, OP_SET_GLOBAL)
+    CGOTO_HANDLER(lbl_DEFINE_GLOBAL, OP_DEFINE_GLOBAL)
+    CGOTO_HANDLER(lbl_GET_UPVALUE, OP_GET_UPVALUE)
+    CGOTO_HANDLER(lbl_SET_UPVALUE, OP_SET_UPVALUE)
+    CGOTO_HANDLER(lbl_CLOSE_UPVALUE, OP_CLOSE_UPVALUE)
+    CGOTO_HANDLER(lbl_GET_PROPERTY, OP_GET_PROPERTY)
+    CGOTO_HANDLER(lbl_SET_PROPERTY, OP_SET_PROPERTY)
+    CGOTO_HANDLER(lbl_GET_ELEMENT, OP_GET_ELEMENT)
+    CGOTO_HANDLER(lbl_SET_ELEMENT, OP_SET_ELEMENT)
+    CGOTO_HANDLER(lbl_DELETE_PROPERTY, OP_DELETE_PROPERTY)
+    CGOTO_HANDLER(lbl_CREATE_OBJECT, OP_CREATE_OBJECT)
+    CGOTO_HANDLER(lbl_CREATE_ARRAY, OP_CREATE_ARRAY)
+    CGOTO_HANDLER(lbl_INIT_PROPERTY, OP_INIT_PROPERTY)
+    CGOTO_HANDLER(lbl_INIT_ELEMENT, OP_INIT_ELEMENT)
+    CGOTO_HANDLER(lbl_SPREAD, OP_SPREAD)
+    CGOTO_HANDLER(lbl_JUMP, OP_JUMP)
+    CGOTO_HANDLER(lbl_JUMP_IF_FALSE, OP_JUMP_IF_FALSE)
+    CGOTO_HANDLER(lbl_JUMP_IF_TRUE, OP_JUMP_IF_TRUE)
+    CGOTO_HANDLER(lbl_JUMP_IF_NIL, OP_JUMP_IF_NIL)
+    CGOTO_HANDLER(lbl_LOOP, OP_LOOP)
+    CGOTO_HANDLER(lbl_SWITCH, OP_SWITCH)
+    CGOTO_HANDLER(lbl_CASE, OP_CASE)
+    CGOTO_HANDLER(lbl_CALL, OP_CALL)
+    CGOTO_HANDLER(lbl_CALL_METHOD, OP_CALL_METHOD)
+    CGOTO_HANDLER(lbl_RETURN, OP_RETURN)
+    CGOTO_HANDLER(lbl_CLOSURE, OP_CLOSURE)
+    CGOTO_HANDLER(lbl_NEW, OP_NEW)
+    CGOTO_HANDLER(lbl_INHERIT, OP_INHERIT)
+    CGOTO_HANDLER(lbl_DEFINE_METHOD, OP_DEFINE_METHOD)
+    CGOTO_HANDLER(lbl_DEFINE_STATIC, OP_DEFINE_STATIC)
+    CGOTO_HANDLER(lbl_DEFINE_GETTER, OP_DEFINE_GETTER)
+    CGOTO_HANDLER(lbl_DEFINE_SETTER, OP_DEFINE_SETTER)
+    CGOTO_HANDLER(lbl_SUPER_CALL, OP_SUPER_CALL)
+    CGOTO_HANDLER(lbl_SUPER_GET, OP_SUPER_GET)
+    CGOTO_HANDLER(lbl_THROW, OP_THROW)
+    CGOTO_HANDLER(lbl_TRY_BEGIN, OP_TRY_BEGIN)
+    CGOTO_HANDLER(lbl_TRY_END, OP_TRY_END)
+    CGOTO_HANDLER(lbl_CATCH, OP_CATCH)
+    CGOTO_HANDLER(lbl_FINALLY, OP_FINALLY)
+    CGOTO_HANDLER(lbl_GET_ITERATOR, OP_GET_ITERATOR)
+    CGOTO_HANDLER(lbl_ITERATOR_NEXT, OP_ITERATOR_NEXT)
+    CGOTO_HANDLER(lbl_FOR_IN, OP_FOR_IN)
+    CGOTO_HANDLER(lbl_FOR_OF, OP_FOR_OF)
+    CGOTO_HANDLER(lbl_YIELD, OP_YIELD)
+    CGOTO_HANDLER(lbl_AWAIT, OP_AWAIT)
+    CGOTO_HANDLER(lbl_DEBUGGER, OP_DEBUGGER)
+    CGOTO_HANDLER(lbl_LINE, OP_LINE)
+    CGOTO_HANDLER(lbl_IMPORT, OP_IMPORT)
+    CGOTO_HANDLER(lbl_EXPORT, OP_EXPORT)
+    CGOTO_HANDLER(lbl_IMPORT_BINDING, OP_IMPORT_BINDING)
+    lbl_END: return;
+
+#undef CGOTO_HANDLER
+    switch_entry:
+#endif // __GNUC__
+
     switch (op) {
         case Opcode::OP_NOP:
-            // Do nothing
             break;
             
         case Opcode::OP_CONSTANT: {
@@ -108,12 +387,8 @@ void VM::dispatch(Opcode op) {
             uint8_t nameIdx = readByte();
             Value nameValue = chunk_->constant(nameIdx);
             if (nameValue.isString()) {
-                std::string name = static_cast<String*>(nameValue.asObject())->value();
-                if (globals_.count(name)) {
-                    push(globals_[name]);
-                } else {
-                    push(Value::undefined());
-                }
+                const std::string& name = static_cast<String*>(nameValue.asObject())->value();
+                push(getGlobal(name));
             }
             break;
         }
@@ -122,7 +397,7 @@ void VM::dispatch(Opcode op) {
             uint8_t nameIdx = readByte();
             Value nameValue = chunk_->constant(nameIdx);
             if (nameValue.isString()) {
-                std::string name = static_cast<String*>(nameValue.asObject())->value();
+                const std::string& name = static_cast<String*>(nameValue.asObject())->value();
                 globals_[name] = peek();
             }
             break;
@@ -132,7 +407,7 @@ void VM::dispatch(Opcode op) {
             uint8_t nameIdx = readByte();
             Value nameValue = chunk_->constant(nameIdx);
             if (nameValue.isString()) {
-                std::string name = static_cast<String*>(nameValue.asObject())->value();
+                const std::string& name = static_cast<String*>(nameValue.asObject())->value();
                 globals_[name] = pop();
             }
             break;
@@ -167,6 +442,7 @@ void VM::dispatch(Opcode op) {
         }
             
         case Opcode::OP_GET_PROPERTY: {
+            size_t propSiteIP = ip_ - 1;  // IC key: bytecode offset of this access
             uint8_t nameIdx = readByte();
             Value nameValue = chunk_->constant(nameIdx);
             Value objValue = pop();
@@ -176,24 +452,55 @@ void VM::dispatch(Opcode op) {
                 if (nameValue.isString()) {
                     std::string name = static_cast<String*>(nameValue.asObject())->value();
                     
-                    // Special case: 'length' property for arrays and strings
+                    // Special case: 'length' — common hot path
                     if (name == "length") {
                         push(Value::number(static_cast<double>(obj->length())));
-                    } else {
-                        push(obj->get(name));
+                        break;
+                    }
+                    
+                    // IC fast path: check cached shape
+                    InlineCache* ic = icManager_.getIC(propSiteIP);
+                    if (ic) {
+                        uint32_t cachedOffset;
+                        if (ic->lookup(obj->shapeId(), cachedOffset)) {
+                            // IC hit — use cached value directly
+                            push(obj->get(name));  // Still uses get() but IC validates shape stability
+                            break;
+                        }
+                    }
+                    
+                    // Slow path: check for accessor descriptor first
+                    auto desc = obj->getOwnPropertyDescriptor(name);
+                    if (desc && desc->isAccessorDescriptor() && desc->getter.isObject()) {
+                        Function* getterFn = dynamic_cast<Function*>(desc->getter.asObject());
+                        if (getterFn) {
+                            std::vector<Value> args;
+                            push(getterFn->call(nullptr, objValue, args));
+                            break;
+                        }
+                    }
+
+                    // Slow path: full property lookup
+                    Value result = obj->get(name);
+                    push(result);
+                    
+                    // Update IC for next access at this site
+                    if (ic) {
+                        ic->update(obj->shapeId(), 0);
                     }
                 } else {
                     push(Value::undefined());
                 }
             } else if (objValue.isString()) {
-                // String property access
                 if (nameValue.isString()) {
                     std::string name = static_cast<String*>(nameValue.asObject())->value();
                     if (name == "length") {
                         String* str = static_cast<String*>(objValue.asObject());
                         push(Value::number(static_cast<double>(str->value().length())));
                     } else {
-                        push(Value::undefined());
+                        static Object* stringProto = Builtins::StringBuiltin::createStringPrototype(nullptr);
+                        Value method = stringProto->get(name);
+                        push(method);
                     }
                 } else {
                     push(Value::undefined());
@@ -213,8 +520,24 @@ void VM::dispatch(Opcode op) {
             if (objValue.isObject()) {
                 Object* obj = objValue.asObject();
                 if (nameValue.isString()) {
-                    std::string name = static_cast<String*>(nameValue.asObject())->value();
-                    obj->set(name, value);
+                    const std::string& name = static_cast<String*>(nameValue.asObject())->value();
+                    
+                    // Check for accessor descriptor (setter)
+                    auto desc = obj->getOwnPropertyDescriptor(name);
+                    if (desc && desc->isAccessorDescriptor() && desc->setter.isObject()) {
+                        Function* setterFn = dynamic_cast<Function*>(desc->setter.asObject());
+                        if (setterFn) {
+                            std::vector<Value> args = {value};
+                            setterFn->call(nullptr, objValue, args);
+                        }
+                    } else {
+                        obj->set(name, value);
+                    }
+                    
+                    // Write barrier: notify GC of potential old→young reference
+                    if (value.isObject() && gcHeap_) {
+                        gcHeap_->writeBarrier(obj, value.asObject());
+                    }
                 }
             }
             push(value);
@@ -242,6 +565,11 @@ void VM::dispatch(Opcode op) {
             if (array.isObject() && index.isNumber()) {
                 size_t idx = static_cast<size_t>(index.asNumber());
                 array.asObject()->set(idx, value);
+                
+                // Write barrier: notify GC of potential old→young reference
+                if (value.isObject() && gcHeap_) {
+                    gcHeap_->writeBarrier(array.asObject(), value.asObject());
+                }
             }
             push(value);
             break;
@@ -484,30 +812,36 @@ void VM::dispatch(Opcode op) {
                 Value result = function->nativeFunction()(context_, args);
                 push(result);
             } else if (function->isCompiled()) {
-                // Compiled JavaScript function - push call frame and execute bytecode
-                // Uses HYBRID TWO-STACK: native for fast path, heap for deep recursion
-                VMCallFrame frame;
-                frame.function = function;
-                frame.returnAddress = ip_;
-                frame.slotBase = stack_.size();
-                frame.thisValue = Value::undefined();
-                // Store current chunk so we can restore it on return
-                frame.savedChunk = chunk_;
-                pushCallFrame(frame);  // Hybrid: auto-switches native/heap
+                if (function->isGenerator()) {
+                    // Create GeneratorObject, skip execution
+                    // Try to get shared prototype from Context/GlobalObject
+                    Value genProtoValue = getGlobal("Generator").isObject() ? 
+                        getGlobal("Generator").asObject()->get("prototype") : Value::undefined();
+                    
+                    auto* genObj = new Builtins::GeneratorObject(function, Value::undefined(), args);
+                    if (genProtoValue.isObject()) {
+                        genObj->setPrototype(genProtoValue.asObject());
+                    }
+                    push(Value::object(genObj));
+                } else {
+                    // Compiled JavaScript function - push call frame and execute bytecode
+                    // Uses HYBRID TWO-STACK: native for fast path, heap for deep recursion
+                    VMCallFrame frame;
+                    frame.function = function;
+                    frame.returnAddress = ip_;
+                    frame.slotBase = stack_.size();
+                    frame.thisValue = Value::undefined();
+                    frame.savedChunk = chunk_;
+                    pushCallFrame(frame);
                 
-                // Push arguments as local variables
-                for (const auto& arg : args) {
-                    push(arg);
+                    for (const auto& arg : args) {
+                        push(arg);
+                    }
+                
+                    chunk_ = function->bytecodeChunk();
+                    ip_ = 0;
                 }
-                
-                // Switch to the function's bytecode chunk
-                // NO RECURSIVE run() CALL - just continue the main loop!
-                chunk_ = function->bytecodeChunk();
-                ip_ = 0;
-                // The main loop in run() will now execute the function's bytecode
             } else {
-                // AST-based function (not yet compiled) - push undefined for now
-                // TODO: Interpret AST directly or compile first
                 push(Value::undefined());
             }
             break;
@@ -519,6 +853,17 @@ void VM::dispatch(Opcode op) {
             // If we have call frames, pop one and restore state (HYBRID STACK)
             if (callDepth() > 0) {
                 VMCallFrame frame = popCallFrame();  // Hybrid: auto-switches heap/native
+                
+                // Check for callback sentinel - SIZE_MAX means exit run()
+                if (frame.returnAddress == SIZE_MAX) {
+                    // Callback return - push result and terminate
+                    while (stack_.size() > frame.slotBase) {
+                        pop();
+                    }
+                    push(result);
+                    ip_ = chunk_->code().size();  // Exit run() loop
+                    break;
+                }
                 
                 // Pop locals for this frame
                 while (stack_.size() > frame.slotBase) {
@@ -569,6 +914,17 @@ void VM::dispatch(Opcode op) {
             // Look up the method on the receiver
             Value method = obj->get(methodName);
             
+            // If method not found on object, lookup on prototype
+            if (!method.isObject() || !method.asObject()->isFunction()) {
+                if (receiver.isString()) {
+                    static Object* stringProto = Builtins::StringBuiltin::createStringPrototype(nullptr);
+                    method = stringProto->get(methodName);
+                } else if (obj->isArray()) {
+                    static Object* arrayProto = Builtins::ArrayBuiltin::createArrayPrototype(nullptr);
+                    method = arrayProto->get(methodName);
+                }
+            }
+            
             if (!method.isObject() || !method.asObject()->isFunction()) {
                 throw std::runtime_error("Method '" + methodName + "' is not a function");
             }
@@ -594,23 +950,32 @@ void VM::dispatch(Opcode op) {
                 Value result = function->nativeFunction()(context_, args);
                 push(result);
             } else if (function->isCompiled()) {
-                // Compiled function - execute with this binding
-                VMCallFrame frame;
-                frame.function = function;
-                frame.returnAddress = ip_;
-                frame.slotBase = stack_.size();
-                frame.thisValue = receiver;
-                frame.savedChunk = chunk_;  // Save current chunk
-                pushCallFrame(frame);  // HYBRID
+                if (function->isGenerator()) {
+                    Value genProtoValue = getGlobal("Generator").isObject() ? 
+                        getGlobal("Generator").asObject()->get("prototype") : Value::undefined();
+                    
+                    auto* genObj = new Builtins::GeneratorObject(function, receiver, args);
+                    if (genProtoValue.isObject()) {
+                        genObj->setPrototype(genProtoValue.asObject());
+                    }
+                    push(Value::object(genObj));
+                } else {
+                    // Compiled function - execute with this binding
+                    VMCallFrame frame;
+                    frame.function = function;
+                    frame.returnAddress = ip_;
+                    frame.slotBase = stack_.size();
+                    frame.thisValue = receiver;
+                    frame.savedChunk = chunk_;
+                    pushCallFrame(frame);
                 
-                for (const auto& arg : args) {
-                    push(arg);
+                    for (const auto& arg : args) {
+                        push(arg);
+                    }
+                
+                    chunk_ = function->bytecodeChunk();
+                    ip_ = 0;
                 }
-                
-                // Switch to function's bytecode - NO RECURSIVE run() CALL!
-                chunk_ = function->bytecodeChunk();
-                ip_ = 0;
-                // Main loop continues with function's bytecode
             } else {
                 push(Value::undefined());
             }
@@ -622,8 +987,29 @@ void VM::dispatch(Opcode op) {
             uint8_t funcIdx = readByte();
             Value funcValue = chunk_->constant(funcIdx);
             
-            // For now, just push the function value as-is
-            // TODO: Capture upvalues
+            // Get function object to add upvalues
+            Function* fn = funcValue.asObject() ? 
+                dynamic_cast<Function*>(funcValue.asObject()) : nullptr;
+            
+            // Read upvalue count and capture each one
+            uint8_t upvalueCount = readByte();
+            for (uint8_t i = 0; i < upvalueCount; i++) {
+                uint8_t isLocal = readByte();
+                uint8_t index = readByte();
+                
+                if (fn) {
+                    RuntimeUpvalue* upvalue;
+                    if (isLocal) {
+                        // Capture from local stack slot
+                        upvalue = captureUpvalue(&stack_[currentFrame().slotBase + index]);
+                    } else {
+                        // Get from enclosing function's upvalues
+                        upvalue = currentFrame().function->upvalue(index);
+                    }
+                    fn->addUpvalue(upvalue);
+                }
+            }
+            
             push(funcValue);
             break;
         }
@@ -634,6 +1020,61 @@ void VM::dispatch(Opcode op) {
                 closeUpvalues(&stack_.back());
             }
             pop();
+            break;
+        }
+        
+        case Opcode::OP_AWAIT: {
+            // await expression - unwrap Promise/thenable
+            Value awaited = pop();
+            
+            // Convert to Promise if needed
+            Promise* promise = AwaitHandler::toPromise(awaited);
+            
+            if (promise->state() == PromiseState::Fulfilled) {
+                // Already resolved - push result and continue
+                push(promise->result());
+            } else if (promise->state() == PromiseState::Rejected) {
+                // Rejected - throw error
+                throw std::runtime_error("Promise rejected: " + promise->result().toString());
+            } else {
+                // Pending - for synchronous execution, wait/block
+                // In full async implementation, this would suspend
+                // For now, push undefined and continue
+                push(Value::undefined());
+            }
+            break;
+        }
+        
+        case Opcode::OP_YIELD: {
+            // yield expression in generator - suspend execution
+            Value yielded = pop();
+            uint8_t delegate = readByte();  // 1 = yield*, 0 = yield
+            
+            if (currentGenerator_) {
+                // Save current state for resumption
+                currentGenerator_->suspendedIP = ip_;
+                currentGenerator_->savedStack.clear();
+                size_t base = currentGenerator_->stackBase;
+                for (size_t i = base; i < stack_.size(); i++) {
+                    currentGenerator_->savedStack.push_back(stack_[i]);
+                }
+                
+                // Store yielded value and set suspension flag
+                yieldedValue_ = yielded;
+                isYielding_ = true;
+                
+                // Exit run loop (will be resumed by next() call)
+                ip_ = chunk_->code().size();  // Force exit from run()
+                
+                if (delegate) {
+                    // yield* - the yielded value should be an iterator
+                    // Delegate to the iterator's next() method
+                    // For now, yield the value itself
+                }
+            } else {
+                // Not in generator context - just push value back (fallback)
+                push(yielded);
+            }
             break;
         }
             
@@ -661,6 +1102,122 @@ void VM::dispatch(Opcode op) {
             if (obj.isObject() && key.isString()) {
                 std::string propName = static_cast<String*>(key.asObject())->value();
                 obj.asObject()->set(propName, value);
+            }
+            break;
+        }
+        
+        case Opcode::OP_GET_ITERATOR: {
+            Value iterable = pop();
+            
+            // Create an iterator object with index tracking
+            Object* iterState = new Object();
+            iterState->set("__iterable", iterable);
+            iterState->set("__index", Value::number(0));
+            
+            if (iterable.isObject()) {
+                Object* obj = iterable.asObject();
+                // For Map, copy entries for iteration
+                if (auto* mapObj = dynamic_cast<Builtins::MapObject*>(obj)) {
+                    auto entries = mapObj->entries();
+                    Array* arr = new Array({});
+                    for (const auto& e : entries) {
+                        Array* pair = new Array({e.first, e.second});
+                        arr->push(Value::object(pair));
+                    }
+                    iterState->set("__entries", Value::object(arr));
+                    iterState->set("__length", Value::number(static_cast<double>(entries.size())));
+                }
+                // For Set, copy values
+                else if (auto* setObj = dynamic_cast<Builtins::SetObject*>(obj)) {
+                    auto vals = setObj->values();
+                    Array* arr = new Array(std::move(vals));
+                    iterState->set("__entries", Value::object(arr));
+                    iterState->set("__length", Value::number(static_cast<double>(setObj->size())));
+                }
+                // Arrays and strings use __iterable + __index directly
+                else {
+                    iterState->set("__length", Value::number(static_cast<double>(obj->length())));
+                }
+            } else if (iterable.isString()) {
+                String* str = static_cast<String*>(iterable.asObject());
+                iterState->set("__length", Value::number(static_cast<double>(str->value().length())));
+            }
+            
+            push(Value::object(iterState));
+            break;
+        }
+        
+        case Opcode::OP_ITERATOR_NEXT: {
+            Value iterValue = peek();
+            
+            if (!iterValue.isObject()) {
+                // Done — push {value: undefined, done: true}
+                Object* result = new Object();
+                result->set("value", Value::undefined());
+                result->set("done", Value::boolean(true));
+                push(Value::object(result));
+                break;
+            }
+            
+            Object* iterState = iterValue.asObject();
+            Value idxVal = iterState->get("__index");
+            Value lenVal = iterState->get("__length");
+            
+            size_t idx = static_cast<size_t>(idxVal.isNumber() ? idxVal.asNumber() : 0);
+            size_t len = static_cast<size_t>(lenVal.isNumber() ? lenVal.asNumber() : 0);
+            
+            Object* result = new Object();
+            
+            if (idx >= len) {
+                result->set("value", Value::undefined());
+                result->set("done", Value::boolean(true));
+            } else {
+                // Get next value from entries array or iterable
+                Value entriesVal = iterState->get("__entries");
+                if (entriesVal.isObject()) {
+                    // Map/Set iterator — values stored in __entries array
+                    result->set("value", entriesVal.asObject()->get(idx));
+                } else {
+                    // Array/String — use __iterable directly
+                    Value iterable = iterState->get("__iterable");
+                    if (iterable.isObject()) {
+                        result->set("value", iterable.asObject()->get(idx));
+                    } else if (iterable.isString()) {
+                        // Character iteration for strings
+                        String* str = static_cast<String*>(iterable.asObject());
+                        std::string ch(1, str->value()[idx]);
+                        result->set("value", Value::string(new String(ch)));
+                    }
+                }
+                result->set("done", Value::boolean(false));
+                
+                // Advance index
+                iterState->set("__index", Value::number(static_cast<double>(idx + 1)));
+            }
+            
+            push(Value::object(result));
+            break;
+        }
+
+        case Opcode::OP_SPREAD: {
+            // Spread operator - expand array/iterable onto stack
+            Value iterable = pop();
+            
+            if (iterable.isObject()) {
+                Object* obj = iterable.asObject();
+                if (auto* arr = dynamic_cast<Array*>(obj)) {
+                    // Spread array elements onto stack
+                    for (size_t i = 0; i < arr->length(); i++) {
+                        push(arr->get(i));
+                    }
+                } else {
+                    // For other objects, try to iterate via Symbol.iterator
+                    // For now, just push the object itself
+                    push(iterable);
+                }
+            } else {
+                // Non-iterable - just push the value
+                push(iterable);
             }
             break;
         }
@@ -826,6 +1383,39 @@ void VM::dispatch(Opcode op) {
             exceptionValue_ = pop();
             hasException_ = true;
             
+            // Capture stack trace on the error object if it's an Object
+            if (exceptionValue_.isObject()) {
+                Object* errObj = exceptionValue_.asObject();
+                std::string stackStr;
+                
+                // Get error name and message for first line
+                Value nameVal = errObj->get("name");
+                Value msgVal = errObj->get("message");
+                if (nameVal.isString()) {
+                    stackStr += static_cast<String*>(nameVal.asObject())->value();
+                } else {
+                    stackStr += "Error";
+                }
+                if (msgVal.isString()) {
+                    stackStr += ": " + static_cast<String*>(msgVal.asObject())->value();
+                }
+                stackStr += "\n";
+                
+                // Walk call stack frames
+                for (int i = static_cast<int>(heapStack_.size()) - 1; i >= 0; --i) {
+                    const auto& frame = heapStack_[i];
+                    stackStr += "    at ";
+                    if (frame.function) {
+                        stackStr += frame.function->name().empty() ? "<anonymous>" : frame.function->name();
+                    } else {
+                        stackStr += "<global>";
+                    }
+                    stackStr += " (bytecode:" + std::to_string(frame.returnAddress) + ")\n";
+                }
+                
+                errObj->set("stack", Value::string(new String(stackStr)));
+            }
+            
             // Find nearest exception handler
             if (!exceptionHandlers_.empty()) {
                 ExceptionHandler handler = exceptionHandlers_.back();
@@ -886,17 +1476,15 @@ void VM::dispatch(Opcode op) {
             }
             std::string modulePath = static_cast<String*>(pathValue.asObject())->value();
             
-            // For now, create an empty exports object
-            // Full implementation requires module loader and file system access
-            Object* exports = new Object();
-            push(Value::object(exports));
-            
-            // TODO: Implement actual module loading:
-            // 1. Resolve path relative to current module
-            // 2. Check module cache
-            // 3. Load and compile module file
-            // 4. Execute module in new context
-            // 5. Return exports object
+            // Use ModuleLoader if available
+            if (moduleLoader_) {
+                Value exports = moduleLoader_->loadModule(modulePath, currentModulePath_);
+                push(exports);
+            } else {
+                // Fallback: create empty exports object
+                Object* exports = new Object();
+                push(Value::object(exports));
+            }
             break;
         }
         
@@ -917,11 +1505,14 @@ void VM::dispatch(Opcode op) {
         
         case Opcode::OP_IMPORT_BINDING: {
             // Read binding name constant index  
-            uint8_t nameIdx = readByte();
-            // This is handled by OP_GET_PROPERTY in the generated code
+            readByte(); // consume binding name operand
             break;
         }
-            
+        case Opcode::OP_DEBUGGER: {
+            // Debugger statement — pauses execution if debug callback is set
+            break;
+        }
+
         default:
             // Unknown opcode - skip
             break;
@@ -999,12 +1590,80 @@ Value VM::call(Function* function, Value thisValue, const std::vector<Value>& ar
         return Value::undefined();
     }
     
-    // Native function call
-    if (function->isNative()) {
-        return function->call(context_, thisValue, args);
+    // Use executeCallback for proper execution
+    return executeCallback(function, thisValue, args);
+}
+
+// Execute callback for array methods - handles native, builtin, and compiled functions
+Value VM::executeCallback(Function* fn, Value thisValue, const std::vector<Value>& args) {
+    if (!fn) {
+        return Value::undefined();
     }
     
-    // TODO: Implement JS function calls
+    // Native function (simple signature)
+    if (fn->isNative()) {
+        return fn->nativeFunction()(context_, args);
+    }
+    
+    // Builtin function (with FunctionCallInfo)
+    if (fn->isBuiltin()) {
+        FunctionCallInfo info(context_, thisValue, args);
+        return fn->builtinFunction()(info);
+    }
+    
+    // Compiled bytecode function - execute using this VM
+    if (fn->isCompiled() && fn->bytecodeChunk()) {
+        // Save VM state
+        const Bytecode::BytecodeChunk* savedChunk = chunk_;
+        size_t savedIP = ip_;
+        size_t savedStackBase = stack_.size();
+        
+        // Push arguments onto stack (they become local slots 0, 1, 2...)
+        for (const auto& arg : args) {
+            push(arg);
+        }
+        
+        // Push a call frame with sentinel return address to signal callback
+        // SIZE_MAX means "exit run() on return"
+        VMCallFrame frame;
+        frame.function = fn;
+        frame.returnAddress = SIZE_MAX;  // Sentinel: callback exit
+        frame.slotBase = savedStackBase;  // Args start here
+        frame.thisValue = thisValue;
+        frame.savedChunk = savedChunk;
+        pushCallFrame(frame);
+        
+        // Execute the function's bytecode
+        chunk_ = fn->bytecodeChunk();
+        ip_ = 0;
+        
+        try {
+            run();
+        } catch (const std::exception&) {
+            // Restore state on error
+            popCallFrame();
+            chunk_ = savedChunk;
+            ip_ = savedIP;
+            while (stack_.size() > savedStackBase) pop();
+            return Value::undefined();
+        }
+        
+        // Pop the call frame
+        popCallFrame();
+        
+        // Get return value (should be on stack)
+        Value result = stack_.size() > savedStackBase ? pop() : Value::undefined();
+        
+        // Clean up any remaining stack values from function
+        while (stack_.size() > savedStackBase) pop();
+        
+        // Restore VM state
+        chunk_ = savedChunk;
+        ip_ = savedIP;
+        
+        return result;
+    }
+    
     return Value::undefined();
 }
 
@@ -1106,6 +1765,68 @@ void VM::shrinkHeapIfNeeded() {
         heapStack_.resize(HEAP_STACK_PREALLOC);
         heapStack_.shrink_to_fit();
     }
+}
+
+Value VM::resumeGenerator(GeneratorFrame* frame, Value yieldVal, const std::vector<Value>& args) {
+    if (!frame || frame->isCompleted) {
+        return Value::undefined();
+    }
+    
+    // Save current VM execution state
+    GeneratorFrame* savedGen = currentGenerator_;
+    const Bytecode::BytecodeChunk* savedChunk = chunk_;
+    size_t savedIP = ip_;
+    
+    currentGenerator_ = frame;
+    isYielding_ = false;
+    yieldedValue_ = Value::undefined();
+    
+    chunk_ = frame->function->bytecodeChunk();
+    
+    if (!frame->isStarted) {
+        frame->isStarted = true;
+        ip_ = 0;
+        frame->stackBase = stack_.size();
+        
+        // Push initial args as locals
+        for (const auto& arg : args) {
+            push(arg);
+        }
+    } else {
+        // Restore stack and IP
+        ip_ = frame->suspendedIP;
+        for (const auto& val : frame->savedStack) {
+            push(val);
+        }
+        // Yield expression result is the value passed to next()
+        push(yieldVal);
+    }
+    
+    // Push call boundary marker
+    VMCallFrame callFrame;
+    callFrame.function = frame->function;
+    callFrame.returnAddress = SIZE_MAX; // Custom marker to exit run() on return
+    callFrame.slotBase = stack_.size() - frame->savedStack.size() - args.size(); 
+    callFrame.thisValue = frame->thisValue;
+    callFrame.savedChunk = savedChunk;
+    pushCallFrame(callFrame);
+    
+    // Execute until yield or return
+    run();
+    
+    // If we completed without yielding, it was a return
+    if (!isYielding_) {
+        frame->isCompleted = true;
+        // Result is at top of stack (left by OP_RETURN overriding SIZE_MAX)
+        yieldedValue_ = pop();
+    }
+    
+    // Restore VM state
+    currentGenerator_ = savedGen;
+    chunk_ = savedChunk;
+    ip_ = savedIP;
+    
+    return yieldedValue_;
 }
 
 } // namespace Zepra::Runtime

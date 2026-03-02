@@ -5,7 +5,7 @@
 
 #pragma once
 
-#include "storage/local_storage.hpp"
+#include "local_storage.hpp"
 #include <string>
 #include <unordered_map>
 #include <mutex>

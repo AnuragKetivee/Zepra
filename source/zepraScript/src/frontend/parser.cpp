@@ -75,6 +75,33 @@ bool Parser::isAtEnd() {
     return currentToken_.type == TokenType::EndOfFile;
 }
 
+// Check if current token can be used as property name (identifier OR keyword)
+static bool isPropertyName(TokenType type) {
+    if (type == TokenType::Identifier) return true;
+    // All these keywords are valid as property names after dot
+    switch (type) {
+        case TokenType::Var: case TokenType::Let: case TokenType::Const:
+        case TokenType::Function: case TokenType::Return: case TokenType::If:
+        case TokenType::Else: case TokenType::For: case TokenType::While:
+        case TokenType::Do: case TokenType::Break: case TokenType::Continue:
+        case TokenType::Switch: case TokenType::Case: case TokenType::Default:
+        case TokenType::Try: case TokenType::Catch: case TokenType::Finally:
+        case TokenType::Throw: case TokenType::New: case TokenType::Delete:
+        case TokenType::Typeof: case TokenType::Instanceof: case TokenType::In:
+        case TokenType::This: case TokenType::Class: case TokenType::Extends:
+        case TokenType::Super: case TokenType::Static: case TokenType::Import:
+        case TokenType::Export: case TokenType::From: case TokenType::As:
+        case TokenType::Async: case TokenType::Await: case TokenType::Yield:
+        case TokenType::Null: case TokenType::Undefined: case TokenType::True:
+        case TokenType::False: case TokenType::Void: case TokenType::With:
+        case TokenType::Debugger: case TokenType::Of: case TokenType::Get:
+        case TokenType::Set:
+            return true;
+        default:
+            return false;
+    }
+}
+
 void Parser::synchronize() {
     advance();
     
@@ -134,17 +161,18 @@ StmtPtr Parser::parseDeclaration() {
     if (match(TokenType::Var) || match(TokenType::Let) || match(TokenType::Const)) {
         return parseVariableDeclaration();
     }
+    // Handle function* generators
     if (match(TokenType::Function)) {
-        return parseFunctionDeclaration();
+        bool isGenerator = match(TokenType::Star);
+        return parseFunctionDeclaration(false, isGenerator);
     }
     // Handle 'async function' declarations
     if (match(TokenType::Async)) {
         if (match(TokenType::Function)) {
-            return parseFunctionDeclaration();  // TODO: mark as async in AST
+            bool isGenerator = match(TokenType::Star);  // async function*
+            return parseFunctionDeclaration(true, isGenerator);
         }
-        // Async arrow function or expression - let parseStatement handle it
-        // Restore the async token since we consumed it
-        // For now, fall through to parseStatement which will handle it via parseExpression
+        // Async arrow function or expression - fall through to parseStatement
     }
     if (match(TokenType::Class)) {
         return parseClassDeclaration();
@@ -189,7 +217,7 @@ StmtPtr Parser::parseVariableDeclaration() {
     return std::make_unique<VariableDecl>(kind, std::move(declarators));
 }
 
-StmtPtr Parser::parseFunctionDeclaration() {
+StmtPtr Parser::parseFunctionDeclaration(bool isAsync, bool isGenerator) {
     Token name = consume(TokenType::Identifier, "Expected function name");
     
     consume(TokenType::LeftParen, "Expected '(' after function name");
@@ -201,7 +229,7 @@ StmtPtr Parser::parseFunctionDeclaration() {
         static_cast<BlockStmt*>(parseBlockStatement().release())
     );
     
-    return std::make_unique<FunctionDecl>(name.value, std::move(params), std::move(body));
+    return std::make_unique<FunctionDecl>(name.value, std::move(params), std::move(body), isAsync, isGenerator);
 }
 
 StmtPtr Parser::parseClassDeclaration() {
@@ -504,9 +532,46 @@ StmtPtr Parser::parseForStatement() {
 
 
 StmtPtr Parser::parseSwitchStatement() {
-    // Stub
-    error("Switch statements not yet implemented");
-    return nullptr;
+    consume(TokenType::LeftParen, "Expected '(' after 'switch'");
+    ExprPtr discriminant = parseExpression();
+    consume(TokenType::RightParen, "Expected ')' after switch expression");
+    
+    consume(TokenType::LeftBrace, "Expected '{' before switch cases");
+    
+    std::vector<SwitchCase> cases;
+    
+    while (!check(TokenType::RightBrace) && !isAtEnd()) {
+        SwitchCase switchCase;
+        switchCase.location = currentToken_.start;
+        
+        if (match(TokenType::Case)) {
+            // case expression:
+            switchCase.test = parseExpression();
+            consume(TokenType::Colon, "Expected ':' after case expression");
+        } else if (match(TokenType::Default)) {
+            // default:
+            switchCase.test = nullptr;  // nullptr indicates default case
+            consume(TokenType::Colon, "Expected ':' after 'default'");
+        } else {
+            error("Expected 'case' or 'default' in switch statement");
+            break;
+        }
+        
+        // Parse consequent statements until next case/default/closing brace
+        while (!check(TokenType::Case) && !check(TokenType::Default) && 
+               !check(TokenType::RightBrace) && !isAtEnd()) {
+            auto stmt = parseDeclaration();
+            if (stmt) {
+                switchCase.consequent.push_back(std::move(stmt));
+            }
+        }
+        
+        cases.push_back(std::move(switchCase));
+    }
+    
+    consume(TokenType::RightBrace, "Expected '}' after switch cases");
+    
+    return std::make_unique<SwitchStmt>(std::move(discriminant), std::move(cases));
 }
 
 StmtPtr Parser::parseTryStatement() {
@@ -843,6 +908,18 @@ ExprPtr Parser::parseUnaryExpression() {
         return std::make_unique<AwaitExpr>(std::move(argument));
     }
     
+    // Handle yield expression (in generators)
+    if (match(TokenType::Yield)) {
+        bool delegate = match(TokenType::Star);  // yield*
+        ExprPtr argument = nullptr;
+        // yield can have an optional argument
+        if (!check(TokenType::Semicolon) && !check(TokenType::RightBrace) && 
+            !check(TokenType::RightParen) && !check(TokenType::Comma)) {
+            argument = parseAssignmentExpression();
+        }
+        return std::make_unique<YieldExpr>(std::move(argument), delegate);
+    }
+    
     if (match({TokenType::Not, TokenType::Minus, TokenType::Plus, 
                TokenType::Tilde, TokenType::Typeof, TokenType::Void, 
                TokenType::Delete})) {
@@ -887,7 +964,11 @@ ExprPtr Parser::parseLeftHandSideExpression() {
         if (match(TokenType::LeftParen)) {
             expr = parseCallExpression(std::move(expr));
         } else if (match(TokenType::Dot)) {
-            Token property = consume(TokenType::Identifier, "Expected property name");
+            // Allow keywords as property names (e.g., Array.from, obj.class)
+            if (!isPropertyName(currentToken_.type)) {
+                error(currentToken_, "Expected property name");
+            }
+            Token property = advance();
             expr = std::make_unique<MemberExpr>(
                 std::move(expr),
                 std::make_unique<IdentifierExpr>(property.value),
@@ -903,7 +984,11 @@ ExprPtr Parser::parseLeftHandSideExpression() {
                 consume(TokenType::RightParen, "Expected ')' after arguments");
                 expr = std::make_unique<CallExpr>(std::move(expr), std::move(args), true);
             } else {
-                Token property = consume(TokenType::Identifier, "Expected property name");
+                // Allow keywords as property names for optional chaining
+                if (!isPropertyName(currentToken_.type)) {
+                    error(currentToken_, "Expected property name");
+                }
+                Token property = advance();
                 expr = std::make_unique<MemberExpr>(
                     std::move(expr),
                     std::make_unique<IdentifierExpr>(property.value),
@@ -948,7 +1033,11 @@ ExprPtr Parser::parseMemberExpression() {
     
     while (true) {
         if (match(TokenType::Dot)) {
-            Token property = consume(TokenType::Identifier, "Expected property name");
+            // Allow keywords as property names
+            if (!isPropertyName(currentToken_.type)) {
+                error(currentToken_, "Expected property name");
+            }
+            Token property = advance();
             expr = std::make_unique<MemberExpr>(
                 std::move(expr),
                 std::make_unique<IdentifierExpr>(property.value),

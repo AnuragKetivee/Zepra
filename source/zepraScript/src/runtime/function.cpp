@@ -9,6 +9,7 @@
 
 #include "zeprascript/runtime/function.hpp"
 #include "zeprascript/runtime/environment.hpp"
+#include "zeprascript/runtime/vm.hpp"
 
 namespace Zepra::Runtime {
 
@@ -24,6 +25,7 @@ Function::Function(const Frontend::FunctionDecl* decl, Environment* closure)
         name_ = decl->name();
         // Set arity from parameter count
         arity_ = decl->params().size();
+        isGenerator_ = decl->isGenerator();
     }
 }
 
@@ -34,6 +36,7 @@ Function::Function(const Frontend::FunctionExpr* expr, Environment* closure)
     if (expr) {
         name_ = expr->name();
         arity_ = expr->params().size();
+        isGenerator_ = expr->isGenerator();
     }
 }
 
@@ -101,14 +104,28 @@ Value Function::call(Context* ctx, Value thisValue, const std::vector<Value>& ar
         return native_(ctx, args);
     }
     
-    // Handle bytecode-compiled functions
-    // The VM handles this case directly via OP_CALL
-    // If called directly here, we need VM access via context
+    // Handle bytecode-compiled functions via mini-VM execution
     if (isCompiled() && bytecodeChunk_) {
-        // Compiled functions are executed by the VM
-        // This path is reached when calling a function object directly
-        // The caller (VM) should handle this case via OP_CALL
-        // Return undefined as fallback - VM handles the actual execution
+        // Create a temporary VM to execute the function
+        VM miniVM(ctx);
+        
+        // Set up arguments as locals/globals
+        for (size_t i = 0; i < args.size(); i++) {
+            // Simple argument passing - first args become locals
+            std::string argName = i < arity_ ? std::to_string(i) : "";
+            if (!argName.empty()) {
+                miniVM.setGlobal(argName, args[i]);
+            }
+        }
+        
+        // Execute the bytecode
+        auto result = miniVM.execute(bytecodeChunk_);
+        
+        if (result.status == ExecutionResult::Status::Success) {
+            return result.value;
+        }
+        
+        // On error, return undefined
         return Value::undefined();
     }
     

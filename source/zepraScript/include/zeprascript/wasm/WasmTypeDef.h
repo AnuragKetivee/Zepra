@@ -305,6 +305,10 @@ public:
     const TypeDef& type(uint32_t idx) const { return types_[idx]; }
     TypeDef& type(uint32_t idx) { return types_[idx]; }
     
+    // Subscript operator for convenient access
+    const TypeDef& operator[](uint32_t idx) const { return types_[idx]; }
+    TypeDef& operator[](uint32_t idx) { return types_[idx]; }
+    
     const FuncType* funcType(uint32_t idx) const {
         if (idx >= types_.size()) return nullptr;
         if (!types_[idx].isFuncType()) return nullptr;

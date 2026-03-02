@@ -1,6 +1,9 @@
 /**
  * @file reflect.cpp
  * @brief ES6 Reflect API Implementation
+ *
+ * Per ES2024 §26.1, Reflect methods delegate to the corresponding
+ * internal object operations ([[Get]], [[Set]], [[Call]], etc.).
  */
 
 #include "zeprascript/builtins/reflect.hpp"
@@ -11,276 +14,222 @@
 
 namespace Zepra::Builtins {
 
-// Reflect.apply(target, thisArgument, argumentsList)
+// ES2024 §26.1.1 Reflect.apply(target, thisArgument, argumentsList)
 Runtime::Value ReflectBuiltin::apply(const Runtime::FunctionCallInfo& info) {
-    if (info.argumentCount() < 3) {
-        return Runtime::Value::undefined();
+    if (info.argumentCount() < 1 || !info.argument(0).isObject() ||
+        !info.argument(0).asObject()->isCallable()) {
+        throw std::runtime_error("Reflect.apply: target must be callable");
     }
-    
-    Runtime::Value target = info.argument(0);
+
+    Runtime::Function* fn = dynamic_cast<Runtime::Function*>(info.argument(0).asObject());
+    if (!fn) {
+        throw std::runtime_error("Reflect.apply: target is not a function");
+    }
+
     Runtime::Value thisArg = info.argument(1);
-    Runtime::Value argsList = info.argument(2);
-    
-    if (!target.isObject() || !target.asObject()->isCallable()) {
-        return Runtime::Value::undefined();
-    }
-    
-    Runtime::Function* fn = dynamic_cast<Runtime::Function*>(target.asObject());
-    if (!fn) return Runtime::Value::undefined();
-    
+
     std::vector<Runtime::Value> args;
-    if (argsList.isObject()) {
-        if (auto* arr = dynamic_cast<Runtime::Array*>(argsList.asObject())) {
+    if (info.argumentCount() >= 3 && info.argument(2).isObject()) {
+        if (auto* arr = dynamic_cast<Runtime::Array*>(info.argument(2).asObject())) {
             for (size_t i = 0; i < arr->length(); i++) {
                 args.push_back(arr->at(i));
             }
         }
     }
-    
-    Runtime::FunctionCallInfo callInfo(info.context(), thisArg, args);
-    return fn->builtinFunction()(callInfo);
+
+    return fn->call(info.context(), thisArg, args);
 }
 
-// Reflect.construct(target, argumentsList, newTarget?)
+// ES2024 §26.1.2 Reflect.construct(target, argumentsList[, newTarget])
 Runtime::Value ReflectBuiltin::construct(const Runtime::FunctionCallInfo& info) {
-    if (info.argumentCount() < 2) {
-        return Runtime::Value::undefined();
+    if (info.argumentCount() < 1 || !info.argument(0).isObject() ||
+        !info.argument(0).asObject()->isCallable()) {
+        throw std::runtime_error("Reflect.construct: target must be a constructor");
     }
-    
-    Runtime::Value target = info.argument(0);
-    Runtime::Value argsList = info.argument(1);
-    
-    if (!target.isObject() || !target.asObject()->isCallable()) {
-        return Runtime::Value::undefined();
+
+    Runtime::Function* fn = dynamic_cast<Runtime::Function*>(info.argument(0).asObject());
+    if (!fn) {
+        throw std::runtime_error("Reflect.construct: target is not a function");
     }
-    
-    // Create new object with target's prototype
-    Runtime::Object* instance = new Runtime::Object();
-    
-    // Get constructor's prototype
-    Runtime::Function* fn = dynamic_cast<Runtime::Function*>(target.asObject());
-    if (fn) {
-        Runtime::Value prototypeVal = fn->get("prototype");
-        if (prototypeVal.isObject()) {
-            instance->setPrototype(prototypeVal.asObject());
-        }
-    }
-    
-    // Call constructor with new instance as this
+
     std::vector<Runtime::Value> args;
-    if (argsList.isObject()) {
-        if (auto* arr = dynamic_cast<Runtime::Array*>(argsList.asObject())) {
+    if (info.argumentCount() >= 2 && info.argument(1).isObject()) {
+        if (auto* arr = dynamic_cast<Runtime::Array*>(info.argument(1).asObject())) {
             for (size_t i = 0; i < arr->length(); i++) {
                 args.push_back(arr->at(i));
             }
         }
     }
-    
-    Runtime::FunctionCallInfo callInfo(info.context(), Runtime::Value::object(instance), args);
-    if (fn) {
-        fn->builtinFunction()(callInfo);
-    }
-    
-    return Runtime::Value::object(instance);
+
+    return fn->construct(info.context(), args);
 }
 
-// Reflect.defineProperty(target, propertyKey, attributes)
+// ES2024 §26.1.3 Reflect.defineProperty(target, propertyKey, attributes)
 Runtime::Value ReflectBuiltin::defineProperty(const Runtime::FunctionCallInfo& info) {
-    if (info.argumentCount() < 3) {
-        return Runtime::Value::boolean(false);
+    if (info.argumentCount() < 3 || !info.argument(0).isObject()) {
+        throw std::runtime_error("Reflect.defineProperty: target must be an object");
     }
-    
-    Runtime::Value target = info.argument(0);
-    Runtime::Value key = info.argument(1);
-    Runtime::Value attrs = info.argument(2);
-    
-    if (!target.isObject()) {
-        return Runtime::Value::boolean(false);
+
+    Runtime::Object* obj = info.argument(0).asObject();
+    std::string key = info.argument(1).toString();
+
+    if (!info.argument(2).isObject()) {
+        throw std::runtime_error("Reflect.defineProperty: descriptor must be an object");
     }
-    
-    Runtime::Object* obj = target.asObject();
-    std::string keyStr = key.toString();
-    
-    if (attrs.isObject()) {
-        Runtime::Object* attrsObj = attrs.asObject();
-        Runtime::Value value = attrsObj->get("value");
-        obj->set(keyStr, value);
+
+    Runtime::Object* attrsObj = info.argument(2).asObject();
+
+    Runtime::PropertyDescriptor desc;
+    Runtime::Value valueAttr = attrsObj->get("value");
+    if (!valueAttr.isUndefined()) {
+        desc.value = valueAttr;
     }
-    
-    return Runtime::Value::boolean(true);
+
+    Runtime::PropertyAttribute attrs = Runtime::PropertyAttribute::None;
+    Runtime::Value writableAttr = attrsObj->get("writable");
+    if (!writableAttr.isUndefined() && writableAttr.toBoolean()) {
+        attrs = attrs | Runtime::PropertyAttribute::Writable;
+    }
+    Runtime::Value enumerableAttr = attrsObj->get("enumerable");
+    if (!enumerableAttr.isUndefined() && enumerableAttr.toBoolean()) {
+        attrs = attrs | Runtime::PropertyAttribute::Enumerable;
+    }
+    Runtime::Value configurableAttr = attrsObj->get("configurable");
+    if (!configurableAttr.isUndefined() && configurableAttr.toBoolean()) {
+        attrs = attrs | Runtime::PropertyAttribute::Configurable;
+    }
+    desc.attributes = attrs;
+
+    bool success = obj->defineProperty(key, desc);
+    return Runtime::Value::boolean(success);
 }
 
-// Reflect.deleteProperty(target, propertyKey)
+// ES2024 §26.1.4 Reflect.deleteProperty(target, propertyKey)
 Runtime::Value ReflectBuiltin::deleteProperty(const Runtime::FunctionCallInfo& info) {
-    if (info.argumentCount() < 2) {
-        return Runtime::Value::boolean(false);
+    if (info.argumentCount() < 2 || !info.argument(0).isObject()) {
+        throw std::runtime_error("Reflect.deleteProperty: target must be an object");
     }
-    
-    Runtime::Value target = info.argument(0);
-    Runtime::Value key = info.argument(1);
-    
-    if (!target.isObject()) {
-        return Runtime::Value::boolean(false);
-    }
-    
-    Runtime::Object* obj = target.asObject();
-    return Runtime::Value::boolean(obj->deleteProperty(key.toString()));
+
+    return Runtime::Value::boolean(
+        info.argument(0).asObject()->deleteProperty(info.argument(1).toString()));
 }
 
-// Reflect.get(target, propertyKey, receiver?)
+// ES2024 §26.1.5 Reflect.get(target, propertyKey[, receiver])
 Runtime::Value ReflectBuiltin::get(const Runtime::FunctionCallInfo& info) {
-    if (info.argumentCount() < 2) {
-        return Runtime::Value::undefined();
+    if (info.argumentCount() < 2 || !info.argument(0).isObject()) {
+        throw std::runtime_error("Reflect.get: target must be an object");
     }
-    
-    Runtime::Value target = info.argument(0);
-    Runtime::Value key = info.argument(1);
-    
-    if (!target.isObject()) {
-        return Runtime::Value::undefined();
-    }
-    
-    return target.asObject()->get(key.toString());
+
+    return info.argument(0).asObject()->get(info.argument(1).toString());
 }
 
-// Reflect.getOwnPropertyDescriptor(target, propertyKey)
+// ES2024 §26.1.6 Reflect.getOwnPropertyDescriptor(target, propertyKey)
 Runtime::Value ReflectBuiltin::getOwnPropertyDescriptor(const Runtime::FunctionCallInfo& info) {
-    if (info.argumentCount() < 2) {
+    if (info.argumentCount() < 2 || !info.argument(0).isObject()) {
+        throw std::runtime_error("Reflect.getOwnPropertyDescriptor: target must be an object");
+    }
+
+    Runtime::Object* obj = info.argument(0).asObject();
+    std::string key = info.argument(1).toString();
+
+    auto desc = obj->getOwnPropertyDescriptor(key);
+    if (!desc.has_value()) {
         return Runtime::Value::undefined();
     }
-    
-    Runtime::Value target = info.argument(0);
-    Runtime::Value key = info.argument(1);
-    
-    if (!target.isObject()) {
-        return Runtime::Value::undefined();
-    }
-    
-    Runtime::Object* obj = target.asObject();
-    Runtime::Value value = obj->get(key.toString());
-    
-    if (value.isUndefined()) {
-        return Runtime::Value::undefined();
-    }
-    
-    // Create descriptor object
-    Runtime::Object* descriptor = new Runtime::Object();
-    descriptor->set("value", value);
-    descriptor->set("writable", Runtime::Value::boolean(true));
-    descriptor->set("enumerable", Runtime::Value::boolean(true));
-    descriptor->set("configurable", Runtime::Value::boolean(true));
-    
-    return Runtime::Value::object(descriptor);
+
+    Runtime::Object* result = new Runtime::Object();
+    result->set("value", desc->value);
+    result->set("writable", Runtime::Value::boolean(desc->isWritable()));
+    result->set("enumerable", Runtime::Value::boolean(desc->isEnumerable()));
+    result->set("configurable", Runtime::Value::boolean(desc->isConfigurable()));
+    return Runtime::Value::object(result);
 }
 
-// Reflect.getPrototypeOf(target)
+// ES2024 §26.1.8 Reflect.getPrototypeOf(target)
 Runtime::Value ReflectBuiltin::getPrototypeOf(const Runtime::FunctionCallInfo& info) {
-    if (info.argumentCount() < 1) {
-        return Runtime::Value::null();
+    if (info.argumentCount() < 1 || !info.argument(0).isObject()) {
+        throw std::runtime_error("Reflect.getPrototypeOf: target must be an object");
     }
-    
-    Runtime::Value target = info.argument(0);
-    if (!target.isObject()) {
-        return Runtime::Value::null();
-    }
-    
-    Runtime::Object* proto = target.asObject()->prototype();
+
+    Runtime::Object* proto = info.argument(0).asObject()->prototype();
     return proto ? Runtime::Value::object(proto) : Runtime::Value::null();
 }
 
-// Reflect.has(target, propertyKey)
+// ES2024 §26.1.9 Reflect.has(target, propertyKey)
 Runtime::Value ReflectBuiltin::has(const Runtime::FunctionCallInfo& info) {
-    if (info.argumentCount() < 2) {
-        return Runtime::Value::boolean(false);
+    if (info.argumentCount() < 2 || !info.argument(0).isObject()) {
+        throw std::runtime_error("Reflect.has: target must be an object");
     }
-    
-    Runtime::Value target = info.argument(0);
-    Runtime::Value key = info.argument(1);
-    
-    if (!target.isObject()) {
-        return Runtime::Value::boolean(false);
-    }
-    
-    return Runtime::Value::boolean(target.asObject()->has(key.toString()));
+
+    return Runtime::Value::boolean(
+        info.argument(0).asObject()->has(info.argument(1).toString()));
 }
 
-// Reflect.isExtensible(target)
+// ES2024 §26.1.10 Reflect.isExtensible(target)
 Runtime::Value ReflectBuiltin::isExtensible(const Runtime::FunctionCallInfo& info) {
     if (info.argumentCount() < 1 || !info.argument(0).isObject()) {
-        return Runtime::Value::boolean(false);
+        throw std::runtime_error("Reflect.isExtensible: target must be an object");
     }
-    
-    Runtime::Object* obj = info.argument(0).asObject();
-    return Runtime::Value::boolean(obj->isExtensible());
+
+    return Runtime::Value::boolean(info.argument(0).asObject()->isExtensible());
 }
 
-// Reflect.ownKeys(target)
+// ES2024 §26.1.11 Reflect.ownKeys(target)
 Runtime::Value ReflectBuiltin::ownKeys(const Runtime::FunctionCallInfo& info) {
     if (info.argumentCount() < 1 || !info.argument(0).isObject()) {
-        return Runtime::Value::object(new Runtime::Array({}));
+        throw std::runtime_error("Reflect.ownKeys: target must be an object");
     }
-    
+
     Runtime::Object* obj = info.argument(0).asObject();
     std::vector<Runtime::Value> keys;
-    
-    for (const auto& key : obj->ownKeys()) {
+
+    for (const auto& key : obj->getOwnPropertyNames()) {
         keys.push_back(Runtime::Value::string(new Runtime::String(key)));
     }
-    
+
     return Runtime::Value::object(new Runtime::Array(std::move(keys)));
 }
 
-// Reflect.preventExtensions(target)
+// ES2024 §26.1.12 Reflect.preventExtensions(target)
 Runtime::Value ReflectBuiltin::preventExtensions(const Runtime::FunctionCallInfo& info) {
     if (info.argumentCount() < 1 || !info.argument(0).isObject()) {
-        return Runtime::Value::boolean(false);
+        throw std::runtime_error("Reflect.preventExtensions: target must be an object");
     }
-    
-    Runtime::Object* obj = info.argument(0).asObject();
-    obj->preventExtensions();
+
+    info.argument(0).asObject()->preventExtensions();
     return Runtime::Value::boolean(true);
 }
 
-// Reflect.set(target, propertyKey, value, receiver?)
+// ES2024 §26.1.13 Reflect.set(target, propertyKey, V[, receiver])
 Runtime::Value ReflectBuiltin::set(const Runtime::FunctionCallInfo& info) {
-    if (info.argumentCount() < 3) {
-        return Runtime::Value::boolean(false);
+    if (info.argumentCount() < 3 || !info.argument(0).isObject()) {
+        throw std::runtime_error("Reflect.set: target must be an object");
     }
-    
-    Runtime::Value target = info.argument(0);
-    Runtime::Value key = info.argument(1);
-    Runtime::Value value = info.argument(2);
-    
-    if (!target.isObject()) {
-        return Runtime::Value::boolean(false);
-    }
-    
-    target.asObject()->set(key.toString(), value);
-    return Runtime::Value::boolean(true);
+
+    bool result = info.argument(0).asObject()->set(info.argument(1).toString(), info.argument(2));
+    return Runtime::Value::boolean(result);
 }
 
-// Reflect.setPrototypeOf(target, prototype)
+// ES2024 §26.1.14 Reflect.setPrototypeOf(target, proto)
 Runtime::Value ReflectBuiltin::setPrototypeOf(const Runtime::FunctionCallInfo& info) {
-    if (info.argumentCount() < 2) {
-        return Runtime::Value::boolean(false);
+    if (info.argumentCount() < 2 || !info.argument(0).isObject()) {
+        throw std::runtime_error("Reflect.setPrototypeOf: target must be an object");
     }
-    
-    Runtime::Value target = info.argument(0);
+
     Runtime::Value proto = info.argument(1);
-    
-    if (!target.isObject()) {
-        return Runtime::Value::boolean(false);
+    if (!proto.isObject() && !proto.isNull()) {
+        throw std::runtime_error("Reflect.setPrototypeOf: proto must be an object or null");
     }
-    
+
     Runtime::Object* protoObj = proto.isObject() ? proto.asObject() : nullptr;
-    target.asObject()->setPrototype(protoObj);
+    info.argument(0).asObject()->setPrototype(protoObj);
     return Runtime::Value::boolean(true);
 }
 
-// Create Reflect object
+// Create Reflect global object
 Runtime::Object* ReflectBuiltin::createReflectObject(Runtime::Context*) {
     Runtime::Object* reflect = new Runtime::Object();
-    
+
     reflect->set("apply", Runtime::Value::object(new Runtime::Function("apply", apply, 3)));
     reflect->set("construct", Runtime::Value::object(new Runtime::Function("construct", construct, 2)));
     reflect->set("defineProperty", Runtime::Value::object(new Runtime::Function("defineProperty", defineProperty, 3)));
@@ -294,7 +243,7 @@ Runtime::Object* ReflectBuiltin::createReflectObject(Runtime::Context*) {
     reflect->set("preventExtensions", Runtime::Value::object(new Runtime::Function("preventExtensions", preventExtensions, 1)));
     reflect->set("set", Runtime::Value::object(new Runtime::Function("set", set, 3)));
     reflect->set("setPrototypeOf", Runtime::Value::object(new Runtime::Function("setPrototypeOf", setPrototypeOf, 2)));
-    
+
     return reflect;
 }
 

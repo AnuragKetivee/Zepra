@@ -287,4 +287,259 @@ private:
         return true; \
     }()
 
+// =============================================================================
+// NodeList
+// =============================================================================
+
+/**
+ * @brief Collection of DOM nodes (read-only)
+ */
+class NodeList {
+public:
+    NodeList() = default;
+    
+    size_t length() const { return nodes_.size(); }
+    
+    DOMWrapper* item(size_t index) const {
+        return index < nodes_.size() ? nodes_[index] : nullptr;
+    }
+    
+    DOMWrapper* operator[](size_t index) const { return item(index); }
+    
+    // Iterator support
+    auto begin() const { return nodes_.begin(); }
+    auto end() const { return nodes_.end(); }
+    
+    // forEach callback type
+    using ForEachCallback = std::function<void(DOMWrapper*, size_t, const NodeList&)>;
+    
+    void forEach(ForEachCallback callback) const {
+        for (size_t i = 0; i < nodes_.size(); i++) {
+            callback(nodes_[i], i, *this);
+        }
+    }
+    
+    // Internal: add node
+    void add(DOMWrapper* node) { nodes_.push_back(node); }
+    
+private:
+    std::vector<DOMWrapper*> nodes_;
+};
+
+// =============================================================================
+// HTMLCollection
+// =============================================================================
+
+/**
+ * @brief Live collection of HTML elements
+ */
+class HTMLCollection {
+public:
+    HTMLCollection() = default;
+    
+    size_t length() const { return elements_.size(); }
+    
+    DOMWrapper* item(size_t index) const {
+        return index < elements_.size() ? elements_[index] : nullptr;
+    }
+    
+    DOMWrapper* namedItem(const std::string& name) const {
+        auto it = namedItems_.find(name);
+        return it != namedItems_.end() ? it->second : nullptr;
+    }
+    
+    // Internal
+    void add(DOMWrapper* elem, const std::string& id = "") {
+        elements_.push_back(elem);
+        if (!id.empty()) {
+            namedItems_[id] = elem;
+        }
+    }
+    
+private:
+    std::vector<DOMWrapper*> elements_;
+    std::unordered_map<std::string, DOMWrapper*> namedItems_;
+};
+
+// =============================================================================
+// MutationRecord
+// =============================================================================
+
+/**
+ * @brief Record of a DOM mutation
+ */
+struct MutationRecord {
+    enum class Type { Attributes, CharacterData, ChildList };
+    
+    Type type;
+    DOMWrapper* target = nullptr;
+    NodeList addedNodes;
+    NodeList removedNodes;
+    DOMWrapper* previousSibling = nullptr;
+    DOMWrapper* nextSibling = nullptr;
+    std::string attributeName;
+    std::string attributeNamespace;
+    std::string oldValue;
+};
+
+// =============================================================================
+// MutationObserverInit
+// =============================================================================
+
+/**
+ * @brief Options for MutationObserver.observe()
+ */
+struct MutationObserverInit {
+    bool childList = false;
+    bool attributes = false;
+    bool characterData = false;
+    bool subtree = false;
+    bool attributeOldValue = false;
+    bool characterDataOldValue = false;
+    std::vector<std::string> attributeFilter;
+};
+
+// =============================================================================
+// MutationObserver
+// =============================================================================
+
+/**
+ * @brief Observes DOM mutations
+ */
+class MutationObserver {
+public:
+    using Callback = std::function<void(const std::vector<MutationRecord>&, MutationObserver*)>;
+    
+    explicit MutationObserver(Callback callback);
+    ~MutationObserver();
+    
+    /**
+     * @brief Start observing a target node
+     */
+    void observe(DOMWrapper* target, const MutationObserverInit& options);
+    
+    /**
+     * @brief Stop observing all targets
+     */
+    void disconnect();
+    
+    /**
+     * @brief Get pending records and clear the queue
+     */
+    std::vector<MutationRecord> takeRecords();
+    
+    // Internal: notify of mutation
+    void notifyMutation(const MutationRecord& record);
+    
+private:
+    Callback callback_;
+    std::vector<std::pair<DOMWrapper*, MutationObserverInit>> targets_;
+    std::vector<MutationRecord> pendingRecords_;
+};
+
+// =============================================================================
+// IntersectionObserverEntry
+// =============================================================================
+
+/**
+ * @brief Entry describing intersection state
+ */
+struct IntersectionObserverEntry {
+    double time;
+    DOMWrapper* target = nullptr;
+    
+    // Bounding rectangles
+    struct Rect { double x, y, width, height, top, right, bottom, left; };
+    Rect boundingClientRect;
+    Rect intersectionRect;
+    Rect rootBounds;
+    
+    double intersectionRatio = 0.0;
+    bool isIntersecting = false;
+    bool isVisible = false;
+};
+
+// =============================================================================
+// IntersectionObserverInit
+// =============================================================================
+
+struct IntersectionObserverInit {
+    DOMWrapper* root = nullptr;  // null = viewport
+    std::string rootMargin = "0px";
+    std::vector<double> threshold = {0.0};
+};
+
+// =============================================================================
+// IntersectionObserver
+// =============================================================================
+
+/**
+ * @brief Observes element visibility in viewport
+ */
+class IntersectionObserver {
+public:
+    using Callback = std::function<void(const std::vector<IntersectionObserverEntry>&, IntersectionObserver*)>;
+    
+    explicit IntersectionObserver(Callback callback, const IntersectionObserverInit& options = {});
+    ~IntersectionObserver();
+    
+    void observe(DOMWrapper* target);
+    void unobserve(DOMWrapper* target);
+    void disconnect();
+    std::vector<IntersectionObserverEntry> takeRecords();
+    
+    // Properties
+    DOMWrapper* root() const { return options_.root; }
+    const std::string& rootMargin() const { return options_.rootMargin; }
+    const std::vector<double>& thresholds() const { return options_.threshold; }
+    
+private:
+    Callback callback_;
+    IntersectionObserverInit options_;
+    std::vector<DOMWrapper*> targets_;
+    std::vector<IntersectionObserverEntry> pendingEntries_;
+};
+
+// =============================================================================
+// Query Selector API
+// =============================================================================
+
+/**
+ * @brief CSS selector query interface
+ */
+class QuerySelector {
+public:
+    /**
+     * @brief Find first matching element
+     */
+    static DOMWrapper* querySelector(DOMWrapper* root, const std::string& selector);
+    
+    /**
+     * @brief Find all matching elements
+     */
+    static NodeList querySelectorAll(DOMWrapper* root, const std::string& selector);
+    
+    /**
+     * @brief Check if element matches selector
+     */
+    static bool matches(DOMWrapper* element, const std::string& selector);
+    
+    /**
+     * @brief Find closest ancestor matching selector
+     */
+    static DOMWrapper* closest(DOMWrapper* element, const std::string& selector);
+    
+private:
+    // Simple selector parser (class, id, tag, attribute)
+    struct Selector {
+        std::string tag;
+        std::string id;
+        std::vector<std::string> classes;
+        std::vector<std::pair<std::string, std::string>> attributes;
+    };
+    
+    static Selector parseSelector(const std::string& selector);
+    static bool matchesSimple(DOMWrapper* element, const Selector& sel);
+};
+
 } // namespace Zepra::DOM

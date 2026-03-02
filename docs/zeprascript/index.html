@@ -1,0 +1,228 @@
+<!DOCTYPE html>
+<html lang="en" class="scroll-smooth">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ZepraScript Documentation</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/gsap.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/ScrollTrigger.min.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        dark: { 900: '#0a0a0f', 800: '#12121a', 700: '#1a1a24', 600: '#24242f' },
+                        accent: { DEFAULT: '#6366f1', light: '#818cf8' },
+                    },
+                    fontFamily: { sans: ['Inter', 'sans-serif'], mono: ['JetBrains Mono', 'monospace'] }
+                }
+            }
+        }
+    </script>
+    <style>
+        ::-webkit-scrollbar { width: 8px; }
+        ::-webkit-scrollbar-track { background: #12121a; }
+        ::-webkit-scrollbar-thumb { background: #3f3f5a; border-radius: 4px; }
+        .gradient-text { background: linear-gradient(135deg, #6366f1 0%, #a855f7 50%, #ec4899 100%); -webkit-background-clip: text; background-clip: text; color: transparent; }
+        .hero-gradient { background: radial-gradient(ellipse 80% 50% at 50% -20%, rgba(99, 102, 241, 0.15), transparent); }
+        .glass { background: rgba(26, 26, 36, 0.8); backdrop-filter: blur(20px); border: 1px solid rgba(99, 102, 241, 0.1); }
+        .glow { box-shadow: 0 0 80px rgba(99, 102, 241, 0.2); }
+        .nav-link.active { background: linear-gradient(90deg, rgba(99, 102, 241, 0.2) 0%, transparent 100%); border-left-color: #6366f1; }
+        .card-hover { transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1); }
+        .card-hover:hover { transform: translateY(-8px) scale(1.02); box-shadow: 0 25px 50px rgba(0, 0, 0, 0.5); border-color: rgba(99, 102, 241, 0.5); }
+        .float { animation: float 6s ease-in-out infinite; }
+        @keyframes float { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-20px); } }
+    </style>
+</head>
+<body class="bg-dark-900 text-gray-100 font-sans antialiased">
+    <div class="fixed inset-0 pointer-events-none hero-gradient"></div>
+    <div class="fixed inset-0 pointer-events-none overflow-hidden">
+        <div class="absolute top-1/4 left-1/4 w-[800px] h-[800px] bg-accent/5 rounded-full blur-[200px] float"></div>
+        <div class="absolute bottom-0 right-1/4 w-[600px] h-[600px] bg-purple-500/5 rounded-full blur-[150px]"></div>
+    </div>
+
+    <aside class="fixed left-0 top-0 w-72 h-screen bg-dark-800/90 backdrop-blur-xl border-r border-white/5 z-50 overflow-y-auto">
+        <div class="p-6 border-b border-white/5">
+            <div class="flex items-center gap-3">
+                <div class="w-10 h-10 rounded-xl bg-gradient-to-br from-accent to-purple-500 flex items-center justify-center glow">
+                    <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/></svg>
+                </div>
+                <div>
+                    <h1 class="font-bold text-lg">ZepraScript</h1>
+                    <span class="text-xs text-gray-500">v1.0.0 Documentation</span>
+                </div>
+            </div>
+        </div>
+        <nav class="p-4">
+            <div class="mb-6">
+                <span class="text-[10px] font-semibold uppercase tracking-wider text-gray-500 px-3">Documentation</span>
+                <div class="mt-2 space-y-1">
+                    <a href="index.html" class="nav-link active flex items-center gap-3 px-3 py-2 text-sm text-white rounded-lg border-l-2 border-accent">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"/></svg>
+                        Home</a>
+                    <a href="api.html" class="nav-link flex items-center gap-3 px-3 py-2 text-sm text-gray-400 hover:text-white rounded-lg hover:bg-white/5 transition-all border-l-2 border-transparent">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4"/></svg>
+                        API Reference</a>
+                    <a href="guides.html" class="nav-link flex items-center gap-3 px-3 py-2 text-sm text-gray-400 hover:text-white rounded-lg hover:bg-white/5 transition-all border-l-2 border-transparent">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"/></svg>
+                        Integration Guide</a>
+                    <a href="todo.html" class="nav-link flex items-center gap-3 px-3 py-2 text-sm text-gray-400 hover:text-white rounded-lg hover:bg-white/5 transition-all border-l-2 border-transparent">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/></svg>
+                        Roadmap</a>
+                </div>
+            </div>
+            <div class="mb-6">
+                <span class="text-[10px] font-semibold uppercase tracking-wider text-gray-500 px-3">This Page</span>
+                <div class="mt-2 space-y-1">
+                    <a href="#features" class="nav-link flex items-center gap-3 px-3 py-2 text-sm text-gray-400 hover:text-white rounded-lg hover:bg-white/5 transition-all border-l-2 border-transparent pl-6">Features</a>
+                    <a href="#architecture" class="nav-link flex items-center gap-3 px-3 py-2 text-sm text-gray-400 hover:text-white rounded-lg hover:bg-white/5 transition-all border-l-2 border-transparent pl-6">Architecture</a>
+                    <a href="#modules" class="nav-link flex items-center gap-3 px-3 py-2 text-sm text-gray-400 hover:text-white rounded-lg hover:bg-white/5 transition-all border-l-2 border-transparent pl-6">Modules</a>
+                </div>
+            </div>
+        </nav>
+    </aside>
+
+    <main class="ml-72 min-h-screen">
+        <div class="max-w-5xl mx-auto px-8 py-20">
+            <!-- Hero -->
+            <header class="mb-24 text-center animate-header">
+                <div class="inline-flex items-center gap-2 px-4 py-2 glass rounded-full mb-8">
+                    <span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
+                    <span class="text-sm text-gray-400">v1.0.0 Stable Release</span>
+                </div>
+                <h1 class="text-6xl md:text-7xl font-extrabold mb-6">
+                    <span class="gradient-text">ZepraScript</span>
+                </h1>
+                <p class="text-xl text-gray-400 max-w-2xl mx-auto mb-10">High-performance JavaScript engine powering ZepraBrowser. Full ES2024 support, WebAssembly, and multi-tier JIT compilation.</p>
+                <div class="flex gap-4 justify-center">
+                    <a href="api.html" class="px-6 py-3 bg-gradient-to-r from-accent to-purple-500 text-white font-semibold rounded-xl hover:opacity-90 transition-opacity">
+                        API Reference →
+                    </a>
+                    <a href="guides.html" class="px-6 py-3 glass rounded-xl text-gray-300 hover:text-white transition-colors">
+                        Quick Start
+                    </a>
+                </div>
+            </header>
+
+            <!-- Stats -->
+            <section class="mb-24 animate-section">
+                <div class="grid grid-cols-4 gap-6">
+                    <div class="glass rounded-2xl p-6 text-center glow card-hover">
+                        <div class="text-4xl font-bold bg-gradient-to-r from-accent to-purple-400 bg-clip-text text-transparent mb-2">187</div>
+                        <div class="text-sm text-gray-500">API Headers</div>
+                    </div>
+                    <div class="glass rounded-2xl p-6 text-center card-hover">
+                        <div class="text-4xl font-bold text-purple-400 mb-2">25</div>
+                        <div class="text-sm text-gray-500">Modules</div>
+                    </div>
+                    <div class="glass rounded-2xl p-6 text-center card-hover">
+                        <div class="text-4xl font-bold text-pink-400 mb-2">266+</div>
+                        <div class="text-sm text-gray-500">Tests</div>
+                    </div>
+                    <div class="glass rounded-2xl p-6 text-center card-hover">
+                        <div class="text-4xl font-bold text-emerald-400 mb-2">4</div>
+                        <div class="text-sm text-gray-500">JIT Tiers</div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Features -->
+            <section id="features" class="mb-24">
+                <h2 class="text-3xl font-bold text-center mb-12 animate-section">Documentation</h2>
+                <div class="grid md:grid-cols-3 gap-6">
+                    <a href="api.html" class="glass rounded-2xl p-8 card-hover block animate-section">
+                        <div class="w-14 h-14 rounded-xl bg-gradient-to-br from-accent/20 to-purple-500/20 flex items-center justify-center mb-6">
+                            <svg class="w-7 h-7 text-accent" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4"/></svg>
+                        </div>
+                        <h3 class="text-xl font-semibold mb-2">API Reference</h3>
+                        <p class="text-gray-400 text-sm mb-4">Complete docs for all APIs, classes, and functions.</p>
+                        <span class="text-accent text-sm font-medium">Explore →</span>
+                    </a>
+                    <a href="guides.html" class="glass rounded-2xl p-8 card-hover block animate-section">
+                        <div class="w-14 h-14 rounded-xl bg-gradient-to-br from-emerald-500/20 to-teal-500/20 flex items-center justify-center mb-6">
+                            <svg class="w-7 h-7 text-emerald-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"/></svg>
+                        </div>
+                        <h3 class="text-xl font-semibold mb-2">Integration Guide</h3>
+                        <p class="text-gray-400 text-sm mb-4">Step-by-step guide to embed ZepraScript.</p>
+                        <span class="text-emerald-400 text-sm font-medium">Get Started →</span>
+                    </a>
+                    <a href="todo.html" class="glass rounded-2xl p-8 card-hover block animate-section">
+                        <div class="w-14 h-14 rounded-xl bg-gradient-to-br from-amber-500/20 to-orange-500/20 flex items-center justify-center mb-6">
+                            <svg class="w-7 h-7 text-amber-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/></svg>
+                        </div>
+                        <h3 class="text-xl font-semibold mb-2">Roadmap</h3>
+                        <p class="text-gray-400 text-sm mb-4">52 active TODOs and development plans.</p>
+                        <span class="text-amber-400 text-sm font-medium">View →</span>
+                    </a>
+                </div>
+            </section>
+
+            <!-- Architecture -->
+            <section id="architecture" class="mb-24 animate-section">
+                <h2 class="text-3xl font-bold text-center mb-8">Architecture</h2>
+                <div class="glass rounded-2xl p-8 glow">
+                    <pre class="text-xs md:text-sm font-mono text-gray-400 overflow-x-auto leading-relaxed">
+<span class="text-gray-600">┌─────────────────────────────────────────────────────────────────┐</span>
+<span class="text-gray-600">│</span>                        <span class="text-accent">ZepraBrowser</span>                             <span class="text-gray-600">│</span>
+<span class="text-gray-600">│</span>  <span class="text-gray-600">┌─────────────┐</span>  <span class="text-gray-600">┌─────────────┐</span>  <span class="text-gray-600">┌─────────────┐</span>            <span class="text-gray-600">│</span>
+<span class="text-gray-600">│</span>  <span class="text-gray-600">│</span>   <span class="text-purple-400">Tab 1</span>     <span class="text-gray-600">│</span>  <span class="text-gray-600">│</span>   <span class="text-purple-400">Tab 2</span>     <span class="text-gray-600">│</span>  <span class="text-gray-600">│</span>   <span class="text-purple-400">Tab 3</span>     <span class="text-gray-600">│</span>            <span class="text-gray-600">│</span>
+<span class="text-gray-600">│</span>  <span class="text-gray-600">│</span>  (Isolate)  <span class="text-gray-600">│</span>  <span class="text-gray-600">│</span>  (Isolate)  <span class="text-gray-600">│</span>  <span class="text-gray-600">│</span>  (Isolate)  <span class="text-gray-600">│</span>            <span class="text-gray-600">│</span>
+<span class="text-gray-600">└─────────────────────────────────────────────────────────────────┘</span>
+                              <span class="text-gray-600">│</span>
+<span class="text-gray-600">┌─────────────────────────────▼───────────────────────────────────┐</span>
+<span class="text-gray-600">│</span>                      <span class="text-emerald-400">ZepraScript Core</span>                           <span class="text-gray-600">│</span>
+<span class="text-gray-600">│</span>  <span class="text-gray-600">┌──────────┐</span>  <span class="text-gray-600">┌──────────┐</span>  <span class="text-gray-600">┌──────────┐</span>  <span class="text-gray-600">┌──────────┐</span>       <span class="text-gray-600">│</span>
+<span class="text-gray-600">│</span>  <span class="text-gray-600">│</span>  <span class="text-pink-400">Parser</span>  <span class="text-gray-600">│→│</span> <span class="text-pink-400">Bytecode</span> <span class="text-gray-600">│→│</span>    <span class="text-pink-400">VM</span>    <span class="text-gray-600">│→│</span>   <span class="text-pink-400">JIT</span>    <span class="text-gray-600">│</span>       <span class="text-gray-600">│</span>
+<span class="text-gray-600">│</span>  <span class="text-gray-600">│</span>  (AST)   <span class="text-gray-600">│</span> <span class="text-gray-600">│</span> Compiler <span class="text-gray-600">│</span> <span class="text-gray-600">│</span>(Execute) <span class="text-gray-600">│</span> <span class="text-gray-600">│</span>(Optimize)<span class="text-gray-600">│</span>       <span class="text-gray-600">│</span>
+<span class="text-gray-600">│</span>  <span class="text-gray-600">└──────────┘</span>  <span class="text-gray-600">└──────────┘</span>  <span class="text-gray-600">└──────────┘</span>  <span class="text-gray-600">└──────────┘</span>       <span class="text-gray-600">│</span>
+<span class="text-gray-600">│</span>                                                                 <span class="text-gray-600">│</span>
+<span class="text-gray-600">│</span>  <span class="text-gray-600">┌──────────┐</span>  <span class="text-gray-600">┌──────────┐</span>  <span class="text-gray-600">┌──────────┐</span>  <span class="text-gray-600">┌──────────┐</span>       <span class="text-gray-600">│</span>
+<span class="text-gray-600">│</span>  <span class="text-gray-600">│</span> <span class="text-blue-400">Builtins</span> <span class="text-gray-600">│</span>  <span class="text-gray-600">│</span>    <span class="text-blue-400">GC</span>    <span class="text-gray-600">│</span>  <span class="text-gray-600">│</span>  <span class="text-blue-400">Debug</span>   <span class="text-gray-600">│</span>  <span class="text-gray-600">│</span>   <span class="text-blue-400">WASM</span>   <span class="text-gray-600">│</span>       <span class="text-gray-600">│</span>
+<span class="text-gray-600">│</span>  <span class="text-gray-600">│</span>(ES2024)  <span class="text-gray-600">│</span>  <span class="text-gray-600">│</span>(Gen/Inc) <span class="text-gray-600">│</span>  <span class="text-gray-600">│</span>  (CDP)   <span class="text-gray-600">│</span>  <span class="text-gray-600">│</span> (SIMD+)  <span class="text-gray-600">│</span>       <span class="text-gray-600">│</span>
+<span class="text-gray-600">│</span>  <span class="text-gray-600">└──────────┘</span>  <span class="text-gray-600">└──────────┘</span>  <span class="text-gray-600">└──────────┘</span>  <span class="text-gray-600">└──────────┘</span>       <span class="text-gray-600">│</span>
+<span class="text-gray-600">└─────────────────────────────────────────────────────────────────┘</span>
+                    </pre>
+                </div>
+            </section>
+
+            <!-- Modules -->
+            <section id="modules" class="mb-24 animate-section">
+                <h2 class="text-3xl font-bold text-center mb-8">Module Structure</h2>
+                <div class="glass rounded-2xl p-8">
+                    <div class="grid md:grid-cols-2 gap-x-12 gap-y-2 font-mono text-sm">
+                        <div class="flex items-center gap-3 text-gray-400"><span class="text-accent">📁</span> api/ <span class="text-gray-600 text-xs ml-auto">13 files</span></div>
+                        <div class="flex items-center gap-3 text-gray-400"><span class="text-purple-400">📁</span> b3/ <span class="text-gray-600 text-xs ml-auto">11 files</span></div>
+                        <div class="flex items-center gap-3 text-gray-400"><span class="text-pink-400">📁</span> browser/ <span class="text-gray-600 text-xs ml-auto">20 files</span></div>
+                        <div class="flex items-center gap-3 text-gray-400"><span class="text-emerald-400">📁</span> builtins/ <span class="text-gray-600 text-xs ml-auto">20 files</span></div>
+                        <div class="flex items-center gap-3 text-gray-400"><span class="text-amber-400">📁</span> bytecode/ <span class="text-gray-600 text-xs ml-auto">6 files</span></div>
+                        <div class="flex items-center gap-3 text-gray-400"><span class="text-red-400">📁</span> debug/ <span class="text-gray-600 text-xs ml-auto">10 files</span></div>
+                        <div class="flex items-center gap-3 text-gray-400"><span class="text-cyan-400">📁</span> dfg/ <span class="text-gray-600 text-xs ml-auto">15 files</span></div>
+                        <div class="flex items-center gap-3 text-gray-400"><span class="text-teal-400">📁</span> frontend/ <span class="text-gray-600 text-xs ml-auto">9 files</span></div>
+                        <div class="flex items-center gap-3 text-gray-400"><span class="text-orange-400">📁</span> gc/ <span class="text-gray-600 text-xs ml-auto">10 files</span></div>
+                        <div class="flex items-center gap-3 text-gray-400"><span class="text-yellow-400">📁</span> jit/ <span class="text-gray-600 text-xs ml-auto">17 files</span></div>
+                        <div class="flex items-center gap-3 text-gray-400"><span class="text-lime-400">📁</span> runtime/ <span class="text-gray-600 text-xs ml-auto">105 files</span></div>
+                        <div class="flex items-center gap-3 text-gray-400"><span class="text-blue-400">📁</span> wasm/ <span class="text-gray-600 text-xs ml-auto">43 files</span></div>
+                    </div>
+                </div>
+            </section>
+
+            <footer class="pt-12 border-t border-white/5 text-center">
+                <div class="text-sm text-gray-500">ZepraScript v1.0.0 • ZepraBrowser • © 2026 KetiveeAI</div>
+            </footer>
+        </div>
+    </main>
+
+    <script>
+        gsap.registerPlugin(ScrollTrigger);
+        gsap.from('.animate-header', { opacity: 0, y: 50, duration: 1, ease: 'power3.out' });
+        gsap.utils.toArray('.animate-section').forEach((section, i) => {
+            gsap.from(section, {
+                scrollTrigger: { trigger: section, start: 'top 85%' },
+                opacity: 0, y: 50, duration: 0.8, ease: 'power3.out', delay: i * 0.1
+            });
+        });
+    </script>
+</body>
+</html>

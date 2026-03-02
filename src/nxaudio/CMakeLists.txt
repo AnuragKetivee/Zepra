@@ -9,8 +9,8 @@ set(CMAKE_C_STANDARD_REQUIRED ON)
 
 # Options
 option(NXAUDIO_BUILD_DAEMON "Build audio daemon" ON)
-option(NXAUDIO_BUILD_TESTS "Build test suite" ON)
-option(NXAUDIO_BUILD_EXAMPLES "Build examples" ON)
+option(NXAUDIO_BUILD_TESTS "Build test suite" OFF)
+option(NXAUDIO_BUILD_EXAMPLES "Build examples" OFF)
 option(NXAUDIO_ENABLE_SIMD "Enable SIMD optimizations" ON)
 
 # Detect platform

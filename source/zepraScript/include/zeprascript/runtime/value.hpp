@@ -23,6 +23,7 @@ class Object;
 class String;
 class Function;
 class Array;
+class BigIntObject;
 
 /**
  * @brief JavaScript value type tags
@@ -76,6 +77,7 @@ public:
     static Value object(Object* obj);
     static Value string(String* str);
     static Value symbol(uint32_t id);  // Symbol using unique ID
+    static Value bigint(BigIntObject* bi);  // BigInt (stored as Object)
     
     // Type checks
     bool isUndefined() const { return bits_ == (QNAN_MASK | TAG_UNDEFINED); }
@@ -87,6 +89,7 @@ public:
     bool isObject() const { return (bits_ & (QNAN_MASK | TAG_MASK)) == (QNAN_MASK | TAG_OBJECT); }
     bool isString() const { return (bits_ & (QNAN_MASK | TAG_MASK)) == (QNAN_MASK | TAG_STRING); }
     bool isSymbol() const { return (bits_ & (QNAN_MASK | TAG_MASK)) == (QNAN_MASK | TAG_SYMBOL); }
+    bool isBigInt() const;  // Checks isObject() && objectType == BigInt
     
     bool isNullOrUndefined() const { return isNull() || isUndefined(); }
     bool isFalsy() const;
@@ -102,6 +105,7 @@ public:
     uint32_t asSymbol() const;  // Returns symbol ID
     Function* asFunction() const;
     Array* asArray() const;
+    BigIntObject* asBigInt() const;
     
     // JavaScript type coercion
     bool toBoolean() const;

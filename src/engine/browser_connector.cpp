@@ -1,5 +1,5 @@
 #include "engine/browser_connector.h"
-#include <curl/curl.h>
+#include <nxhttp.h>
 #include <chrono>
 #include <sstream>
 #include <iostream>
@@ -30,21 +30,14 @@ BrowserMessage BrowserMessage::deserialize(const String& data) {
     return msg;
 }
 
-// HTTP callback for libcurl
-static size_t WriteCallback(void* contents, size_t size, size_t nmemb, std::string* userp) {
-    userp->append((char*)contents, size * nmemb);
-    return size * nmemb;
-}
-
-// HTTPTransport implementation
+// HTTPTransport implementation using nxhttp
 HTTPTransport::HTTPTransport() 
     : timeoutMs_(30000), connected_(false) {
-    curl_global_init(CURL_GLOBAL_DEFAULT);
+    // nxhttp does not require global initialization
 }
 
 HTTPTransport::~HTTPTransport() {
     disconnect();
-    curl_global_cleanup();
 }
 
 bool HTTPTransport::connect(const String& endpoint) {
@@ -64,39 +57,25 @@ bool HTTPTransport::isConnected() const {
 bool HTTPTransport::send(const BrowserMessage& message) {
     if (!connected_) return false;
     
-    CURL* curl = curl_easy_init();
-    if (!curl) return false;
-    
-    String response;
-    String data = message.serialize();
-    
-    curl_easy_setopt(curl, CURLOPT_URL, endpoint_.c_str());
-    curl_easy_setopt(curl, CURLOPT_POSTFIELDS, data.c_str());
-    curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, WriteCallback);
-    curl_easy_setopt(curl, CURLOPT_WRITEDATA, &response);
-    curl_easy_setopt(curl, CURLOPT_TIMEOUT_MS, timeoutMs_);
-    
-    // Set headers
-    struct curl_slist* headers = nullptr;
-    headers = curl_slist_append(headers, "Content-Type: application/json");
-    for (const auto& [key, value] : headers_) {
-        String header = key + ": " + value;
-        headers = curl_slist_append(headers, header.c_str());
+    try {
+        String data = message.serialize();
+        
+        nx::HttpClient client;
+        auto response = client.post(endpoint_, data, "application/json");
+        
+        if (response.ok() && messageCallback_) {
+            BrowserMessage responseMsg = BrowserMessage::deserialize(response.body());
+            messageCallback_(responseMsg);
+        }
+        
+        return response.ok();
+    } catch (const nx::HttpException& e) {
+        std::cerr << "HTTPTransport send error: " << e.what() << std::endl;
+        return false;
+    } catch (const std::exception& e) {
+        std::cerr << "HTTPTransport error: " << e.what() << std::endl;
+        return false;
     }
-    curl_easy_setopt(curl, CURLOPT_HTTPHEADER, headers);
-    
-    CURLcode res = curl_easy_perform(curl);
-    bool success = (res == CURLE_OK);
-    
-    curl_slist_free_all(headers);
-    curl_easy_cleanup(curl);
-    
-    if (success && messageCallback_) {
-        BrowserMessage responseMsg = BrowserMessage::deserialize(response);
-        messageCallback_(responseMsg);
-    }
-    
-    return success;
 }
 
 BrowserMessage HTTPTransport::receive(int timeoutMs) {

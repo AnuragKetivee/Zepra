@@ -1,0 +1,519 @@
+<!DOCTYPE html>
+<html lang="en" class="scroll-smooth">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ZEPRA_CORE_README.md</title>
+    
+    <!-- Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+    
+    <!-- Tailwind CSS with Typography Plugin -->
+    <script src="https://cdn.tailwindcss.com?plugins=typography"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        bg: {
+                            primary: '#0a0a0f',
+                            secondary: '#12121a',
+                            tertiary: '#1a1a24'
+                        },
+                        accent: {
+                            DEFAULT: '#10b981',
+                            light: '#34d399',
+                            dark: '#059669',
+                            glow: 'rgba(16, 185, 129, 0.3)'
+                        }
+                    },
+                    fontFamily: {
+                        sans: ['Inter', 'sans-serif'],
+                        mono: ['JetBrains Mono', 'monospace'],
+                    },
+                    typography: (theme) => ({
+                        DEFAULT: {
+                            css: {
+                                color: theme('colors.gray.300'),
+                                a: {
+                                    color: theme('colors.emerald.400'),
+                                    '&:hover': {
+                                        color: theme('colors.emerald.300'),
+                                    },
+                                },
+                                h1: { color: theme('colors.white') },
+                                h2: { color: theme('colors.white') },
+                                h3: { color: theme('colors.white') },
+                                h4: { color: theme('colors.gray.100') },
+                                code: { color: theme('colors.pink.400') },
+                                'code::before': { content: '""' },
+                                'code::after': { content: '""' },
+                                pre: {
+                                    backgroundColor: theme('colors.bg.tertiary'),
+                                    color: theme('colors.gray.200'),
+                                },
+                                blockquote: {
+                                    color: theme('colors.gray.400'),
+                                    borderLeftColor: theme('colors.emerald.500'),
+                                },
+                            },
+                        },
+                    }),
+                }
+            }
+        }
+    </script>
+
+    <!-- Custom CSS -->
+    <link rel="stylesheet" href="assets/css/docs.css">
+</head>
+<body class="antialiased min-h-screen relative selection:bg-emerald-500/30 selection:text-emerald-200">
+
+    <!-- Background Elements -->
+    <div class="bg-grid"></div>
+    <div class="glow-orb orb-1"></div>
+    <div class="glow-orb orb-2"></div>
+
+    <!-- Navigation -->
+    
+    
+    <!-- Navigation Sidebar -->
+    <aside class="fixed left-0 top-0 w-72 h-screen bg-dark-800/90 backdrop-blur-xl border-r border-white/5 z-50 overflow-y-auto">
+        <div class="p-6 border-b border-white/5">
+            <div class="flex items-center gap-3">
+                <a href="index.html" class="flex items-center gap-3 w-full">
+                    <div class="w-10 h-10 rounded-xl bg-gradient-to-br from-emerald-500 to-blue-500 flex items-center justify-center glow">
+                        <img src="../resources/zepraicon/logo.svg" alt="Zepra Logo" class="w-8 h-8 object-contain">
+                    </div>
+                    <div>
+                        <h1 class="font-bold text-lg text-white">ZepraBrowser</h1>
+                        <span class="text-xs text-gray-500">Documentation Hub</span>
+                    </div>
+                </a>
+            </div>
+        </div>
+        <nav class="p-4">
+            <div class="mb-6">
+                <span class="text-[10px] font-semibold uppercase tracking-wider text-gray-500 px-3">Quick Navigation</span>
+                <div class="mt-2 space-y-1">
+                    <a href="index.html" class="nav-link flex items-center gap-3 px-3 py-2 text-sm text-gray-400 hover:text-white rounded-lg hover:bg-white/5 transition-all border-l-2 border-transparent">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"/></svg>
+                        Hub Home
+                    </a>
+                    <a href="zeprascript/index.html" class="nav-link flex items-center gap-3 px-3 py-2 text-sm text-gray-400 hover:text-white rounded-lg hover:bg-white/5 transition-all border-l-2 border-transparent">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>
+                        ZepraScript Engine
+                    </a>
+                </div>
+            </div>
+            <div class="mb-6">
+                <span class="text-[10px] font-semibold uppercase tracking-wider text-gray-500 px-3">Overview</span>
+                <div class="mt-2 space-y-1">
+                    <a href="architecture.html" class="nav-link flex items-center gap-3 px-3 py-2 text-sm text-gray-400 hover:text-white rounded-lg hover:bg-white/5 transition-all border-l-2 border-transparent pl-6">Architecture</a>
+                    <a href="advanced-developer-tools.html" class="nav-link flex items-center gap-3 px-3 py-2 text-sm text-gray-400 hover:text-white rounded-lg hover:bg-white/5 transition-all border-l-2 border-transparent pl-6">Developer Tools</a>
+                    <a href="security-model.html" class="nav-link flex items-center gap-3 px-3 py-2 text-sm text-gray-400 hover:text-white rounded-lg hover:bg-white/5 transition-all border-l-2 border-transparent pl-6">Security Model</a>
+                    <a href="NXRENDER/architecture.html" class="nav-link flex items-center gap-3 px-3 py-2 text-sm text-gray-400 hover:text-white rounded-lg hover:bg-white/5 transition-all border-l-2 border-transparent pl-6">NXRender</a>
+                </div>
+            </div>
+        </nav>
+    </aside>
+
+
+<main class="ml-72 flex-1 min-w-0 min-h-screen py-12 px-8 max-w-5xl mx-auto">
+<!-- Page Header with Icon -->
+                <div class="flex items-center gap-4 mb-8 border-b border-white/10 pb-8 animate-fade-in">
+                    <div class="w-16 h-16 rounded-2xl bg-bg-secondary border border-white/5 flex items-center justify-center shrink-0">
+                        <svg class="w-8 h-8 opacity-80 text-emerald-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>
+                    </div>
+                    <div>
+                        <h1 class="text-3xl sm:text-4xl font-bold text-white tracking-tight">ZEPRA_CORE_README.md</h1>
+                        <p class="text-gray-400 mt-1 text-sm font-mono">ZEPRA_CORE_README.html</p>
+                    </div>
+                </div>
+
+                <div class="prose prose-invert prose-emerald max-w-none animate-fade-up">
+
+
+
+
+<h1>🦓 Zepra Core Browser</h1>
+<p><strong>Smooth, fast, and wild like a zebra in the tech jungle</strong> ⚡</p>
+<p>A lightweight, high-performance web browser built with <strong>C/C++</strong> and SDL2, featuring integrated <strong>Ketivee Authentication System</strong> and <strong>KetiveeSearch</strong> engine.</p>
+<h2>🌟 Features</h2>
+<h3>🔐 <strong>Integrated Authentication System</strong></h3>
+<ul>
+<li><strong>Seamless Login</strong>: Integrated with Ketivee authentication server</li>
+<li><strong>2FA Support</strong>: Two-factor authentication with TOTP codes</li>
+<li><strong>Session Management</strong>: Automatic token refresh and session persistence</li>
+<li><strong>Cross-Domain Auth</strong>: Share authentication across Ketivee subdomains</li>
+<li><strong>Password Manager</strong>: Secure storage for third-party website credentials</li>
+<li><strong>Security First</strong>: HTTP-only cookies, secure token handling</li>
+</ul>
+<h3>🚀 <strong>Performance &amp; Speed</strong></h3>
+<ul>
+<li><strong>Lightning Fast</strong>: Optimized C++ engine with minimal memory footprint</li>
+<li><strong>Hardware Acceleration</strong>: OpenGL rendering for smooth graphics</li>
+<li><strong>Memory Efficient</strong>: Smart tab management and resource optimization</li>
+<li><strong>Cross-Platform</strong>: Windows, Linux, and macOS support</li>
+</ul>
+<h3>🔍 <strong>Search &amp; Navigation</strong></h3>
+<ul>
+<li><strong>KetiveeSearch</strong>: Integrated search engine with privacy focus</li>
+<li><strong>Smart Address Bar</strong>: URL completion and search suggestions</li>
+<li><strong>Tab Management</strong>: Multi-tab browsing with drag-and-drop</li>
+<li><strong>Bookmarks</strong>: Quick access to favorite sites</li>
+<li><strong>History</strong>: Smart browsing history with search</li>
+</ul>
+<h3>🛡️ <strong>Security &amp; Privacy</strong></h3>
+<ul>
+<li><strong>Built-in Ad Blocking</strong>: Automatic ad and tracker blocking</li>
+<li><strong>HTTPS Enforcement</strong>: Secure connections by default</li>
+<li><strong>Sandbox Mode</strong>: Isolated browsing for enhanced security</li>
+<li><strong>Privacy Controls</strong>: Granular privacy settings</li>
+<li><strong>Content Filtering</strong>: Safe browsing with customizable filters</li>
+</ul>
+<h3>🎨 <strong>Modern UI</strong></h3>
+<ul>
+<li><strong>Dark/Light Themes</strong>: Automatic theme switching</li>
+<li><strong>Responsive Design</strong>: Adapts to different screen sizes</li>
+<li><strong>Customizable</strong>: Extensive UI customization options</li>
+<li><strong>Accessibility</strong>: Screen reader support and keyboard navigation</li>
+</ul>
+<h2>🏗️ Architecture</h2>
+<pre><code>Zepra Core Browser Engine
+├── Core Engine (C++)
+│   ├── HTML Parser
+│   ├── CSS Engine
+│   ├── JavaScript Runtime (QuickJS)
+│   └── Rendering Engine (SDL2/OpenGL)
+├── Authentication System
+│   ├── ZepraAuthManager
+│   ├── Session Management
+│   ├── 2FA Handler
+│   └── Password Manager
+├── UI Layer
+│   ├── Window Management
+│   ├── Tab Manager
+│   ├── Auth Dialogs
+│   └── Input Handling
+├── Network Layer
+│   ├── HTTP Client (CURL)
+│   ├── Cookie Management
+│   └── Security Layer
+└── Search Integration
+    └── KetiveeSearch Engine
+</code></pre>
+<h2>🚀 Quick Start</h2>
+<h3>Prerequisites</h3>
+<h4><strong>Ubuntu/Debian</strong></h4>
+<pre><code class="language-bash">sudo apt update
+sudo apt install build-essential cmake pkg-config
+sudo apt install libsdl2-dev libsdl2-ttf-dev libsdl2-image-dev
+sudo apt install libcurl4-openssl-dev libssl-dev libjson-c-dev
+</code></pre>
+<h4><strong>CentOS/RHEL/Fedora</strong></h4>
+<pre><code class="language-bash">sudo yum groupinstall &quot;Development Tools&quot;
+sudo yum install cmake pkg-config
+sudo yum install SDL2-devel SDL2_ttf-devel SDL2_image-devel
+sudo yum install libcurl-devel openssl-devel json-c-devel
+</code></pre>
+<h4><strong>macOS</strong></h4>
+<pre><code class="language-bash">brew install cmake pkg-config
+brew install sdl2 sdl2_ttf sdl2_image
+brew install curl openssl json-c
+</code></pre>
+<h4><strong>Windows</strong></h4>
+<ul>
+<li>Install Visual Studio 2019+ or MinGW-w64</li>
+<li>Install vcpkg and required packages:</li>
+</ul>
+<pre><code class="language-cmd">vcpkg install sdl2 sdl2-ttf sdl2-image curl openssl json-c
+</code></pre>
+<h3>Building from Source</h3>
+<pre><code class="language-bash"># Clone the repository
+git clone https://github.com/ketivee/zepra-browser.git
+cd zepra-browser
+
+# Make build script executable
+chmod +x build-zepra-core.sh
+
+# Build the browser
+./build-zepra-core.sh
+
+# Run the browser
+./run-zepra.sh
+</code></pre>
+<h3>Windows Build</h3>
+<pre><code class="language-powershell"># Using Visual Studio
+cmake -G &quot;Visual Studio 16 2019&quot; -A x64 ..
+cmake --build . --config Release
+
+# Using MinGW
+cmake -G &quot;MinGW Makefiles&quot; ..
+mingw32-make
+</code></pre>
+<h2>🔐 Authentication System</h2>
+<h3><strong>Login Process</strong></h3>
+<ol>
+<li><strong>Email/Password</strong>: Enter your Ketivee credentials</li>
+<li><strong>2FA Verification</strong>: If enabled, enter TOTP code</li>
+<li><strong>Session Creation</strong>: Secure token-based session</li>
+<li><strong>Cross-Domain Access</strong>: Automatic authentication for Ketivee services</li>
+</ol>
+<h3><strong>Supported Domains</strong></h3>
+<ul>
+<li><code>ketivee.com</code> - Main platform</li>
+<li><code>auth.ketivee.com</code> - Authentication server</li>
+<li><code>ketiveeai.com</code> - AI platform</li>
+<li><code>docs.ketivee.com</code> - Documentation</li>
+<li><code>mail.ketivee.com</code> - Email service</li>
+<li><code>workspace.ketivee.com</code> - Development workspace</li>
+<li>And more...</li>
+</ul>
+<h3><strong>Security Features</strong></h3>
+<ul>
+<li><strong>HTTP-Only Cookies</strong>: Secure cookie storage</li>
+<li><strong>Token Refresh</strong>: Automatic session renewal</li>
+<li><strong>Domain Validation</strong>: Whitelist-based access control</li>
+<li><strong>Encrypted Storage</strong>: Secure credential storage</li>
+<li><strong>Session Timeout</strong>: Configurable session limits</li>
+</ul>
+<h2>🎨 UI Components</h2>
+<h3><strong>Authentication Dialogs</strong></h3>
+<ul>
+<li><strong>Login Dialog</strong>: Email/password input with validation</li>
+<li><strong>2FA Dialog</strong>: TOTP code input with timer</li>
+<li><strong>Password Prompt</strong>: Third-party website credential storage</li>
+<li><strong>Error Handling</strong>: User-friendly error messages</li>
+</ul>
+<h3><strong>Browser Interface</strong></h3>
+<ul>
+<li><strong>Address Bar</strong>: URL input with search integration</li>
+<li><strong>Tab Bar</strong>: Multi-tab management with thumbnails</li>
+<li><strong>Bookmarks Bar</strong>: Quick access to saved sites</li>
+<li><strong>Status Bar</strong>: Loading progress and security indicators</li>
+</ul>
+<h2>🔧 Configuration</h2>
+<h3><strong>Default Configuration</strong></h3>
+<pre><code class="language-json">{
+    &quot;browser&quot;: {
+        &quot;name&quot;: &quot;Zepra Core Browser&quot;,
+        &quot;version&quot;: &quot;1.0.0&quot;,
+        &quot;userAgent&quot;: &quot;Zepra Core/1.0&quot;,
+        &quot;defaultSearchEngine&quot;: &quot;ketivee&quot;,
+        &quot;homepage&quot;: &quot;https://ketivee.com&quot;
+    },
+    &quot;authentication&quot;: {
+        &quot;serverUrl&quot;: &quot;https://auth.ketivee.com&quot;,
+        &quot;sessionTimeout&quot;: 604800,
+        &quot;autoRefresh&quot;: true,
+        &quot;secureMode&quot;: true
+    },
+    &quot;ui&quot;: {
+        &quot;theme&quot;: &quot;dark&quot;,
+        &quot;fontSize&quot;: 16,
+        &quot;showBookmarksBar&quot;: true
+    },
+    &quot;security&quot;: {
+        &quot;enableSandbox&quot;: true,
+        &quot;blockAds&quot;: true,
+        &quot;blockTrackers&quot;: true
+    }
+}
+</code></pre>
+<h3><strong>Environment Variables</strong></h3>
+<ul>
+<li><code>ZEPRA_CONFIG_PATH</code>: Configuration directory</li>
+<li><code>ZEPRA_ASSETS_PATH</code>: Assets directory</li>
+<li><code>ZEPRA_DATA_PATH</code>: User data directory</li>
+</ul>
+<h2>🛠️ Development</h2>
+<h3><strong>Project Structure</strong></h3>
+<pre><code>zepra/
+├── src/
+│   ├── main.cpp                 # Application entry point
+│   ├── auth/
+│   │   └── zepra_auth.cpp      # Authentication system
+│   ├── ui/
+│   │   ├── auth_ui.cpp         # Authentication UI
+│   │   ├── window.cpp          # Window management
+│   │   └── tab_manager.cpp     # Tab handling
+│   ├── engine/
+│   │   ├── html_parser.cpp     # HTML parsing
+│   │   ├── webkit_engine.cpp   # WebKit integration
+│   │   └── dev_tools.cpp       # Developer tools
+│   ├── search/
+│   │   └── ketivee_search.cpp  # Search integration
+│   └── config/
+│       └── config_manager.cpp   # Configuration management
+├── include/
+│   ├── auth/
+│   │   └── zepra_auth.h        # Authentication headers
+│   ├── ui/
+│   │   ├── auth_ui.h           # UI headers
+│   │   └── window.h
+│   └── engine/
+│       └── webkit_engine.h
+├── assets/
+│   ├── fonts/                  # Font files
+│   ├── icons/                  # Browser icons
+│   └── themes/                 # UI themes
+├── config/
+│   └── zepra_config.json       # Configuration file
+└── build/
+    └── bin/
+        └── zepra               # Executable
+</code></pre>
+<h3><strong>Building for Development</strong></h3>
+<pre><code class="language-bash"># Debug build
+cmake -DCMAKE_BUILD_TYPE=Debug ..
+make -j$(nproc)
+
+# With sanitizers
+cmake -DCMAKE_BUILD_TYPE=Debug -DCMAKE_CXX_FLAGS=&quot;-fsanitize=address,undefined&quot; ..
+make -j$(nproc)
+</code></pre>
+<h3><strong>Testing</strong></h3>
+<pre><code class="language-bash"># Run unit tests
+make test
+
+# Run integration tests
+./test/integration_tests.sh
+
+# Run authentication tests
+./test/auth_tests.sh
+</code></pre>
+<h2>📦 Installation</h2>
+<h3><strong>System Installation</strong></h3>
+<pre><code class="language-bash"># Build the browser
+./build-zepra-core.sh
+
+# Install system-wide
+sudo ./install-zepra.sh
+
+# Run from anywhere
+zepra
+</code></pre>
+<h3><strong>User Installation</strong></h3>
+<pre><code class="language-bash"># Install for current user
+./install-zepra.sh
+
+# Run from anywhere
+zepra
+</code></pre>
+<h2>🔍 Search Integration</h2>
+<h3><strong>KetiveeSearch Features</strong></h3>
+<ul>
+<li><strong>Fast Results</strong>: Optimized search algorithms</li>
+<li><strong>Privacy</strong>: No tracking or data collection</li>
+<li><strong>Customizable</strong>: Easy to switch between search engines</li>
+<li><strong>Local Search</strong>: Offline search capabilities</li>
+<li><strong>Smart Suggestions</strong>: Context-aware search suggestions</li>
+</ul>
+<h2>🛡️ Security Features</h2>
+<h3><strong>Built-in Protection</strong></h3>
+<ul>
+<li><strong>Ad Blocking</strong>: Automatic ad and tracker blocking</li>
+<li><strong>HTTPS Enforcement</strong>: Secure connections by default</li>
+<li><strong>Content Filtering</strong>: Safe browsing with customizable filters</li>
+<li><strong>Sandbox Mode</strong>: Isolated browsing for enhanced security</li>
+<li><strong>Privacy Controls</strong>: Granular privacy settings</li>
+</ul>
+<h3><strong>Authentication Security</strong></h3>
+<ul>
+<li><strong>Token-based</strong>: JWT tokens for session management</li>
+<li><strong>HTTP-Only Cookies</strong>: Secure cookie storage</li>
+<li><strong>Domain Validation</strong>: Whitelist-based access control</li>
+<li><strong>Session Timeout</strong>: Configurable session limits</li>
+<li><strong>2FA Support</strong>: Two-factor authentication</li>
+</ul>
+<h2>🎯 Performance</h2>
+<h3><strong>Optimizations</strong></h3>
+<ul>
+<li><strong>Memory Management</strong>: Smart tab and resource management</li>
+<li><strong>Hardware Acceleration</strong>: OpenGL rendering</li>
+<li><strong>Caching</strong>: Intelligent page and resource caching</li>
+<li><strong>Compression</strong>: Gzip and Brotli support</li>
+<li><strong>Parallel Processing</strong>: Multi-threaded rendering</li>
+</ul>
+<h3><strong>Benchmarks</strong></h3>
+<ul>
+<li><strong>Startup Time</strong>: &lt; 2 seconds</li>
+<li><strong>Memory Usage</strong>: &lt; 100MB base</li>
+<li><strong>Tab Memory</strong>: ~50MB per tab</li>
+<li><strong>Rendering</strong>: 60 FPS smooth scrolling</li>
+</ul>
+<h2>🤝 Contributing</h2>
+<ol>
+<li>Fork the repository</li>
+<li>Create a feature branch (<code>git checkout -b feature/amazing-feature</code>)</li>
+<li>Commit your changes (<code>git commit -m 'Add amazing feature'</code>)</li>
+<li>Push to the branch (<code>git push origin feature/amazing-feature</code>)</li>
+<li>Open a Pull Request</li>
+</ol>
+<h3><strong>Development Guidelines</strong></h3>
+<ul>
+<li>Follow C++17 standards</li>
+<li>Use consistent naming conventions</li>
+<li>Add unit tests for new features</li>
+<li>Update documentation</li>
+<li>Follow security best practices</li>
+</ul>
+<h2>📄 License</h2>
+<p>This project is licensed under the <strong>Ketivee App Developer License v1.0</strong> - see <a href="../LICENSE_DEV.txt">LICENSE_DEV.txt</a> for details.</p>
+<h2>🆘 Support</h2>
+<ul>
+<li><strong>Website</strong>: https://ketivee.org</li>
+<li><strong>Documentation</strong>: <a href="index.html">docs/</a></li>
+<li><strong>Issues</strong>: <a href="https://github.com/ketivee/zepra-browser/issues">GitHub Issues</a></li>
+<li><strong>Discussions</strong>: <a href="https://github.com/ketivee/zepra-browser/discussions">GitHub Discussions</a></li>
+<li><strong>Email</strong>: support@ketivee.com</li>
+</ul>
+<h2>🏆 Acknowledgments</h2>
+<ul>
+<li><strong>Ketivee Team</strong> - For the amazing platform and support</li>
+<li><strong>SDL2 Community</strong> - For the excellent cross-platform library</li>
+<li><strong>OpenSSL Team</strong> - For the robust cryptography library</li>
+<li><strong>CURL Team</strong> - For the reliable HTTP client library</li>
+<li><strong>Open Source Community</strong> - For inspiration and contributions</li>
+</ul>
+<h2>🚀 Roadmap</h2>
+<h3><strong>v1.1.0</strong> (Next Release)</h3>
+<ul>
+<li>[ ] Enhanced password manager</li>
+<li>[ ] Browser extensions support</li>
+<li>[ ] Sync across devices</li>
+<li>[ ] Advanced privacy controls</li>
+<li>[ ] Developer tools integration</li>
+</ul>
+<h3><strong>v1.2.0</strong> (Future)</h3>
+<ul>
+<li>[ ] Mobile app companion</li>
+<li>[ ] Cloud sync</li>
+<li>[ ] Advanced security features</li>
+<li>[ ] Performance optimizations</li>
+<li>[ ] Accessibility improvements</li>
+</ul>
+<hr />
+<p><strong>Built with ❤️ by the Ketivee Team</strong></p>
+<p><em>Zepra Core - Where speed meets elegance</em> 🦓⚡ </p>
+
+        
+                </div>
+            </main>
+
+    <!-- Footer -->
+    <footer class="bg-bg-secondary border-t border-white/5 py-12 mt-12">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
+            <p class="text-gray-500 text-sm">© 2026 ZepraBrowser · Part of the NeolyxOS Project</p>
+        </div>
+    </footer>
+
+    <!-- Scripts -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/gsap.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/ScrollTrigger.min.js"></script>
+    <script src="assets/js/docs.js" defer></script>
+</body>
+</html>

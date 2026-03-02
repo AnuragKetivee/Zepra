@@ -1,0 +1,222 @@
+<!DOCTYPE html>
+<!-- 
+    test_css_cascade.html - CSS Cascade Test Page
+    
+    This page tests CSS cascade behavior following W3C specifications.
+    Similar to WebKit LayoutTests reference pages.
+-->
+<html>
+
+<head>
+    <meta charset="UTF-8">
+    <title>CSS Cascade Test</title>
+    <style>
+        /* User-Agent Styles (simulated) */
+        body {
+            font-family: sans-serif;
+            margin: 8px;
+        }
+
+        /* Test 1: Element Selector */
+        div {
+            color: blue;
+        }
+
+        /* Test 2: Class Selector (should override element) */
+        .red-text {
+            color: red;
+        }
+
+        /* Test 3: ID Selector (should override class) */
+        #green-text {
+            color: green;
+        }
+
+        /* Test 4: Multiple Classes */
+        .bold {
+            font-weight: bold;
+        }
+
+        .italic {
+            font-style: italic;
+        }
+
+        .underline {
+            text-decoration: underline;
+        }
+
+        /* Test 5: Specificity Battle */
+        div.special {
+            color: orange;
+        }
+
+        /* (0,1,1) */
+        #winner {
+            color: purple;
+        }
+
+        /* (1,0,0) */
+        div#winner.special {
+            color: gold;
+        }
+
+        /* (1,1,1) */
+
+        /* Test 6: Source Order */
+        .source-order {
+            color: red;
+        }
+
+        .source-order {
+            color: green;
+        }
+
+        /* This wins (later) */
+
+        /* Test 7: Inheritance Test */
+        .parent-style {
+            color: purple;
+            font-size: 20px;
+            font-family: Georgia, serif;
+        }
+
+        /* Test 8: Non-inherited properties */
+        .box-model {
+            margin: 20px;
+            padding: 10px;
+            border: 2px solid black;
+            background-color: #f0f0f0;
+        }
+    </style>
+</head>
+
+<body>
+    <h1>CSS Cascade Test Suite</h1>
+
+    <!-- Test 1: Element Selector -->
+    <section>
+        <h2>Test 1: Element Selector</h2>
+        <div id="test1">This text should be BLUE (from element selector)</div>
+        <p><strong>Expected:</strong> Blue text</p>
+    </section>
+
+    <!-- Test 2: Class > Element -->
+    <section>
+        <h2>Test 2: Class Beats Element</h2>
+        <div class="red-text" id="test2">This text should be RED (class beats element)</div>
+        <p><strong>Expected:</strong> Red text</p>
+    </section>
+
+    <!-- Test 3: ID > Class -->
+    <section>
+        <h2>Test 3: ID Beats Class</h2>
+        <div class="red-text" id="green-text">This text should be GREEN (ID beats class)</div>
+        <p><strong>Expected:</strong> Green text</p>
+    </section>
+
+    <!-- Test 4: Multiple Classes -->
+    <section>
+        <h2>Test 4: Multiple Classes</h2>
+        <div class="bold italic underline" id="test4">This text should be bold, italic, and underlined</div>
+        <p><strong>Expected:</strong> Bold, italic, underlined text</p>
+    </section>
+
+    <!-- Test 5: Specificity Battle -->
+    <section>
+        <h2>Test 5: Specificity Battle</h2>
+        <div id="winner" class="special">This text should be GOLD (highest specificity 1,1,1)</div>
+        <p><strong>Expected:</strong> Gold text</p>
+    </section>
+
+    <!-- Test 6: Source Order -->
+    <section>
+        <h2>Test 6: Source Order (Later Wins)</h2>
+        <div class="source-order" id="test6">This text should be GREEN (later declaration wins)</div>
+        <p><strong>Expected:</strong> Green text</p>
+    </section>
+
+    <!-- Test 7: Inheritance -->
+    <section>
+        <h2>Test 7: Inheritance</h2>
+        <div class="parent-style" id="test7-parent">
+            Parent text (purple, 20px, Georgia)
+            <span id="test7-child">Child inherits: purple, 20px, Georgia</span>
+        </div>
+        <p><strong>Expected:</strong> Child inherits color, font-size, font-family from parent</p>
+    </section>
+
+    <!-- Test 8: Non-Inherited Properties -->
+    <section>
+        <h2>Test 8: Non-Inherited Properties</h2>
+        <div class="box-model" id="test8-parent">
+            Parent with margin, padding, border, background
+            <div id="test8-child">Child should NOT inherit box model properties</div>
+        </div>
+        <p><strong>Expected:</strong> Child has no margin, padding, border, or background</p>
+    </section>
+
+    <!-- Test 9: Inline Style Priority -->
+    <section>
+        <h2>Test 9: Inline Style (Highest Priority)</h2>
+        <div id="inline-test" class="red-text" style="color: cyan;">
+            This text should be CYAN (inline style beats all)
+        </div>
+        <p><strong>Expected:</strong> Cyan text (inline beats ID and class)</p>
+    </section>
+
+    <!-- Test Results -->
+    <section id="results">
+        <h2>Test Results</h2>
+        <div id="result-container"></div>
+    </section>
+
+    <script>
+        // JavaScript test validation
+        function validateTests() {
+            const results = [];
+
+            // Test 1: Element selector
+            const test1 = document.getElementById('test1');
+            const style1 = window.getComputedStyle(test1);
+            results.push({
+                name: 'Element Selector',
+                passed: style1.color === 'rgb(0, 0, 255)' || style1.color === 'blue'
+            });
+
+            // Test 2: Class > Element
+            const test2 = document.getElementById('test2');
+            const style2 = window.getComputedStyle(test2);
+            results.push({
+                name: 'Class > Element',
+                passed: style2.color === 'rgb(255, 0, 0)' || style2.color === 'red'
+            });
+
+            // Test 3: ID > Class
+            const test3 = document.getElementById('green-text');
+            const style3 = window.getComputedStyle(test3);
+            results.push({
+                name: 'ID > Class',
+                passed: style3.color === 'rgb(0, 128, 0)' || style3.color === 'green'
+            });
+
+            // Display results
+            const container = document.getElementById('result-container');
+            let html = '<ul>';
+            results.forEach(r => {
+                html += `<li style="color: ${r.passed ? 'green' : 'red'}">
+                    ${r.passed ? '✓' : '✗'} ${r.name}: ${r.passed ? 'PASSED' : 'FAILED'}
+                </li>`;
+            });
+            html += '</ul>';
+            container.innerHTML = html;
+
+            // Return overall result
+            return results.every(r => r.passed);
+        }
+
+        // Run tests on load
+        window.onload = validateTests;
+    </script>
+</body>
+
+</html>

@@ -26,14 +26,16 @@ public:
         
         size_t i = 0;
         while (i < data.size()) {
+            size_t remaining = data.size() - i;
+            
             uint32_t n = data[i++] << 16;
-            if (i < data.size()) n |= data[i++] << 8;
-            if (i < data.size()) n |= data[i++];
+            if (remaining > 1) n |= data[i++] << 8;
+            if (remaining > 2) n |= data[i++];
             
             result += chars[(n >> 18) & 0x3F];
             result += chars[(n >> 12) & 0x3F];
-            result += (i > data.size() - 2) ? '=' : chars[(n >> 6) & 0x3F];
-            result += (i > data.size() - 1) ? '=' : chars[n & 0x3F];
+            result += (remaining > 1) ? chars[(n >> 6) & 0x3F] : '=';
+            result += (remaining > 2) ? chars[n & 0x3F] : '=';
         }
         
         return result;
@@ -58,26 +60,29 @@ public:
         std::vector<uint8_t> result;
         result.reserve(encoded.size() * 3 / 4);
         
-        int padding = 0;
-        if (!encoded.empty() && encoded.back() == '=') ++padding;
-        if (encoded.size() > 1 && encoded[encoded.size() - 2] == '=') ++padding;
-        
         for (size_t i = 0; i < encoded.size(); i += 4) {
             if (i + 4 > encoded.size()) break;
             
+            // Count non-padding characters
+            int validChars = 4;
+            if (encoded[i + 3] == '=') validChars--;
+            if (encoded[i + 2] == '=') validChars--;
+            
             uint32_t n = 0;
-            for (int j = 0; j < 4; ++j) {
+            for (int j = 0; j < validChars; ++j) {
                 char c = encoded[i + j];
-                if (c == '=') break;
                 if (c < 0 || c >= 128) throw std::runtime_error("Invalid Base64");
                 int8_t val = lookup[static_cast<uint8_t>(c)];
                 if (val < 0) throw std::runtime_error("Invalid Base64");
                 n = (n << 6) | val;
             }
             
+            // Shift to account for missing characters
+            n <<= (4 - validChars) * 6;
+            
             result.push_back((n >> 16) & 0xFF);
-            if (padding < 2 || i + 4 < encoded.size()) result.push_back((n >> 8) & 0xFF);
-            if (padding < 1 || i + 4 < encoded.size()) result.push_back(n & 0xFF);
+            if (validChars > 2) result.push_back((n >> 8) & 0xFF);
+            if (validChars > 3) result.push_back(n & 0xFF);
         }
         
         return result;

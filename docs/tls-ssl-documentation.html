@@ -1,0 +1,489 @@
+<!DOCTYPE html>
+<html lang="en" class="scroll-smooth">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>NXHTTP TLS/SSL Documentation - ZepraBrowser</title>
+    
+    <!-- Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+    
+    <!-- Tailwind CSS with Typography Plugin -->
+    <script src="https://cdn.tailwindcss.com?plugins=typography"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        bg: {
+                            primary: '#0a0a0f',
+                            secondary: '#12121a',
+                            tertiary: '#1a1a24'
+                        },
+                        accent: {
+                            DEFAULT: '#10b981',
+                            light: '#34d399',
+                            dark: '#059669',
+                            glow: 'rgba(16, 185, 129, 0.3)'
+                        }
+                    },
+                    fontFamily: {
+                        sans: ['Inter', 'sans-serif'],
+                        mono: ['JetBrains Mono', 'monospace'],
+                    },
+                    typography: (theme) => ({
+                        DEFAULT: {
+                            css: {
+                                color: theme('colors.gray.300'),
+                                a: {
+                                    color: theme('colors.emerald.400'),
+                                    '&:hover': {
+                                        color: theme('colors.emerald.300'),
+                                    },
+                                },
+                                h1: { color: theme('colors.white') },
+                                h2: { color: theme('colors.white') },
+                                h3: { color: theme('colors.white') },
+                                h4: { color: theme('colors.gray.100') },
+                                code: { color: theme('colors.pink.400') },
+                                'code::before': { content: '""' },
+                                'code::after': { content: '""' },
+                                pre: {
+                                    backgroundColor: theme('colors.bg.tertiary'),
+                                    color: theme('colors.gray.200'),
+                                },
+                                blockquote: {
+                                    color: theme('colors.gray.400'),
+                                    borderLeftColor: theme('colors.emerald.500'),
+                                },
+                            },
+                        },
+                    }),
+                }
+            }
+        }
+    </script>
+
+    <!-- Custom CSS -->
+    <link rel="stylesheet" href="assets/css/docs.css">
+</head>
+<body class="antialiased min-h-screen relative selection:bg-emerald-500/30 selection:text-emerald-200">
+
+    <!-- Background Elements -->
+    <div class="bg-grid"></div>
+    <div class="glow-orb orb-1"></div>
+    <div class="glow-orb orb-2"></div>
+
+    <!-- Navigation -->
+    
+    
+    <!-- Navigation Sidebar -->
+    <aside class="fixed left-0 top-0 w-72 h-screen bg-dark-800/90 backdrop-blur-xl border-r border-white/5 z-50 overflow-y-auto">
+        <div class="p-6 border-b border-white/5">
+            <div class="flex items-center gap-3">
+                <a href="index.html" class="flex items-center gap-3 w-full">
+                    <div class="w-10 h-10 rounded-xl bg-gradient-to-br from-emerald-500 to-blue-500 flex items-center justify-center glow">
+                        <img src="../resources/zepraicon/logo.svg" alt="Zepra Logo" class="w-8 h-8 object-contain">
+                    </div>
+                    <div>
+                        <h1 class="font-bold text-lg text-white">ZepraBrowser</h1>
+                        <span class="text-xs text-gray-500">Documentation Hub</span>
+                    </div>
+                </a>
+            </div>
+        </div>
+        <nav class="p-4">
+            <div class="mb-6">
+                <span class="text-[10px] font-semibold uppercase tracking-wider text-gray-500 px-3">Quick Navigation</span>
+                <div class="mt-2 space-y-1">
+                    <a href="index.html" class="nav-link flex items-center gap-3 px-3 py-2 text-sm text-gray-400 hover:text-white rounded-lg hover:bg-white/5 transition-all border-l-2 border-transparent">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"/></svg>
+                        Hub Home
+                    </a>
+                    <a href="zeprascript/index.html" class="nav-link flex items-center gap-3 px-3 py-2 text-sm text-gray-400 hover:text-white rounded-lg hover:bg-white/5 transition-all border-l-2 border-transparent">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>
+                        ZepraScript Engine
+                    </a>
+                </div>
+            </div>
+            <div class="mb-6">
+                <span class="text-[10px] font-semibold uppercase tracking-wider text-gray-500 px-3">Overview</span>
+                <div class="mt-2 space-y-1">
+                    <a href="architecture.html" class="nav-link flex items-center gap-3 px-3 py-2 text-sm text-gray-400 hover:text-white rounded-lg hover:bg-white/5 transition-all border-l-2 border-transparent pl-6">Architecture</a>
+                    <a href="advanced-developer-tools.html" class="nav-link flex items-center gap-3 px-3 py-2 text-sm text-gray-400 hover:text-white rounded-lg hover:bg-white/5 transition-all border-l-2 border-transparent pl-6">Developer Tools</a>
+                    <a href="security-model.html" class="nav-link flex items-center gap-3 px-3 py-2 text-sm text-gray-400 hover:text-white rounded-lg hover:bg-white/5 transition-all border-l-2 border-transparent pl-6">Security Model</a>
+                    <a href="NXRENDER/architecture.html" class="nav-link flex items-center gap-3 px-3 py-2 text-sm text-gray-400 hover:text-white rounded-lg hover:bg-white/5 transition-all border-l-2 border-transparent pl-6">NXRender</a>
+                </div>
+            </div>
+        </nav>
+    </aside>
+
+
+<main class="ml-72 flex-1 min-w-0 min-h-screen py-12 px-8 max-w-5xl mx-auto">
+<!-- Page Header with Icon -->
+                <div class="flex items-center gap-4 mb-8 border-b border-white/10 pb-8 animate-fade-in">
+                    <div class="w-16 h-16 rounded-2xl bg-bg-secondary border border-white/5 flex items-center justify-center shrink-0">
+                        <svg class="w-8 h-8 opacity-80 text-emerald-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>
+                    </div>
+                    <div>
+                        <h1 class="text-3xl sm:text-4xl font-bold text-white tracking-tight">NXHTTP TLS/SSL Documentation - ZepraBrowser</h1>
+                        <p class="text-gray-400 mt-1 text-sm font-mono">TLS_SSL_DOCUMENTATION.html</p>
+                    </div>
+                </div>
+
+                <div class="prose prose-invert prose-emerald max-w-none animate-fade-up">
+
+
+
+    <div class="nav-links">
+        <a href="index.html">Back to Documentation Index</a> |
+        <a href="search-engine-integration.html">Search Engine</a> |
+        <a href="architecture.html">Architecture</a>
+    </div>
+
+    <h1>NXHTTP TLS/SSL Implementation</h1>
+
+    <div class="header-meta">
+        <strong>Version:</strong> 1.0.0 |
+        <strong>Last Updated:</strong> December 2025 |
+        <strong>Status:</strong> <span class="status-ok">Production Ready</span>
+    </div>
+
+    <h2>Overview</h2>
+
+    <p>
+        NXHTTP is ZepraBrowser's native HTTP client library with full TLS/SSL support.
+        It provides secure HTTPS connections using OpenSSL, integrated via the
+        <code>SSLContext</code> wrapper in the networking module.
+    </p>
+
+    <div class="note">
+        <strong>Note:</strong> ZepraBrowser uses <strong>KetiveeSearch</strong>
+        (powered by ZepraSearch) as the default search engine. All search queries
+        are routed to <code>https://ketivee.com/search</code> with full TLS encryption.
+    </div>
+
+    <h2>Architecture</h2>
+
+    <div class="architecture">
+        +------------------------------------------------------------------+
+        | ZepraBrowser |
+        +------------------------------------------------------------------+
+        | +---------------+ +---------------+ +---------------+ |
+        | | Address Bar | | Search Box | | Tab Manager | |
+        | +-------+-------+ +-------+-------+ +---------------+ |
+        | | | |
+        | +----------+--------+ |
+        | v |
+        | +----------------------------------------------------------+ |
+        | | httpGet() | |
+        | | zepra_browser.cpp:333 | |
+        | +----------------------------+-----------------------------+ |
+        +-------------------------------+----------------------------------+
+        v
+        +----------------------------------------------------------+
+        | NXHTTP |
+        | source/nxhttp/src/client.cpp |
+        | |
+        | +----------------+ +----------------+ |
+        | | HTTP Request | | HTTPS Request | |
+        | | (Plain TCP) | | (TLS 1.2+) | |
+        | +-------+--------+ +-------+--------+ |
+        +-----------+----------------------+------------------------+
+        | v
+        | +------------------------------------+
+        | | SSLContext |
+        | | networking/ssl_context.cpp |
+        | | |
+        | | - TLS Handshake |
+        | | - Certificate Verification |
+        | | - SNI (Server Name Indication) |
+        | | - Modern Cipher Suites |
+        | +------------------+-----------------+
+        | |
+        +------------+-----------+
+        v
+        +----------------------------------------------------------+
+        | OpenSSL |
+        | System Library (libssl) |
+        +----------------------------------------------------------+
+    </div>
+
+    <h2>TLS Features</h2>
+
+    <table>
+        <tr>
+            <th>Feature</th>
+            <th>Status</th>
+            <th>Description</th>
+        </tr>
+        <tr>
+            <td>TLS 1.2</td>
+            <td class="status-ok">Enabled</td>
+            <td>Minimum supported version (industry standard)</td>
+        </tr>
+        <tr>
+            <td>TLS 1.3</td>
+            <td class="status-ok">Enabled</td>
+            <td>Maximum version with 0-RTT support</td>
+        </tr>
+        <tr>
+            <td>SNI (Server Name Indication)</td>
+            <td class="status-ok">Enabled</td>
+            <td>Required for virtual hosting and CDNs</td>
+        </tr>
+        <tr>
+            <td>Certificate Verification</td>
+            <td class="status-ok">Enabled</td>
+            <td>System CA bundle loaded automatically</td>
+        </tr>
+        <tr>
+            <td>Hostname Verification</td>
+            <td class="status-ok">Enabled</td>
+            <td>Prevents MITM attacks</td>
+        </tr>
+        <tr>
+            <td>Session Resumption</td>
+            <td class="status-ok">Enabled</td>
+            <td>Faster reconnections to same host</td>
+        </tr>
+        <tr>
+            <td>ALPN (HTTP/2)</td>
+            <td class="status-ok">Negotiated</td>
+            <td>Advertises h2 and http/1.1</td>
+        </tr>
+        <tr>
+            <td>OCSP Stapling</td>
+            <td class="status-ok">Enabled</td>
+            <td>Certificate revocation checking</td>
+        </tr>
+    </table>
+
+    <h2>Cipher Suites</h2>
+
+    <p>NXHTTP uses modern AEAD cipher suites only. No CBC mode is allowed.</p>
+
+    <h3>TLS 1.3 Ciphers</h3>
+    <pre><code>TLS_AES_256_GCM_SHA384
+TLS_CHACHA20_POLY1305_SHA256
+TLS_AES_128_GCM_SHA256</code></pre>
+
+    <h3>TLS 1.2 Ciphers</h3>
+    <pre><code>ECDHE-ECDSA-AES256-GCM-SHA384
+ECDHE-RSA-AES256-GCM-SHA384
+ECDHE-ECDSA-CHACHA20-POLY1305
+ECDHE-RSA-CHACHA20-POLY1305
+ECDHE-ECDSA-AES128-GCM-SHA256
+ECDHE-RSA-AES128-GCM-SHA256</code></pre>
+
+    <h2>Integration with KetiveeSearch</h2>
+
+    <p>
+        ZepraBrowser's default search engine is <strong>KetiveeSearch</strong>, powered by the
+        ZepraSearch backend. All search queries use HTTPS with the TLS implementation described above.
+    </p>
+
+    <h3>Search URL Pattern</h3>
+    <pre><code>// Default search engine (Ketivee)
+return "https://ketivee.com/search?q=" + urlEncode(query);</code></pre>
+
+    <h3>ZepraSearch API Endpoints</h3>
+    <table>
+        <tr>
+            <th>Endpoint</th>
+            <th>Port</th>
+            <th>Description</th>
+        </tr>
+        <tr>
+            <td><code>/api/v1/search</code></td>
+            <td>8080</td>
+            <td>Web search</td>
+        </tr>
+        <tr>
+            <td><code>/api/v1/search/images</code></td>
+            <td>8080</td>
+            <td>Image search</td>
+        </tr>
+        <tr>
+            <td><code>/api/v1/ai/chat</code></td>
+            <td>8080</td>
+            <td>AI-powered chat</td>
+        </tr>
+        <tr>
+            <td><code>/api/v1/vartta/news</code></td>
+            <td>7446</td>
+            <td>Real-time news</td>
+        </tr>
+    </table>
+
+    <h2>Usage</h2>
+
+    <h3>Basic HTTPS Request</h3>
+    <pre><code>// In zepra_browser.cpp
+HttpResponse resp = httpGet("https://ketivee.com/search?q=test");
+
+if (resp.success) {
+    std::cout &lt;&lt; "Content: " &lt;&lt; resp.data &lt;&lt; std::endl;
+    std::cout &lt;&lt; "Status: " &lt;&lt; resp.statusCode &lt;&lt; std::endl;
+} else {
+    std::cerr &lt;&lt; "Error: " &lt;&lt; resp.error &lt;&lt; std::endl;
+}</code></pre>
+
+    <h3>Console Output (TLS Success)</h3>
+    <pre><code>[NXHTTP] Establishing TLS connection to ketivee.com
+[NXHTTP] TLS connected: TLS_AES_256_GCM_SHA384 (256 bits)</code></pre>
+
+    <h3>Configuring SSL Verification</h3>
+    <pre><code>NxHttpClientConfig config = {0};
+config.connect_timeout_ms = 10000;
+config.read_timeout_ms = 10000;
+config.follow_redirects = true;
+config.max_redirects = 10;
+config.verify_ssl = true;  // Enable certificate verification
+config.user_agent = "ZepraBrowser/1.0 (NeolyxOS)";
+
+NxHttpClient* client = nx_http_client_create(&amp;config);</code></pre>
+
+    <h2>Source Files</h2>
+
+    <table>
+        <tr>
+            <th>File</th>
+            <th>Purpose</th>
+        </tr>
+        <tr>
+            <td><code>source/nxhttp/src/client.cpp</code></td>
+            <td>HTTP/HTTPS client with TLS support</td>
+        </tr>
+        <tr>
+            <td><code>source/nxhttp/include/nxhttp.h</code></td>
+            <td>Public API header</td>
+        </tr>
+        <tr>
+            <td><code>source/networking/src/ssl_context.cpp</code></td>
+            <td>OpenSSL wrapper (SSLContext)</td>
+        </tr>
+        <tr>
+            <td><code>source/networking/include/networking/ssl_context.hpp</code></td>
+            <td>SSL types and SSLSocket class</td>
+        </tr>
+    </table>
+
+    <h2>Certificate Verification</h2>
+
+    <p>The SSL context automatically loads system CA certificates from these locations:</p>
+
+    <pre><code>/etc/ssl/certs/ca-certificates.crt    (Debian/Ubuntu)
+/etc/pki/tls/certs/ca-bundle.crt      (RHEL/CentOS)
+/etc/ssl/ca-bundle.pem                 (OpenSUSE)
+/etc/pki/ca-trust/extracted/pem/tls-ca-bundle.pem</code></pre>
+
+    <h3>Verification Results</h3>
+    <table>
+        <tr>
+            <th>Result</th>
+            <th>Meaning</th>
+        </tr>
+        <tr>
+            <td><code>CertVerifyResult::OK</code></td>
+            <td>Certificate is valid</td>
+        </tr>
+        <tr>
+            <td><code>CertVerifyResult::EXPIRED</code></td>
+            <td>Certificate has expired</td>
+        </tr>
+        <tr>
+            <td><code>CertVerifyResult::HOSTNAME_MISMATCH</code></td>
+            <td>Certificate doesn't match requested hostname</td>
+        </tr>
+        <tr>
+            <td><code>CertVerifyResult::UNTRUSTED_ROOT</code></td>
+            <td>Root CA not in trusted store</td>
+        </tr>
+        <tr>
+            <td><code>CertVerifyResult::SELF_SIGNED</code></td>
+            <td>Self-signed certificate (not trusted)</td>
+        </tr>
+    </table>
+
+    <h2>Error Handling</h2>
+
+    <pre><code>NxHttpError err;
+NxHttpResponse* res = nx_http_client_send(client, req, &amp;err);
+
+if (!res) {
+    switch (err) {
+        case NX_HTTP_ERROR_SSL:
+            // TLS handshake failed or certificate error
+            std::cerr &lt;&lt; "TLS Error: " 
+                      &lt;&lt; Zepra::Networking::SSLContext::getLastError() 
+                      &lt;&lt; std::endl;
+            break;
+        case NX_HTTP_ERROR_DNS:
+            std::cerr &lt;&lt; "DNS resolution failed" &lt;&lt; std::endl;
+            break;
+        case NX_HTTP_ERROR_CONNECT:
+            std::cerr &lt;&lt; "Connection refused" &lt;&lt; std::endl;
+            break;
+    }
+}</code></pre>
+
+    <h2>Build Requirements</h2>
+
+    <pre><code># CMake configuration (automatic)
+find_package(OpenSSL REQUIRED)
+target_link_libraries(nxhttp PRIVATE networking OpenSSL::SSL OpenSSL::Crypto)
+
+# Install OpenSSL (if not present)
+# Ubuntu/Debian:
+sudo apt install libssl-dev
+
+# RHEL/CentOS:
+sudo dnf install openssl-devel</code></pre>
+
+    <h2>Security Best Practices</h2>
+
+    <div class="warning">
+        <strong>Production Configuration:</strong>
+        <ul>
+            <li>Always keep <code>verify_ssl = true</code> in production</li>
+            <li>Never accept self-signed certificates without user consent</li>
+            <li>Keep OpenSSL updated for security patches</li>
+            <li>Monitor for certificate expiration on your domains</li>
+        </ul>
+    </div>
+
+    <h2>Related Documentation</h2>
+
+    <ul>
+        <li><a href="search-engine-integration.html">KetiveeSearch Integration</a></li>
+        <li><a href="architecture.html">Browser Architecture</a></li>
+        <li><a href="security-model.html">Security Model</a></li>
+        <li><a href="api-support.html">Web API Support</a></li>
+    </ul>
+
+    
+    <p style="color: var(--text-secondary); text-align: center;">
+        ZepraBrowser - KetiveeAI. All rights reserved.
+    </p>
+
+
+        
+                </div>
+            </main>
+
+    <!-- Footer -->
+    <footer class="bg-bg-secondary border-t border-white/5 py-12 mt-12">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
+            <p class="text-gray-500 text-sm">© 2026 ZepraBrowser · Part of the NeolyxOS Project</p>
+        </div>
+    </footer>
+
+    <!-- Scripts -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/gsap.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/ScrollTrigger.min.js"></script>
+    <script src="assets/js/docs.js" defer></script>
+</body>
+</html>

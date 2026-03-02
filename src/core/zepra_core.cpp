@@ -1,5 +1,5 @@
 #include "core/zepra_core.h"
-#include <curl/curl.h>
+#include <nxhttp.h>
 #include <nlohmann/json.hpp>
 #include <SDL2/SDL.h>
 #include <SDL2/SDL_ttf.h>
@@ -18,21 +18,6 @@ using json = nlohmann::json;
 
 namespace ZepraCore {
 
-// Static callback for CURL downloads
-static size_t WriteCallback(void* contents, size_t size, size_t nmemb, void* userp) {
-    std::ofstream* file = static_cast<std::ofstream*>(userp);
-    file->write(static_cast<char*>(contents), size * nmemb);
-    return size * nmemb;
-}
-
-// Progress callback for downloads
-static int ProgressCallback(void* clientp, curl_off_t dltotal, curl_off_t dlnow, curl_off_t, curl_off_t) {
-    auto* progressData = static_cast<std::pair<size_t, size_t>*>(clientp);
-    progressData->first = static_cast<size_t>(dlnow);
-    progressData->second = static_cast<size_t>(dltotal);
-    return 0;
-}
-
 // Singleton instance
 ZepraCore& ZepraCore::getInstance() {
     static ZepraCore instance;
@@ -47,10 +32,9 @@ ZepraCore::ZepraCore()
     , m_running(false)
     , m_authState(AuthState::UNAUTHENTICATED)
     , m_downloadManagerVisible(false)
-    , m_initialized(false)
-    , m_curlHandle(nullptr) {
-    
-    std::cout << "🦓 Zepra Core initializing..." << std::endl;
+    , m_initialized(false) {
+    // nxhttp does not require a persistent handle
+    std::cout << "[Zepra] Zepra Core initializing..." << std::endl;
 }
 
 ZepraCore::~ZepraCore() {
@@ -64,47 +48,47 @@ bool ZepraCore::initialize(const std::string& configPath) {
         return true;
     }
     
-    std::cout << "🦓 Initializing Zepra Core Browser..." << std::endl;
+    std::cout << "[Zepra] Initializing Zepra Core Browser..." << std::endl;
     
     // Load configuration
     if (!loadConfig(configPath)) {
-        std::cout << "⚠️ Using default configuration" << std::endl;
+        std::cout << "[Warn] Using default configuration" << std::endl;
     }
     
     // Initialize SDL
     if (!initializeSDL()) {
-        std::cerr << "❌ Failed to initialize SDL" << std::endl;
+        std::cerr << "[Error] Failed to initialize SDL" << std::endl;
         return false;
     }
     
     // Initialize components
     if (!initializeComponents()) {
-        std::cerr << "❌ Failed to initialize components" << std::endl;
+        std::cerr << "[Error] Failed to initialize components" << std::endl;
         return false;
     }
     
     // Initialize authentication
     if (!initializeAuthentication()) {
-        std::cerr << "❌ Failed to initialize authentication" << std::endl;
+        std::cerr << "[Error] Failed to initialize authentication" << std::endl;
         return false;
     }
     
     // Initialize download manager
     if (!initializeDownloadManager()) {
-        std::cerr << "❌ Failed to initialize download manager" << std::endl;
+        std::cerr << "[Error] Failed to initialize download manager" << std::endl;
         return false;
     }
     
     // Initialize UI
     if (!initializeUI()) {
-        std::cerr << "❌ Failed to initialize UI" << std::endl;
+        std::cerr << "[Error] Failed to initialize UI" << std::endl;
         return false;
     }
     
     m_initialized = true;
     m_state = SystemState::READY;
     
-    std::cout << "✅ Zepra Core Browser initialized successfully!" << std::endl;
+    std::cout << "[OK] Zepra Core Browser initialized successfully!" << std::endl;
     return true;
 }
 
@@ -115,7 +99,7 @@ void ZepraCore::shutdown() {
         return;
     }
     
-    std::cout << "🦓 Shutting down Zepra Core Browser..." << std::endl;
+    std::cout << "[Zepra] Shutting down Zepra Core Browser..." << std::endl;
     
     // Stop the main loop
     m_running = false;
@@ -126,19 +110,19 @@ void ZepraCore::shutdown() {
     m_initialized = false;
     m_state = SystemState::SHUTDOWN;
     
-    std::cout << "✅ Zepra Core Browser shutdown complete" << std::endl;
+    std::cout << "[OK] Zepra Core Browser shutdown complete" << std::endl;
 }
 
 void ZepraCore::run() {
     if (!m_initialized) {
-        std::cerr << "❌ Zepra Core not initialized" << std::endl;
+        std::cerr << "[Error] Zepra Core not initialized" << std::endl;
         return;
     }
     
     m_state = SystemState::RUNNING;
     m_running = true;
     
-    std::cout << "🚀 Starting Zepra Core Browser main loop..." << std::endl;
+    std::cout << "[Run] Starting Zepra Core Browser main loop..." << std::endl;
     
     // Main loop
     while (m_running) {
@@ -237,15 +221,8 @@ void ZepraCore::shutdownSDL() {
 // Component initialization
 bool ZepraCore::initializeComponents() {
     try {
-        // Initialize CURL for downloads
-        curl_global_init(CURL_GLOBAL_ALL);
-        m_curlHandle = curl_easy_init();
-        
-        if (!m_curlHandle) {
-            std::cerr << "Failed to initialize CURL" << std::endl;
-            return false;
-        }
-        
+        // nxhttp does not require global initialization
+        std::cout << "[Zepra] HTTP client (nxhttp) ready" << std::endl;
         return true;
     } catch (const std::exception& e) {
         std::cerr << "Exception during component initialization: " << e.what() << std::endl;
@@ -468,11 +445,11 @@ bool ZepraCore::login(const std::string& email, const std::string& password) {
             m_onAuthStateChanged(m_authState, m_currentUser);
         }
         
-        std::cout << "✅ Login successful" << std::endl;
+        std::cout << "[OK] Login successful" << std::endl;
         return true;
     }
     
-    std::cout << "❌ Login failed" << std::endl;
+    std::cout << "[Error] Login failed" << std::endl;
     return false;
 }
 
@@ -487,11 +464,11 @@ bool ZepraCore::loginWith2FA(const std::string& tempToken, const std::string& co
             m_onAuthStateChanged(m_authState, m_currentUser);
         }
         
-        std::cout << "✅ 2FA verification successful" << std::endl;
+        std::cout << "[OK] 2FA verification successful" << std::endl;
         return true;
     }
     
-    std::cout << "❌ 2FA verification failed" << std::endl;
+    std::cout << "[Error] 2FA verification failed" << std::endl;
     return false;
 }
 
@@ -575,7 +552,7 @@ bool ZepraCore::cancelDownload(const std::string& downloadId) {
     auto it = m_downloads.find(downloadId);
     if (it != m_downloads.end()) {
         it->second.state = DownloadState::CANCELLED;
-        std::cout << "❌ Cancelled download: " << it->second.filename << std::endl;
+        std::cout << "[Error] Cancelled download: " << it->second.filename << std::endl;
         return true;
     }
     
@@ -641,7 +618,7 @@ void ZepraCore::updateDownloads() {
                         m_onDownloadCompleted(download);
                     }
                     
-                    std::cout << "✅ Download completed: " << download.filename << std::endl;
+                    std::cout << "[OK] Download completed: " << download.filename << std::endl;
                 }
             }
         }
@@ -668,35 +645,35 @@ void ZepraCore::processDownloadQueue() {
 
 bool ZepraCore::downloadFile(const std::string& url, const std::string& localPath, 
                              std::function<void(size_t, size_t)> progressCallback) {
-    if (!m_curlHandle) {
+    try {
+        nx::HttpClient client;
+        auto response = client.get(url);
+        
+        if (!response.ok()) {
+            std::cerr << "Download failed: HTTP " << response.status() << std::endl;
+            return false;
+        }
+        
+        // Write response body to file
+        std::ofstream file(localPath, std::ios::binary);
+        if (!file.is_open()) {
+            std::cerr << "Failed to open file for writing: " << localPath << std::endl;
+            return false;
+        }
+        
+        std::string body = response.body();
+        file.write(body.data(), body.size());
+        file.close();
+        
+        if (progressCallback) {
+            progressCallback(body.size(), body.size());
+        }
+        
+        return true;
+    } catch (const nx::HttpException& e) {
+        std::cerr << "Download error: " << e.what() << std::endl;
         return false;
     }
-    
-    std::ofstream file(localPath, std::ios::binary);
-    if (!file.is_open()) {
-        return false;
-    }
-    
-    std::pair<size_t, size_t> progressData = {0, 0};
-    
-    curl_easy_reset(m_curlHandle);
-    curl_easy_setopt(m_curlHandle, CURLOPT_URL, url.c_str());
-    curl_easy_setopt(m_curlHandle, CURLOPT_WRITEFUNCTION, WriteCallback);
-    curl_easy_setopt(m_curlHandle, CURLOPT_WRITEDATA, &file);
-    curl_easy_setopt(m_curlHandle, CURLOPT_NOPROGRESS, 0L);
-    curl_easy_setopt(m_curlHandle, CURLOPT_XFERINFOFUNCTION, ProgressCallback);
-    curl_easy_setopt(m_curlHandle, CURLOPT_XFERINFODATA, &progressData);
-    curl_easy_setopt(m_curlHandle, CURLOPT_FOLLOWLOCATION, 1L);
-    curl_easy_setopt(m_curlHandle, CURLOPT_SSL_VERIFYPEER, 1L);
-    
-    CURLcode res = curl_easy_perform(m_curlHandle);
-    file.close();
-    
-    if (progressCallback) {
-        progressCallback(progressData.first, progressData.second);
-    }
-    
-    return (res == CURLE_OK);
 }
 
 // UI management

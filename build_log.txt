@@ -1,0 +1,76 @@
+╔══════════════════════════════════════════════════════════════╗
+║     ZepraBrowser - Full WebCore Build                        ║
+║     CSS Engine + JavaScript (ZebraScript) + HTML Parser      ║
+╚══════════════════════════════════════════════════════════════╝
+
+[✓] Libraries ready:
+    libzepra-core.a: 3.0M
+    libwebcore.a: 4.3M
+
+[0.5/5] Compiling NX libraries...
+[0.6/5] Compiling NXRender Core...
+[1/5] Compiling zepra_browser.cpp...
+In file included from /usr/include/X11/Xlib.h:44,
+                 from /home/swana/Documents/NEOLYXOS/neolyx-os/apps/zeprabrowser/src/browser/keyboard_handler.h:9,
+                 from /home/swana/Documents/NEOLYXOS/neolyx-os/apps/zeprabrowser/src/zepra_browser.cpp:63:
+/home/swana/Documents/NEOLYXOS/neolyx-os/apps/zeprabrowser/src/browser/mouse_handler.h:22:5: error: expected identifier before numeric constant
+   22 |     None,
+      |     ^~~~
+/home/swana/Documents/NEOLYXOS/neolyx-os/apps/zeprabrowser/src/browser/mouse_handler.h:22:5: error: expected ‘}’ before numeric constant
+In file included from /home/swana/Documents/NEOLYXOS/neolyx-os/apps/zeprabrowser/src/zepra_browser.cpp:64:
+/home/swana/Documents/NEOLYXOS/neolyx-os/apps/zeprabrowser/src/browser/mouse_handler.h:21:30: note: to match this ‘{’
+   21 | enum class ContextMenuAction {
+      |                              ^
+/home/swana/Documents/NEOLYXOS/neolyx-os/apps/zeprabrowser/src/browser/mouse_handler.h:22:5: error: expected unqualified-id before numeric constant
+   22 |     None,
+      |     ^~~~
+/home/swana/Documents/NEOLYXOS/neolyx-os/apps/zeprabrowser/src/browser/mouse_handler.h:36:5: error: ‘ContextMenuAction’ does not name a type; did you mean ‘ContextMenuItem’?
+   36 |     ContextMenuAction action;
+      |     ^~~~~~~~~~~~~~~~~
+      |     ContextMenuItem
+/home/swana/Documents/NEOLYXOS/neolyx-os/apps/zeprabrowser/src/browser/mouse_handler.h:55:5: error: ‘ContextMenuAction’ does not name a type; did you mean ‘ContextMenuItem’?
+   55 |     ContextMenuAction handleClick(float mouseX, float mouseY);
+      |     ^~~~~~~~~~~~~~~~~
+      |     ContextMenuItem
+/home/swana/Documents/NEOLYXOS/neolyx-os/apps/zeprabrowser/src/browser/mouse_handler.h:104:24: error: ‘ContextMenuAction’ has not been declared
+  104 |     void executeAction(ContextMenuAction action);
+      |                        ^~~~~~~~~~~~~~~~~
+/home/swana/Documents/NEOLYXOS/neolyx-os/apps/zeprabrowser/src/browser/mouse_handler.h:129:1: error: expected declaration before ‘}’ token
+  129 | } // namespace ZepraBrowser
+      | ^
+/home/swana/Documents/NEOLYXOS/neolyx-os/apps/zeprabrowser/src/zepra_browser.cpp:167:15: error: ‘MouseHandler’ in namespace ‘ZepraBrowser’ does not name a type
+  167 | ZepraBrowser::MouseHandler g_mouseHandler;
+      |               ^~~~~~~~~~~~
+/home/swana/Documents/NEOLYXOS/neolyx-os/apps/zeprabrowser/src/zepra_browser.cpp: In function ‘void gfx::present()’:
+/home/swana/Documents/NEOLYXOS/neolyx-os/apps/zeprabrowser/src/zepra_browser.cpp:919:31: error: ‘g_window’ was not declared in this scope; did you mean ‘Window’?
+  919 |     glXSwapBuffers(g_display, g_window);
+      |                               ^~~~~~~~
+      |                               Window
+/home/swana/Documents/NEOLYXOS/neolyx-os/apps/zeprabrowser/src/zepra_browser.cpp:919:5: error: ‘glXSwapBuffers’ was not declared in this scope; did you mean ‘glReadBuffer’?
+  919 |     glXSwapBuffers(g_display, g_window);
+      |     ^~~~~~~~~~~~~~
+      |     glReadBuffer
+/home/swana/Documents/NEOLYXOS/neolyx-os/apps/zeprabrowser/src/zepra_browser.cpp: In function ‘void initLayoutEngine()’:
+/home/swana/Documents/NEOLYXOS/neolyx-os/apps/zeprabrowser/src/zepra_browser.cpp:1018:5: error: ‘g_mouseHandler’ was not declared in this scope; did you mean ‘MouseHandler’?
+ 1018 |     g_mouseHandler.onGetText([](float x, float y, float w, float h) -> std::string {
+      |     ^~~~~~~~~~~~~~
+      |     MouseHandler
+/home/swana/Documents/NEOLYXOS/neolyx-os/apps/zeprabrowser/src/zepra_browser.cpp: In function ‘void render()’:
+/home/swana/Documents/NEOLYXOS/neolyx-os/apps/zeprabrowser/src/zepra_browser.cpp:1444:21: error: ‘g_mouseHandler’ was not declared in this scope; did you mean ‘MouseHandler’?
+ 1444 |     auto& ctxMenu = g_mouseHandler.getContextMenu();
+      |                     ^~~~~~~~~~~~~~
+      |                     MouseHandler
+/home/swana/Documents/NEOLYXOS/neolyx-os/apps/zeprabrowser/src/zepra_browser.cpp: In function ‘void handleKeyPress(NXRender::KeyCode, const std::string&, bool, bool)’:
+/home/swana/Documents/NEOLYXOS/neolyx-os/apps/zeprabrowser/src/zepra_browser.cpp:1971:13: error: ‘g_mouseHandler’ was not declared in this scope; did you mean ‘MouseHandler’?
+ 1971 |             g_mouseHandler.getSelection().active = true;
+      |             ^~~~~~~~~~~~~~
+      |             MouseHandler
+/home/swana/Documents/NEOLYXOS/neolyx-os/apps/zeprabrowser/src/zepra_browser.cpp: In function ‘int main(int, char**)’:
+/home/swana/Documents/NEOLYXOS/neolyx-os/apps/zeprabrowser/src/zepra_browser.cpp:2060:7: error: ‘::g_mouseHandler’ has not been declared; did you mean ‘MouseHandler’?
+ 2060 |     ::g_mouseHandler.onCopy([](const std::string& text) {
+      |       ^~~~~~~~~~~~~~
+      |       MouseHandler
+/home/swana/Documents/NEOLYXOS/neolyx-os/apps/zeprabrowser/src/zepra_browser.cpp:2064:7: error: ‘::g_mouseHandler’ has not been declared; did you mean ‘MouseHandler’?
+ 2064 |     ::g_mouseHandler.onGetText([](float x, float y, float w, float h) -> std::string {
+      |       ^~~~~~~~~~~~~~
+      |       MouseHandler

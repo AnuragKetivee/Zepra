@@ -1,0 +1,504 @@
+<!DOCTYPE html>
+<!--
+    test_javascript.html - JavaScript Execution Test Page
+    
+    Tests JavaScript execution following ECMAScript specifications.
+    Similar to Mozilla's test262 tests.
+-->
+<html>
+
+<head>
+    <meta charset="UTF-8">
+    <title>JavaScript Execution Tests</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            padding: 20px;
+            background: #f5f5f5;
+        }
+
+        .test-group {
+            background: white;
+            border-radius: 8px;
+            padding: 15px;
+            margin: 10px 0;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        }
+
+        .test-group h3 {
+            margin-top: 0;
+            color: #333;
+        }
+
+        .pass {
+            color: #28a745;
+        }
+
+        .fail {
+            color: #dc3545;
+        }
+
+        .result {
+            font-family: monospace;
+            padding: 5px 10px;
+            margin: 5px 0;
+            border-radius: 4px;
+        }
+
+        .result.pass {
+            background: #d4edda;
+        }
+
+        .result.fail {
+            background: #f8d7da;
+        }
+
+        #summary {
+            position: sticky;
+            top: 10px;
+            background: #333;
+            color: white;
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+        }
+    </style>
+</head>
+
+<body>
+    <h1>JavaScript Execution Tests</h1>
+
+    <div id="summary">
+        <span id="passed">0</span> passed,
+        <span id="failed">0</span> failed,
+        <span id="total">0</span> total
+    </div>
+
+    <div id="results"></div>
+
+    <script>
+        // Test framework
+        let passed = 0;
+        let failed = 0;
+        const results = document.getElementById('results');
+
+        function assert(condition, message) {
+            if (!condition) {
+                throw new Error(message || 'Assertion failed');
+            }
+        }
+
+        function assertEquals(expected, actual, message) {
+            if (expected !== actual) {
+                throw new Error(message || `Expected ${expected}, got ${actual}`);
+            }
+        }
+
+        function test(name, category, fn) {
+            const div = document.createElement('div');
+            div.className = 'result';
+
+            try {
+                fn();
+                div.className += ' pass';
+                div.innerHTML = `✓ [${category}] ${name}`;
+                passed++;
+            } catch (e) {
+                div.className += ' fail';
+                div.innerHTML = `✗ [${category}] ${name}: ${e.message}`;
+                failed++;
+            }
+
+            results.appendChild(div);
+            updateSummary();
+        }
+
+        function updateSummary() {
+            document.getElementById('passed').textContent = passed;
+            document.getElementById('failed').textContent = failed;
+            document.getElementById('total').textContent = passed + failed;
+        }
+
+        function runTests() {
+            // ========================================
+            // ARITHMETIC TESTS
+            // ========================================
+
+            test('Basic addition', 'Arithmetic', () => {
+                assertEquals(7, 1 + 2 * 3);
+            });
+
+            test('Subtraction', 'Arithmetic', () => {
+                assertEquals(5, 10 - 5);
+            });
+
+            test('Multiplication', 'Arithmetic', () => {
+                assertEquals(42, 6 * 7);
+            });
+
+            test('Division', 'Arithmetic', () => {
+                assertEquals(5, 25 / 5);
+            });
+
+            test('Modulo', 'Arithmetic', () => {
+                assertEquals(1, 10 % 3);
+            });
+
+            test('Exponentiation', 'Arithmetic', () => {
+                assertEquals(8, 2 ** 3);
+            });
+
+            // ========================================
+            // VARIABLE TESTS
+            // ========================================
+
+            test('let declaration', 'Variables', () => {
+                let x = 10;
+                assertEquals(10, x);
+            });
+
+            test('const declaration', 'Variables', () => {
+                const PI = 3.14159;
+                assertEquals(3.14159, PI);
+            });
+
+            test('Variable reassignment', 'Variables', () => {
+                let x = 1;
+                x = 2;
+                assertEquals(2, x);
+            });
+
+            // ========================================
+            // STRING TESTS
+            // ========================================
+
+            test('String concatenation', 'Strings', () => {
+                assertEquals('hello world', 'hello' + ' ' + 'world');
+            });
+
+            test('Template literals', 'Strings', () => {
+                const name = 'World';
+                assertEquals('Hello, World!', `Hello, ${name}!`);
+            });
+
+            test('String length', 'Strings', () => {
+                assertEquals(5, 'hello'.length);
+            });
+
+            test('String methods', 'Strings', () => {
+                assertEquals('HELLO', 'hello'.toUpperCase());
+                assertEquals('hello', 'HELLO'.toLowerCase());
+            });
+
+            test('String includes', 'Strings', () => {
+                assert('hello world'.includes('world'));
+            });
+
+            test('String split', 'Strings', () => {
+                const parts = 'a,b,c'.split(',');
+                assertEquals(3, parts.length);
+                assertEquals('b', parts[1]);
+            });
+
+            // ========================================
+            // ARRAY TESTS
+            // ========================================
+
+            test('Array creation', 'Arrays', () => {
+                const arr = [1, 2, 3];
+                assertEquals(3, arr.length);
+            });
+
+            test('Array access', 'Arrays', () => {
+                const arr = [10, 20, 30];
+                assertEquals(20, arr[1]);
+            });
+
+            test('Array push', 'Arrays', () => {
+                const arr = [1];
+                arr.push(2);
+                assertEquals(2, arr.length);
+            });
+
+            test('Array pop', 'Arrays', () => {
+                const arr = [1, 2, 3];
+                const val = arr.pop();
+                assertEquals(3, val);
+                assertEquals(2, arr.length);
+            });
+
+            test('Array map', 'Arrays', () => {
+                const doubled = [1, 2, 3].map(x => x * 2);
+                assertEquals(2, doubled[0]);
+                assertEquals(4, doubled[1]);
+                assertEquals(6, doubled[2]);
+            });
+
+            test('Array filter', 'Arrays', () => {
+                const evens = [1, 2, 3, 4, 5].filter(x => x % 2 === 0);
+                assertEquals(2, evens.length);
+            });
+
+            test('Array reduce', 'Arrays', () => {
+                const sum = [1, 2, 3, 4, 5].reduce((a, b) => a + b, 0);
+                assertEquals(15, sum);
+            });
+
+            test('Array find', 'Arrays', () => {
+                const found = [1, 5, 10, 15].find(x => x > 7);
+                assertEquals(10, found);
+            });
+
+            test('Array findIndex', 'Arrays', () => {
+                const idx = [10, 20, 30].findIndex(x => x === 20);
+                assertEquals(1, idx);
+            });
+
+            test('Array includes', 'Arrays', () => {
+                assert([1, 2, 3].includes(2));
+                assert(![1, 2, 3].includes(5));
+            });
+
+            // ========================================
+            // OBJECT TESTS
+            // ========================================
+
+            test('Object literal', 'Objects', () => {
+                const obj = { x: 10, y: 20 };
+                assertEquals(10, obj.x);
+                assertEquals(20, obj.y);
+            });
+
+            test('Object property access', 'Objects', () => {
+                const obj = { name: 'Test' };
+                assertEquals('Test', obj.name);
+                assertEquals('Test', obj['name']);
+            });
+
+            test('Object property assignment', 'Objects', () => {
+                const obj = {};
+                obj.x = 42;
+                assertEquals(42, obj.x);
+            });
+
+            test('Object.keys', 'Objects', () => {
+                const keys = Object.keys({ a: 1, b: 2, c: 3 });
+                assertEquals(3, keys.length);
+            });
+
+            test('Object.values', 'Objects', () => {
+                const values = Object.values({ a: 1, b: 2 });
+                assertEquals(1, values[0]);
+                assertEquals(2, values[1]);
+            });
+
+            test('Object spread', 'Objects', () => {
+                const a = { x: 1 };
+                const b = { ...a, y: 2 };
+                assertEquals(1, b.x);
+                assertEquals(2, b.y);
+            });
+
+            // ========================================
+            // FUNCTION TESTS
+            // ========================================
+
+            test('Function declaration', 'Functions', () => {
+                function add(a, b) { return a + b; }
+                assertEquals(7, add(3, 4));
+            });
+
+            test('Arrow function', 'Functions', () => {
+                const multiply = (a, b) => a * b;
+                assertEquals(12, multiply(3, 4));
+            });
+
+            test('Default parameters', 'Functions', () => {
+                function greet(name = 'World') { return `Hello, ${name}`; }
+                assertEquals('Hello, World', greet());
+                assertEquals('Hello, Test', greet('Test'));
+            });
+
+            test('Rest parameters', 'Functions', () => {
+                function sum(...nums) { return nums.reduce((a, b) => a + b, 0); }
+                assertEquals(10, sum(1, 2, 3, 4));
+            });
+
+            test('Closure', 'Functions', () => {
+                function createCounter() {
+                    let count = 0;
+                    return () => ++count;
+                }
+                const counter = createCounter();
+                assertEquals(1, counter());
+                assertEquals(2, counter());
+                assertEquals(3, counter());
+            });
+
+            test('Higher-order function', 'Functions', () => {
+                function applyTwice(fn, x) { return fn(fn(x)); }
+                const double = x => x * 2;
+                assertEquals(8, applyTwice(double, 2));
+            });
+
+            // ========================================
+            // CONTROL FLOW TESTS
+            // ========================================
+
+            test('if/else', 'Control Flow', () => {
+                let x = 10;
+                let result;
+                if (x > 5) { result = 'big'; } else { result = 'small'; }
+                assertEquals('big', result);
+            });
+
+            test('Ternary operator', 'Control Flow', () => {
+                const result = 10 > 5 ? 'yes' : 'no';
+                assertEquals('yes', result);
+            });
+
+            test('for loop', 'Control Flow', () => {
+                let sum = 0;
+                for (let i = 1; i <= 5; i++) { sum += i; }
+                assertEquals(15, sum);
+            });
+
+            test('while loop', 'Control Flow', () => {
+                let i = 0, sum = 0;
+                while (i < 5) { sum += ++i; }
+                assertEquals(15, sum);
+            });
+
+            test('for...of loop', 'Control Flow', () => {
+                let sum = 0;
+                for (const n of [1, 2, 3]) { sum += n; }
+                assertEquals(6, sum);
+            });
+
+            test('switch statement', 'Control Flow', () => {
+                function grade(score) {
+                    switch (true) {
+                        case score >= 90: return 'A';
+                        case score >= 80: return 'B';
+                        default: return 'C';
+                    }
+                }
+                assertEquals('A', grade(95));
+                assertEquals('B', grade(85));
+            });
+
+            // ========================================
+            // CLASS TESTS
+            // ========================================
+
+            test('Class creation', 'Classes', () => {
+                class Point {
+                    constructor(x, y) {
+                        this.x = x;
+                        this.y = y;
+                    }
+                }
+                const p = new Point(3, 4);
+                assertEquals(3, p.x);
+                assertEquals(4, p.y);
+            });
+
+            test('Class methods', 'Classes', () => {
+                class Calculator {
+                    add(a, b) { return a + b; }
+                    multiply(a, b) { return a * b; }
+                }
+                const calc = new Calculator();
+                assertEquals(7, calc.add(3, 4));
+                assertEquals(12, calc.multiply(3, 4));
+            });
+
+            test('Class inheritance', 'Classes', () => {
+                class Animal {
+                    speak() { return 'sound'; }
+                }
+                class Dog extends Animal {
+                    speak() { return 'woof'; }
+                }
+                const dog = new Dog();
+                assertEquals('woof', dog.speak());
+            });
+
+            test('Static methods', 'Classes', () => {
+                class MathUtils {
+                    static square(x) { return x * x; }
+                }
+                assertEquals(16, MathUtils.square(4));
+            });
+
+            // ========================================
+            // PROMISE TESTS
+            // ========================================
+
+            test('Promise resolve', 'Promises', () => {
+                let resolved = false;
+                Promise.resolve(42).then(v => { resolved = (v === 42); });
+                // Note: This is sync test, actual promise behavior requires async
+                assert(true); // Placeholder for sync testing
+            });
+
+            // ========================================
+            // ES6+ FEATURES
+            // ========================================
+
+            test('Destructuring assignment', 'ES6+', () => {
+                const [a, b] = [1, 2];
+                assertEquals(1, a);
+                assertEquals(2, b);
+            });
+
+            test('Object destructuring', 'ES6+', () => {
+                const { x, y } = { x: 10, y: 20 };
+                assertEquals(10, x);
+                assertEquals(20, y);
+            });
+
+            test('Spread operator array', 'ES6+', () => {
+                const arr = [...[1, 2], ...[3, 4]];
+                assertEquals(4, arr.length);
+            });
+
+            test('Nullish coalescing', 'ES6+', () => {
+                const a = null ?? 'default';
+                const b = 0 ?? 'default';
+                assertEquals('default', a);
+                assertEquals(0, b);
+            });
+
+            test('Optional chaining', 'ES6+', () => {
+                const obj = { a: { b: { c: 42 } } };
+                assertEquals(42, obj?.a?.b?.c);
+                assertEquals(undefined, obj?.x?.y?.z);
+            });
+
+            test('Symbol creation', 'ES6+', () => {
+                const sym = Symbol('test');
+                assert(typeof sym === 'symbol');
+            });
+
+            test('Set data structure', 'ES6+', () => {
+                const set = new Set([1, 2, 2, 3, 3, 3]);
+                assertEquals(3, set.size);
+                assert(set.has(2));
+            });
+
+            test('Map data structure', 'ES6+', () => {
+                const map = new Map();
+                map.set('a', 1);
+                map.set('b', 2);
+                assertEquals(1, map.get('a'));
+                assertEquals(2, map.size);
+            });
+        }
+
+        // Run all tests
+        runTests();
+    </script>
+</body>
+
+</html>

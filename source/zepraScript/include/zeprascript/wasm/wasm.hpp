@@ -79,7 +79,8 @@ struct Limits {
  */
 struct MemoryType {
     Limits limits;
-    bool shared = false;  // threads proposal
+    bool shared = false;      // threads proposal
+    bool isMemory64 = false;  // memory64 proposal: use i64 for addresses
 };
 
 /**
@@ -262,11 +263,12 @@ public:
     WasmModule();
     
     // Parsing
-    static WasmModule* parse(const uint8_t* bytes, size_t length);
-    static WasmModule* parseAsync(const uint8_t* bytes, size_t length, Promise* promise);
+    static std::unique_ptr<WasmModule> parse(const uint8_t* bytes, size_t length);
+    static std::unique_ptr<WasmModule> parseAsync(const uint8_t* bytes, size_t length, Promise* promise);
     
     // Validation
     bool validate() const;
+
     
     // Module sections
     const std::vector<FuncType>& types() const { return types_; }
@@ -282,6 +284,16 @@ public:
         std::vector<uint8_t> body;
     };
     const std::vector<FuncCode>& code() const { return code_; }
+    
+    // Function type index accessor (for JIT)
+    uint32_t getFuncTypeIndex(uint32_t funcIdx) const {
+        if (funcIdx < funcTypeIndices_.size()) {
+            return funcTypeIndices_[funcIdx];
+        }
+        return 0;
+    }
+    
+    const std::vector<uint32_t>& funcTypeIndices() const { return funcTypeIndices_; }
     
 private:
     friend class WasmParser;
@@ -354,7 +366,7 @@ public:
     WasmInstance(WasmModule* module, const ImportObject& imports);
     
     // Static instantiation
-    static WasmInstance* instantiate(WasmModule* module, const ImportObject& imports);
+    static std::unique_ptr<WasmInstance> instantiate(WasmModule* module, const ImportObject& imports);
     static Promise* instantiateAsync(WasmModule* module, const ImportObject& imports);
     
     // Get exports
@@ -407,7 +419,7 @@ class WasmParser {
 public:
     explicit WasmParser(const uint8_t* bytes, size_t length);
     
-    WasmModule* parse();
+    std::unique_ptr<WasmModule> parse();
     
 private:
     const uint8_t* data_;

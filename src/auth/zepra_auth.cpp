@@ -1,5 +1,5 @@
 #include "auth/zepra_auth.h"
-#include <curl/curl.h>
+#include "auth/zepra_auth.h"
 #include <json-c/json.h>
 #include <openssl/sha.h>
 #include <openssl/hmac.h>
@@ -15,18 +15,8 @@
 
 namespace ZepraAuth {
 
-// Static callback for CURL
-static size_t WriteCallback(void* contents, size_t size, size_t nmemb, std::string* userp) {
-    userp->append((char*)contents, size * nmemb);
-    return size * nmemb;
-}
-
-// Static callback for CURL headers
-static size_t HeaderCallback(char* buffer, size_t size, size_t nitems, void* userdata) {
-    std::string* headers = static_cast<std::string*>(userdata);
-    headers->append(buffer, size * nitems);
-    return size * nitems;
-}
+#include "nxhttp.h"
+#include "nxbase.h"
 
 // Singleton instance
 ZepraAuthManager& ZepraAuthManager::getInstance() {
@@ -40,11 +30,9 @@ ZepraAuthManager::ZepraAuthManager()
     , m_autoRefresh(true)
     , m_secureMode(true)
     , m_initialized(false)
-    , m_curlHandle(nullptr) {
+    , m_httpClient(nullptr) {
     
-    // Initialize CURL
-    curl_global_init(CURL_GLOBAL_ALL);
-    m_curlHandle = curl_easy_init();
+    // Initialize handled in initialize()
     
     // Set default allowed domains
     m_allowedDomains = {
@@ -77,9 +65,21 @@ bool ZepraAuthManager::initialize(const std::string& authServerUrl) {
         return true;
     }
     
-    if (!m_curlHandle) {
-        std::cerr << "ZepraAuth: Failed to initialize CURL" << std::endl;
-        return false;
+    if (!m_httpClient) {
+        NxHttpClientConfig config = {0};
+        config.connect_timeout_ms = 10000;
+        config.read_timeout_ms = 10000;
+        config.follow_redirects = true;
+        config.max_redirects = 10;
+        config.verify_ssl = false; // Match previous behavior
+        config.user_agent = "Zepra Core Browser/1.0";
+        
+        m_httpClient = nx_http_client_create(&config);
+        
+        if (!m_httpClient) {
+            std::cerr << "ZepraAuth: Failed to create HTTP client" << std::endl;
+            return false;
+        }
     }
     
     m_authServerUrl = authServerUrl;
@@ -95,12 +95,10 @@ bool ZepraAuthManager::initialize(const std::string& authServerUrl) {
 void ZepraAuthManager::shutdown() {
     std::lock_guard<std::mutex> lock(m_mutex);
     
-    if (m_curlHandle) {
-        curl_easy_cleanup(m_curlHandle);
-        m_curlHandle = nullptr;
+    if (m_httpClient) {
+        nx_http_client_free(m_httpClient);
+        m_httpClient = nullptr;
     }
-    
-    curl_global_cleanup();
     m_initialized = false;
 }
 
@@ -480,53 +478,68 @@ bool ZepraAuthManager::promptFor2FA(const std::string& websiteUrl) {
 
 // HTTP methods implementation
 bool ZepraAuthManager::httpGet(const std::string& url, std::string& response) {
-    if (!m_curlHandle) {
+    if (!m_httpClient) {
         return false;
     }
     
-    curl_easy_reset(m_curlHandle);
-    curl_easy_setopt(m_curlHandle, CURLOPT_URL, url.c_str());
-    curl_easy_setopt(m_curlHandle, CURLOPT_WRITEFUNCTION, WriteCallback);
-    curl_easy_setopt(m_curlHandle, CURLOPT_WRITEDATA, &response);
-    curl_easy_setopt(m_curlHandle, CURLOPT_FOLLOWLOCATION, 1L);
-    curl_easy_setopt(m_curlHandle, CURLOPT_SSL_VERIFYPEER, 1L);
-    curl_easy_setopt(m_curlHandle, CURLOPT_USERAGENT, "Zepra Core Browser/1.0");
+    NxHttpRequest* req = nx_http_request_create(NX_HTTP_GET, url.c_str());
     
     // Set cookies
     std::string cookieHeader = formatCookieHeader();
     if (!cookieHeader.empty()) {
-        curl_easy_setopt(m_curlHandle, CURLOPT_COOKIE, cookieHeader.c_str());
+        nx_http_request_set_header(req, "Cookie", cookieHeader.c_str());
     }
     
-    CURLcode res = curl_easy_perform(m_curlHandle);
-    return (res == CURLE_OK);
+    // Force identity encoding
+    nx_http_request_set_header(req, "Accept-Encoding", "identity");
+    
+    NxHttpError err = NX_HTTP_OK;
+    NxHttpResponse* res = nx_http_client_send(m_httpClient, req, &err);
+    nx_http_request_free(req);
+    
+    if (res) {
+        bool success = (nx_http_response_status(res) >= 200 && nx_http_response_status(res) < 300);
+        if (success) {
+            const char* body = nx_http_response_body_string(res);
+            if (body) response = body;
+        }
+        nx_http_response_free(res);
+        return success;
+    }
+    return false;
 }
 
 bool ZepraAuthManager::httpPost(const std::string& url, const std::string& data, std::string& response) {
-    if (!m_curlHandle) {
+    if (!m_httpClient) {
         return false;
     }
     
-    curl_easy_reset(m_curlHandle);
-    curl_easy_setopt(m_curlHandle, CURLOPT_URL, url.c_str());
-    curl_easy_setopt(m_curlHandle, CURLOPT_POST, 1L);
-    curl_easy_setopt(m_curlHandle, CURLOPT_POSTFIELDS, data.c_str());
-    curl_easy_setopt(m_curlHandle, CURLOPT_WRITEFUNCTION, WriteCallback);
-    curl_easy_setopt(m_curlHandle, CURLOPT_WRITEDATA, &response);
-    curl_easy_setopt(m_curlHandle, CURLOPT_FOLLOWLOCATION, 1L);
-    curl_easy_setopt(m_curlHandle, CURLOPT_SSL_VERIFYPEER, 1L);
-    curl_easy_setopt(m_curlHandle, CURLOPT_USERAGENT, "Zepra Core Browser/1.0");
-    curl_easy_setopt(m_curlHandle, CURLOPT_HTTPHEADER, 
-        curl_slist_append(nullptr, "Content-Type: application/json"));
+    NxHttpRequest* req = nx_http_request_create(NX_HTTP_POST, url.c_str());
+    
+    nx_http_request_set_header(req, "Content-Type", "application/json");
     
     // Set cookies
     std::string cookieHeader = formatCookieHeader();
     if (!cookieHeader.empty()) {
-        curl_easy_setopt(m_curlHandle, CURLOPT_COOKIE, cookieHeader.c_str());
+        nx_http_request_set_header(req, "Cookie", cookieHeader.c_str());
     }
     
-    CURLcode res = curl_easy_perform(m_curlHandle);
-    return (res == CURLE_OK);
+    nx_http_request_set_body(req, data.c_str(), data.length());
+    
+    NxHttpError err = NX_HTTP_OK;
+    NxHttpResponse* res = nx_http_client_send(m_httpClient, req, &err);
+    nx_http_request_free(req);
+    
+    if (res) {
+        bool success = (nx_http_response_status(res) >= 200 && nx_http_response_status(res) < 300);
+        if (success) {
+            const char* body = nx_http_response_body_string(res);
+            if (body) response = body;
+        }
+        nx_http_response_free(res);
+        return success;
+    }
+    return false;
 }
 
 bool ZepraAuthManager::isTokenValid(const AuthToken& token) const {

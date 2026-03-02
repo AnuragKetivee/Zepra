@@ -1,0 +1,373 @@
+<!DOCTYPE html>
+<html lang="en" class="scroll-smooth">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CONFIGURATION_SYSTEM.md</title>
+    
+    <!-- Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+    
+    <!-- Tailwind CSS with Typography Plugin -->
+    <script src="https://cdn.tailwindcss.com?plugins=typography"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        bg: {
+                            primary: '#0a0a0f',
+                            secondary: '#12121a',
+                            tertiary: '#1a1a24'
+                        },
+                        accent: {
+                            DEFAULT: '#10b981',
+                            light: '#34d399',
+                            dark: '#059669',
+                            glow: 'rgba(16, 185, 129, 0.3)'
+                        }
+                    },
+                    fontFamily: {
+                        sans: ['Inter', 'sans-serif'],
+                        mono: ['JetBrains Mono', 'monospace'],
+                    },
+                    typography: (theme) => ({
+                        DEFAULT: {
+                            css: {
+                                color: theme('colors.gray.300'),
+                                a: {
+                                    color: theme('colors.emerald.400'),
+                                    '&:hover': {
+                                        color: theme('colors.emerald.300'),
+                                    },
+                                },
+                                h1: { color: theme('colors.white') },
+                                h2: { color: theme('colors.white') },
+                                h3: { color: theme('colors.white') },
+                                h4: { color: theme('colors.gray.100') },
+                                code: { color: theme('colors.pink.400') },
+                                'code::before': { content: '""' },
+                                'code::after': { content: '""' },
+                                pre: {
+                                    backgroundColor: theme('colors.bg.tertiary'),
+                                    color: theme('colors.gray.200'),
+                                },
+                                blockquote: {
+                                    color: theme('colors.gray.400'),
+                                    borderLeftColor: theme('colors.emerald.500'),
+                                },
+                            },
+                        },
+                    }),
+                }
+            }
+        }
+    </script>
+
+    <!-- Custom CSS -->
+    <link rel="stylesheet" href="assets/css/docs.css">
+</head>
+<body class="antialiased min-h-screen relative selection:bg-emerald-500/30 selection:text-emerald-200">
+
+    <!-- Background Elements -->
+    <div class="bg-grid"></div>
+    <div class="glow-orb orb-1"></div>
+    <div class="glow-orb orb-2"></div>
+
+    <!-- Navigation -->
+    
+    
+    <!-- Navigation Sidebar -->
+    <aside class="fixed left-0 top-0 w-72 h-screen bg-dark-800/90 backdrop-blur-xl border-r border-white/5 z-50 overflow-y-auto">
+        <div class="p-6 border-b border-white/5">
+            <div class="flex items-center gap-3">
+                <a href="index.html" class="flex items-center gap-3 w-full">
+                    <div class="w-10 h-10 rounded-xl bg-gradient-to-br from-emerald-500 to-blue-500 flex items-center justify-center glow">
+                        <img src="../resources/zepraicon/logo.svg" alt="Zepra Logo" class="w-8 h-8 object-contain">
+                    </div>
+                    <div>
+                        <h1 class="font-bold text-lg text-white">ZepraBrowser</h1>
+                        <span class="text-xs text-gray-500">Documentation Hub</span>
+                    </div>
+                </a>
+            </div>
+        </div>
+        <nav class="p-4">
+            <div class="mb-6">
+                <span class="text-[10px] font-semibold uppercase tracking-wider text-gray-500 px-3">Quick Navigation</span>
+                <div class="mt-2 space-y-1">
+                    <a href="index.html" class="nav-link flex items-center gap-3 px-3 py-2 text-sm text-gray-400 hover:text-white rounded-lg hover:bg-white/5 transition-all border-l-2 border-transparent">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"/></svg>
+                        Hub Home
+                    </a>
+                    <a href="zeprascript/index.html" class="nav-link flex items-center gap-3 px-3 py-2 text-sm text-gray-400 hover:text-white rounded-lg hover:bg-white/5 transition-all border-l-2 border-transparent">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>
+                        ZepraScript Engine
+                    </a>
+                </div>
+            </div>
+            <div class="mb-6">
+                <span class="text-[10px] font-semibold uppercase tracking-wider text-gray-500 px-3">Overview</span>
+                <div class="mt-2 space-y-1">
+                    <a href="architecture.html" class="nav-link flex items-center gap-3 px-3 py-2 text-sm text-gray-400 hover:text-white rounded-lg hover:bg-white/5 transition-all border-l-2 border-transparent pl-6">Architecture</a>
+                    <a href="advanced-developer-tools.html" class="nav-link flex items-center gap-3 px-3 py-2 text-sm text-gray-400 hover:text-white rounded-lg hover:bg-white/5 transition-all border-l-2 border-transparent pl-6">Developer Tools</a>
+                    <a href="security-model.html" class="nav-link flex items-center gap-3 px-3 py-2 text-sm text-gray-400 hover:text-white rounded-lg hover:bg-white/5 transition-all border-l-2 border-transparent pl-6">Security Model</a>
+                    <a href="NXRENDER/architecture.html" class="nav-link flex items-center gap-3 px-3 py-2 text-sm text-gray-400 hover:text-white rounded-lg hover:bg-white/5 transition-all border-l-2 border-transparent pl-6">NXRender</a>
+                </div>
+            </div>
+        </nav>
+    </aside>
+
+
+<main class="ml-72 flex-1 min-w-0 min-h-screen py-12 px-8 max-w-5xl mx-auto">
+<!-- Page Header with Icon -->
+                <div class="flex items-center gap-4 mb-8 border-b border-white/10 pb-8 animate-fade-in">
+                    <div class="w-16 h-16 rounded-2xl bg-bg-secondary border border-white/5 flex items-center justify-center shrink-0">
+                        <img src="assets/icons/settings.svg" alt="Icon" class="w-8 h-8 opacity-80">
+                    </div>
+                    <div>
+                        <h1 class="text-3xl sm:text-4xl font-bold text-white tracking-tight">CONFIGURATION_SYSTEM.md</h1>
+                        <p class="text-gray-400 mt-1 text-sm font-mono">CONFIGURATION_SYSTEM.html</p>
+                    </div>
+                </div>
+
+                <div class="prose prose-invert prose-emerald max-w-none animate-fade-up">
+
+
+
+
+<h1>Ketivee OS Dual Configuration System</h1>
+<h2>Overview</h2>
+<p>The Ketivee OS uses a dual configuration system to handle different types of settings:</p>
+<ul>
+<li><strong><code>.ncf</code></strong> (Network Configuration Format) - INI-style for low-level system and boot settings</li>
+<li><strong><code>.tie</code></strong> (Technology Integration Environment) - JSON-style for rich application configurations</li>
+</ul>
+<h2>File Formats</h2>
+<h3>.ncf (Network Configuration Format)</h3>
+<p>INI-style configuration files for low-level system settings, boot configuration, and hardware detection.</p>
+<p><strong>Features:</strong>
+- Tree-like structure connecting all system branches
+- Section-based organization <code>[section]</code>
+- Key-value pairs <code>key = value</code>
+- Comments with <code>#</code>
+- Minimal parser for bootloader compatibility</p>
+<p><strong>Example:</strong></p>
+<pre><code class="language-ini">[system]
+name = &quot;Ketivee OS&quot;
+version = &quot;1.0.0&quot;
+architecture = &quot;x86_64&quot;
+
+[network]
+hostname = &quot;ketivee-system&quot;
+dhcp_enabled = &quot;true&quot;
+dns_servers = &quot;8.8.8.8,8.8.4.4&quot;
+
+[security]
+firewall = &quot;enabled&quot;
+encryption = &quot;aes256&quot;
+sandbox_level = &quot;strict&quot;
+</code></pre>
+<h3>.tie (Technology Integration Environment)</h3>
+<p>JSON-style configuration files for applications, installation automation, and rich settings.</p>
+<p><strong>Features:</strong>
+- JSON-based structure for complex configurations
+- Installation automation with recipes
+- App permissions and sandbox settings
+- Feature flags and dependencies
+- Cross-platform compatibility</p>
+<p><strong>Example:</strong></p>
+<pre><code class="language-json">{
+  &quot;app_info&quot;: {
+    &quot;name&quot;: &quot;Zepra Browser&quot;,
+    &quot;version&quot;: &quot;1.0.0&quot;,
+    &quot;developer&quot;: &quot;Ketivee Team&quot;
+  },
+  &quot;dependencies&quot;: {
+    &quot;system&quot;: [&quot;libcurl&quot;, &quot;sdl2&quot;, &quot;webkit2gtk&quot;]
+  },
+  &quot;sandbox&quot;: {
+    &quot;level&quot;: &quot;trusted&quot;,
+    &quot;memory_limit&quot;: &quot;512MB&quot;,
+    &quot;network_connections&quot;: 10
+  },
+  &quot;install_recipe&quot;: &quot;mkdir /opt/zepra\ncopy zepra_browser /opt/zepra/\ninstall libcurl-dev&quot;
+}
+</code></pre>
+<h2>Usage</h2>
+<h3>Loading Configurations</h3>
+<pre><code class="language-cpp">#include &quot;config_manager.h&quot;
+
+zepra::ConfigManager config;
+
+// Load NCF file
+if (config.loadConfig(&quot;system.ncf&quot;, zepra::ConfigFileType::NCF)) {
+    std::string osName = config.getValue(&quot;system&quot;, &quot;name&quot;);
+    std::string version = config.getValue(&quot;system&quot;, &quot;version&quot;);
+}
+
+// Load TIE file
+if (config.loadConfig(&quot;app.tie&quot;, zepra::ConfigFileType::TIE)) {
+    std::string appName = config.getValue(&quot;app_info&quot;, &quot;name&quot;);
+    std::string installRecipe = config.getInstallRecipe();
+}
+</code></pre>
+<h3>Modifying Configurations</h3>
+<pre><code class="language-cpp">// Set values
+config.setValue(&quot;network&quot;, &quot;hostname&quot;, &quot;new-hostname&quot;);
+config.setValue(&quot;security&quot;, &quot;firewall&quot;, &quot;enabled&quot;);
+
+// Remove values
+config.removeValue(&quot;network&quot;, &quot;old_setting&quot;);
+
+// Save changes
+config.saveConfig(&quot;modified.ncf&quot;, zepra::ConfigFileType::NCF);
+</code></pre>
+<h3>Installation Automation</h3>
+<pre><code class="language-cpp">// Process installation recipe from TIE file
+if (config.processInstallRecipe()) {
+    std::cout &lt;&lt; &quot;Installation completed successfully&quot; &lt;&lt; std::endl;
+}
+</code></pre>
+<h2>Configuration Categories</h2>
+<h3>System Configuration (.ncf)</h3>
+<p><strong>Core Sections:</strong>
+- <code>[system]</code> - OS name, version, architecture
+- <code>[hardware]</code> - CPU, memory, GPU detection
+- <code>[boot]</code> - Bootloader settings, kernel parameters
+- <code>[network]</code> - Network configuration, DNS, hostname
+- <code>[security]</code> - Firewall, encryption, sandbox levels
+- <code>[services]</code> - System services status
+- <code>[storage]</code> - File system, swap, cache settings
+- <code>[performance]</code> - CPU governor, memory settings
+- <code>[development]</code> - Development tools and SDK paths</p>
+<h3>Application Configuration (.tie)</h3>
+<p><strong>Core Sections:</strong>
+- <code>app_info</code> - Application metadata
+- <code>dependencies</code> - System and development dependencies
+- <code>installation</code> - Installation type and settings
+- <code>permissions</code> - File system, network, system access
+- <code>sandbox</code> - Security and resource limits
+- <code>features</code> - Feature flags and capabilities
+- <code>ui</code> - User interface settings
+- <code>security</code> - Security and privacy settings
+- <code>performance</code> - Performance optimization
+- <code>install_recipe</code> - Automated installation commands</p>
+<h2>Installation Recipes</h2>
+<p>TIE files can contain installation recipes that automate the installation process:</p>
+<pre><code class="language-bash"># Recipe commands
+mkdir /opt/app                    # Create directory
+copy app_binary /opt/app/         # Copy files
+install dependency_package        # Install dependencies
+create_desktop_entry /opt/app/app # Create desktop entry
+register_mime_types              # Register file associations
+update_desktop_database          # Update system database
+</code></pre>
+<h2>Security Features</h2>
+<h3>Sandbox Integration</h3>
+<p>Both configuration types integrate with the sandbox system:</p>
+<pre><code class="language-cpp">// NCF - System-wide sandbox settings
+[sandbox]
+default_level = &quot;strict&quot;
+memory_limit = &quot;512MB&quot;
+network_access = &quot;restricted&quot;
+
+// TIE - App-specific sandbox settings
+&quot;sandbox&quot;: {
+    &quot;level&quot;: &quot;trusted&quot;,
+    &quot;memory_limit&quot;: &quot;1GB&quot;,
+    &quot;network_connections&quot;: 20,
+    &quot;file_handles&quot;: 100
+}
+</code></pre>
+<h3>Permission Management</h3>
+<p>TIE files define app permissions:</p>
+<pre><code class="language-json">&quot;permissions&quot;: {
+    &quot;file_system&quot;: {
+        &quot;read&quot;: [&quot;/home/*&quot;, &quot;/tmp/*&quot;],
+        &quot;write&quot;: [&quot;/home/*/Downloads&quot;],
+        &quot;execute&quot;: []
+    },
+    &quot;network&quot;: {
+        &quot;allowed_hosts&quot;: [&quot;*.ketivee.org&quot;],
+        &quot;ports&quot;: [&quot;80&quot;, &quot;443&quot;]
+    }
+}
+</code></pre>
+<h2>Testing</h2>
+<p>Run the configuration test to verify functionality:</p>
+<pre><code class="language-bash"># Build the test
+cmake --build . --target config_test
+
+# Run the test
+./bin/config_test
+</code></pre>
+<p>The test will:
+1. Load example .ncf and .tie files
+2. Read and modify configuration values
+3. Process installation recipes
+4. Validate configurations
+5. Create new configuration files</p>
+<h2>Integration with Platform Infrastructure</h2>
+<p>The configuration system integrates with:</p>
+<ul>
+<li><strong>SandboxManager</strong> - Security and resource management</li>
+<li><strong>PlatformInfrastructure</strong> - App store, video, cloud platforms</li>
+<li><strong>KetiveeSearch</strong> - Search engine configuration</li>
+<li><strong>WebKit Engine</strong> - Browser engine settings</li>
+</ul>
+<h2>Future Extensions</h2>
+<h3>Planned Features:</h3>
+<ul>
+<li>Configuration validation schemas</li>
+<li>Configuration encryption</li>
+<li>Remote configuration management</li>
+<li>Configuration versioning</li>
+<li>Configuration templates</li>
+<li>Multi-language support</li>
+<li>Configuration backup and restore</li>
+</ul>
+<h3>Platform Integration:</h3>
+<ul>
+<li>App store configuration management</li>
+<li>Video platform settings</li>
+<li>Cloud platform configuration</li>
+<li>CDN and analytics settings</li>
+<li>User preference management</li>
+</ul>
+<h2>Best Practices</h2>
+<ol>
+<li><strong>Use .ncf for system-level settings</strong> that need to be accessible during boot</li>
+<li><strong>Use .tie for application configurations</strong> with rich features and automation</li>
+<li><strong>Validate configurations</strong> before applying them</li>
+<li><strong>Use installation recipes</strong> for automated deployment</li>
+<li><strong>Follow security guidelines</strong> for permission settings</li>
+<li><strong>Document configuration options</strong> in comments</li>
+<li><strong>Version control configurations</strong> for tracking changes</li>
+<li><strong>Test configurations</strong> in sandboxed environments</li>
+</ol>
+<h2>Examples</h2>
+<p>See the <code>configs/</code> directory for example configuration files:
+- <code>system.ncf</code> - Complete system configuration
+- <code>zepra_browser.tie</code> - Browser application configuration
+- Generated test files from running <code>config_test</code> </p>
+
+        
+                </div>
+            </main>
+
+    <!-- Footer -->
+    <footer class="bg-bg-secondary border-t border-white/5 py-12 mt-12">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
+            <p class="text-gray-500 text-sm">© 2026 ZepraBrowser · Part of the NeolyxOS Project</p>
+        </div>
+    </footer>
+
+    <!-- Scripts -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/gsap.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/ScrollTrigger.min.js"></script>
+    <script src="assets/js/docs.js" defer></script>
+</body>
+</html>

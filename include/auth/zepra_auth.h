@@ -11,7 +11,7 @@
 #include <atomic>
 
 // Forward declarations
-typedef void CURL;  // Forward declaration matching curl's typedef
+struct NxHttpClient;
 struct json_object;
 
 namespace ZepraAuth {
@@ -189,8 +189,8 @@ private:
     mutable std::mutex m_mutex;
     std::atomic<bool> m_initialized;
     
-    // CURL handle
-    CURL* m_curlHandle;
+    // HTTP Client
+    NxHttpClient* m_httpClient;
     
     // Disable copy constructor and assignment
     ZepraAuthManager(const ZepraAuthManager&) = delete;

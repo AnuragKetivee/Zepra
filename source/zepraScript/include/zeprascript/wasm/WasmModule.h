@@ -35,6 +35,7 @@ struct MemoryDecl {
     uint32_t maximum;
     bool hasMaximum;
     bool shared;
+    bool isMemory64 = false;  // Memory64 proposal
 };
 
 struct TableDecl {

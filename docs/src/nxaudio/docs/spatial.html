@@ -1,0 +1,281 @@
+<!DOCTYPE html>
+<html lang="en" class="scroll-smooth">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>spatial.md</title>
+    
+    <!-- Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+    
+    <!-- Tailwind CSS with Typography Plugin -->
+    <script src="https://cdn.tailwindcss.com?plugins=typography"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        bg: {
+                            primary: '#0a0a0f',
+                            secondary: '#12121a',
+                            tertiary: '#1a1a24'
+                        },
+                        accent: {
+                            DEFAULT: '#10b981',
+                            light: '#34d399',
+                            dark: '#059669',
+                            glow: 'rgba(16, 185, 129, 0.3)'
+                        }
+                    },
+                    fontFamily: {
+                        sans: ['Inter', 'sans-serif'],
+                        mono: ['JetBrains Mono', 'monospace'],
+                    },
+                    typography: (theme) => ({
+                        DEFAULT: {
+                            css: {
+                                color: theme('colors.gray.300'),
+                                a: {
+                                    color: theme('colors.emerald.400'),
+                                    '&:hover': {
+                                        color: theme('colors.emerald.300'),
+                                    },
+                                },
+                                h1: { color: theme('colors.white') },
+                                h2: { color: theme('colors.white') },
+                                h3: { color: theme('colors.white') },
+                                h4: { color: theme('colors.gray.100') },
+                                code: { color: theme('colors.pink.400') },
+                                'code::before': { content: '""' },
+                                'code::after': { content: '""' },
+                                pre: {
+                                    backgroundColor: theme('colors.bg.tertiary'),
+                                    color: theme('colors.gray.200'),
+                                },
+                                blockquote: {
+                                    color: theme('colors.gray.400'),
+                                    borderLeftColor: theme('colors.emerald.500'),
+                                },
+                            },
+                        },
+                    }),
+                }
+            }
+        }
+    </script>
+
+    <!-- Custom CSS -->
+    <link rel="stylesheet" href="../../../assets/css/docs.css">
+</head>
+<body class="antialiased min-h-screen relative selection:bg-emerald-500/30 selection:text-emerald-200">
+
+    <!-- Background Elements -->
+    <div class="bg-grid"></div>
+    <div class="glow-orb orb-1"></div>
+    <div class="glow-orb orb-2"></div>
+
+    <!-- Navigation -->
+    <nav class="fixed top-0 w-full z-50 bg-bg-primary/80 backdrop-blur-md border-b border-white/5">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex items-center justify-between h-16">
+                <!-- Logo -->
+                <div class="flex items-center gap-3">
+                    <a href="../../../index.html" class="flex items-center gap-3">
+                        <svg class="w-8 h-8 text-emerald-500" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <circle cx="12" cy="12" r="10"/>
+                            <path d="M12 6v6l4 2"/>
+                        </svg>
+                        <span class="text-xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-emerald-400 to-blue-500">
+                            ZepraBrowser
+                        </span>
+                    </a>
+                </div>
+
+                <!-- Desktop Menu -->
+                <div class="hidden md:block">
+                    <div class="flex items-center gap-8">
+                        <a href="../../../index.html#modules" class="nav-link text-sm font-medium text-gray-400 hover:text-white transition-colors">Modules</a>
+                        <a href="../../../index.html#index" class="nav-link text-sm font-medium text-gray-400 hover:text-white transition-colors">Docs Index</a>
+                        <a href="../../../index.html" class="nav-link text-sm font-medium text-gray-400 hover:text-white transition-colors">ZepraScript</a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Main Content Layout -->
+    <div class="pt-24 pb-12 sm:pt-32 sm:pb-16 lg:pb-24 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div class="flex flex-col lg:flex-row gap-12">
+            
+            <!-- Sidebar (Desktop) -->
+            <aside class="hidden lg:block w-64 shrink-0">
+                <div class="sticky top-32 space-y-8">
+                    <div class="space-y-4">
+                        <h3 class="text-xs font-bold text-gray-500 uppercase tracking-wider">On This Page</h3>
+                        <!-- TOC injected by JS or simple placeholder for now -->
+                         <nav id="toc" class="text-sm text-gray-400 space-y-2 border-l border-white/10 pl-4">
+                            <!-- TOC links will be populated here -->
+                             <a href="#" class="block hover:text-white">Top</a>
+                        </nav>
+                    </div>
+                    
+                     <div class="space-y-4">
+                        <h3 class="text-xs font-bold text-gray-500 uppercase tracking-wider">Quick Links</h3>
+                        <nav class="text-sm text-gray-400 space-y-2">
+                            <a href="../../../index.html" class="block hover:text-emerald-400 transition-colors">Home</a>
+                            <a href="../../../architecture.html" class="block hover:text-emerald-400 transition-colors">Architecture</a>
+                            <a href="../../../security-model.html" class="block hover:text-emerald-400 transition-colors">Security</a>
+                            <a href="../../../ai.html" class="block hover:text-emerald-400 transition-colors">AI System</a>
+                        </nav>
+                    </div>
+                </div>
+            </aside>
+
+            <!-- Content Area -->
+            <main class="flex-1 min-w-0">
+                <!-- Page Header with Icon -->
+                <div class="flex items-center gap-4 mb-8 border-b border-white/10 pb-8 animate-fade-in">
+                    <div class="w-16 h-16 rounded-2xl bg-bg-secondary border border-white/5 flex items-center justify-center shrink-0">
+                        <img src="../../../../../../assets/icons/docs.svg" alt="Icon" class="w-8 h-8 opacity-80">
+                    </div>
+                    <div>
+                        <h1 class="text-3xl sm:text-4xl font-bold text-white tracking-tight">spatial.md</h1>
+                        <p class="text-gray-400 mt-1 text-sm font-mono">spatial.html</p>
+                    </div>
+                </div>
+
+                <div class="prose prose-invert prose-emerald max-w-none animate-fade-up">
+
+
+
+
+<h1>NeolyxSpatial - 3D Audio API</h1>
+<h2>Overview</h2>
+<p>NeolyxSpatial provides binaural 3D audio rendering for NeolyxOS, 
+replacing third-party solutions like Dolby Atmos.</p>
+<h2>Features</h2>
+<ul>
+<li>HRTF-based binaural rendering</li>
+<li>Time-domain FIR convolution</li>
+<li>Distance attenuation (inverse/linear/exponential)</li>
+<li>Doppler effect simulation</li>
+<li>64 simultaneous spatial objects</li>
+<li>Height virtualization</li>
+</ul>
+<h2>Quick Start</h2>
+<pre><code class="language-c">#include &quot;spatial/nx_spatial.h&quot;
+
+/* Create engine */
+nx_spatial_t *sp = nx_spatial_create(48000, 1024);
+nx_spatial_load_hrtf_default(sp);
+
+/* Set listener */
+nx_spatial_set_listener_pos(sp, 0, 0, 0);
+nx_spatial_set_listener_orientation(sp, 0, 0, -1, 0, 1, 0);
+
+/* Add sound object */
+nx_object_t obj = {
+    .position = {3.0f, 0.0f, -2.0f},
+    .gain = 1.0f,
+    .min_distance = 1.0f,
+    .max_distance = 20.0f
+};
+nx_spatial_add_object(sp, 1, &amp;obj);
+
+/* Render */
+nx_spatial_render_object(sp, 1, mono_input, frames, stereo_output);
+
+/* Cleanup */
+nx_spatial_destroy(sp);
+</code></pre>
+<h2>HRTF Data</h2>
+<p>Default synthetic HRTF is included. For higher quality:</p>
+<ol>
+<li>Place HRTF files in <code>data/hrtf/</code></li>
+<li>SOFA format support planned</li>
+<li>Custom binary format: <code>[rate][len][elev][azim][filters_L][filters_R]</code></li>
+</ol>
+<h2>Performance</h2>
+<p>At 48kHz, 1024 frame blocks:</p>
+<table>
+<thead>
+<tr>
+<th>Objects</th>
+<th>CPU Usage</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>8</td>
+<td>&lt; 5%</td>
+</tr>
+<tr>
+<td>32</td>
+<td>&lt; 20%</td>
+</tr>
+<tr>
+<td>64</td>
+<td>&lt; 40%</td>
+</tr>
+</tbody>
+</table>
+<p>Target: 64 objects at &lt; 50% CPU budget.</p>
+<h2>Integration with NXAudio Engine</h2>
+<pre><code class="language-c">/* Attach spatial to engine */
+nx_spatial_t *sp = nx_spatial_create(48000, 1024);
+nx_spatial_load_hrtf_default(sp);
+nx_engine_set_spatial(&amp;engine, sp);
+
+/* Enable per-sound */
+nx_engine_set_sound_spatial(&amp;engine, sound_id, 1);
+nx_engine_set_sound_position(&amp;engine, sound_id, x, y, z);
+</code></pre>
+<h2>Files</h2>
+<table>
+<thead>
+<tr>
+<th>File</th>
+<th>Purpose</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>nx_spatial.h</td>
+<td>Public API</td>
+</tr>
+<tr>
+<td>nx_spatial.c</td>
+<td>HRTF/FIR implementation</td>
+</tr>
+<tr>
+<td>spatial_test.c</td>
+<td>Test harness</td>
+</tr>
+<tr>
+<td>nx_engine_bench.c</td>
+<td>Performance benchmark</td>
+</tr>
+</tbody>
+</table>
+
+        
+                </div>
+            </main>
+        </div>
+    </div>
+
+    <!-- Footer -->
+    <footer class="bg-bg-secondary border-t border-white/5 py-12 mt-12">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
+            <p class="text-gray-500 text-sm">© 2026 ZepraBrowser · Part of the NeolyxOS Project</p>
+        </div>
+    </footer>
+
+    <!-- Scripts -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/gsap.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/ScrollTrigger.min.js"></script>
+    <script src="../../../assets/js/docs.js" defer></script>
+</body>
+</html>

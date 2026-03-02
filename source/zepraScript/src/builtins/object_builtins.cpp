@@ -88,50 +88,115 @@ Runtime::Value ObjectBuiltin::assign(const Runtime::FunctionCallInfo& info) {
     return Runtime::Value::object(target);
 }
 
-// Object.freeze(obj)
+// Object.freeze(obj) — ES2024 §20.1.2.6
+// Prevents adding new properties, marks all existing own properties
+// as non-configurable and non-writable (data properties).
 Runtime::Value ObjectBuiltin::freeze(const Runtime::FunctionCallInfo& info) {
     if (info.argumentCount() < 1 || !info.argument(0).isObject()) {
         return info.argumentCount() > 0 ? info.argument(0) : Runtime::Value::undefined();
     }
-    
+
     Runtime::Object* obj = info.argument(0).asObject();
     obj->preventExtensions();
-    // TODO: Mark all properties as non-writable and non-configurable
-    
+
+    for (const auto& key : obj->getOwnPropertyNames()) {
+        auto desc = obj->getOwnPropertyDescriptor(key);
+        if (!desc.has_value()) continue;
+
+        Runtime::PropertyDescriptor frozen;
+        frozen.value = desc->value;
+        frozen.getter = desc->getter;
+        frozen.setter = desc->setter;
+        frozen.attributes = Runtime::PropertyAttribute::None; // non-writable, non-enumerable, non-configurable
+        if (desc->isEnumerable()) {
+            frozen.attributes = frozen.attributes | Runtime::PropertyAttribute::Enumerable;
+        }
+        // Data properties become non-writable; accessor properties keep their getter/setter
+        // but become non-configurable
+        obj->defineProperty(key, frozen);
+    }
+
     return info.argument(0);
 }
 
-// Object.seal(obj)
+// Object.seal(obj) — ES2024 §20.1.2.20
+// Prevents adding new properties and marks all existing own properties
+// as non-configurable (but preserves writability).
 Runtime::Value ObjectBuiltin::seal(const Runtime::FunctionCallInfo& info) {
     if (info.argumentCount() < 1 || !info.argument(0).isObject()) {
         return info.argumentCount() > 0 ? info.argument(0) : Runtime::Value::undefined();
     }
-    
+
     Runtime::Object* obj = info.argument(0).asObject();
     obj->preventExtensions();
-    // TODO: Mark all properties as non-configurable
-    
+
+    for (const auto& key : obj->getOwnPropertyNames()) {
+        auto desc = obj->getOwnPropertyDescriptor(key);
+        if (!desc.has_value()) continue;
+
+        Runtime::PropertyDescriptor sealed;
+        sealed.value = desc->value;
+        sealed.getter = desc->getter;
+        sealed.setter = desc->setter;
+        // Preserve writable and enumerable, strip configurable
+        sealed.attributes = Runtime::PropertyAttribute::None;
+        if (desc->isWritable()) {
+            sealed.attributes = sealed.attributes | Runtime::PropertyAttribute::Writable;
+        }
+        if (desc->isEnumerable()) {
+            sealed.attributes = sealed.attributes | Runtime::PropertyAttribute::Enumerable;
+        }
+        // No Configurable bit = non-configurable
+        obj->defineProperty(key, sealed);
+    }
+
     return info.argument(0);
 }
 
-// Object.isFrozen(obj)
+// Object.isFrozen(obj) — ES2024 §20.1.2.14
+// Returns true if object is non-extensible and all own properties are
+// non-configurable and non-writable.
 Runtime::Value ObjectBuiltin::isFrozen(const Runtime::FunctionCallInfo& info) {
     if (info.argumentCount() < 1 || !info.argument(0).isObject()) {
-        return Runtime::Value::boolean(true);  // Primitives are frozen
+        return Runtime::Value::boolean(true);  // Primitives are frozen per spec
     }
-    
+
     Runtime::Object* obj = info.argument(0).asObject();
-    return Runtime::Value::boolean(!obj->isExtensible());
+    if (obj->isExtensible()) {
+        return Runtime::Value::boolean(false);
+    }
+
+    for (const auto& key : obj->getOwnPropertyNames()) {
+        auto desc = obj->getOwnPropertyDescriptor(key);
+        if (!desc.has_value()) continue;
+
+        if (desc->isConfigurable()) return Runtime::Value::boolean(false);
+        if (desc->isDataDescriptor() && desc->isWritable()) return Runtime::Value::boolean(false);
+    }
+
+    return Runtime::Value::boolean(true);
 }
 
-// Object.isSealed(obj)
+// Object.isSealed(obj) — ES2024 §20.1.2.15
+// Returns true if object is non-extensible and all own properties are non-configurable.
 Runtime::Value ObjectBuiltin::isSealed(const Runtime::FunctionCallInfo& info) {
     if (info.argumentCount() < 1 || !info.argument(0).isObject()) {
-        return Runtime::Value::boolean(true);  // Primitives are sealed
+        return Runtime::Value::boolean(true);  // Primitives are sealed per spec
     }
-    
+
     Runtime::Object* obj = info.argument(0).asObject();
-    return Runtime::Value::boolean(!obj->isExtensible());
+    if (obj->isExtensible()) {
+        return Runtime::Value::boolean(false);
+    }
+
+    for (const auto& key : obj->getOwnPropertyNames()) {
+        auto desc = obj->getOwnPropertyDescriptor(key);
+        if (!desc.has_value()) continue;
+
+        if (desc->isConfigurable()) return Runtime::Value::boolean(false);
+    }
+
+    return Runtime::Value::boolean(true);
 }
 
 // Object.create(proto, propertiesObject?)

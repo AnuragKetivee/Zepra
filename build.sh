@@ -1,83 +1,67 @@
 #!/bin/bash
+# ZepraBrowser Build Script - Uses Ninja for faster, lighter builds
+# Usage: ./build.sh [clean|release|debug]
 
-echo "🦓 Building Zepra Browser v1.0.0"
-echo "================================="
+set -e
 
-# Check if CMake is available
-if ! command -v cmake &> /dev/null; then
-    echo "❌ CMake not found. Please install CMake."
-    exit 1
-fi
+BUILD_TYPE="${1:-debug}"
+BUILD_DIR="build_ninja"
 
-# Check if a C++ compiler is available
-if ! command -v g++ &> /dev/null && ! command -v clang++ &> /dev/null; then
-    echo "❌ No C++ compiler found. Please install g++ or clang++."
-    exit 1
-fi
+# Colors for output
+RED='\033[0;31m'
+GREEN='\033[0;32m'
+YELLOW='\033[1;33m'
+NC='\033[0m' # No Color
 
-# Detect OS and set appropriate settings
-if [[ "$OSTYPE" == "darwin"* ]]; then
-    echo "✅ Detected macOS"
-    GENERATOR="Unix Makefiles"
-    # Check for Homebrew SDL2
-    if brew list sdl2 &> /dev/null; then
-        echo "✅ Found SDL2 via Homebrew"
-    else
-        echo "⚠️  SDL2 not found via Homebrew. Installing..."
-        brew install sdl2
-    fi
-elif [[ "$OSTYPE" == "linux-gnu"* ]]; then
-    echo "✅ Detected Linux"
-    GENERATOR="Unix Makefiles"
-    # Check for SDL2 development packages
-    if ! pkg-config --exists sdl2; then
-        echo "⚠️  SDL2 development packages not found."
-        echo "   On Ubuntu/Debian: sudo apt-get install libsdl2-dev"
-        echo "   On Fedora: sudo dnf install SDL2-devel"
-        echo "   On Arch: sudo pacman -S sdl2"
+echo -e "${GREEN}=== ZepraBrowser Build (Ninja) ===${NC}"
+
+# Check for Ninja
+if ! command -v ninja &> /dev/null; then
+    echo -e "${YELLOW}Warning: Ninja not found. Installing...${NC}"
+    sudo apt-get install -y ninja-build 2>/dev/null || {
+        echo -e "${RED}Failed to install Ninja. Install manually: sudo apt install ninja-build${NC}"
         exit 1
-    fi
-else
-    echo "⚠️  Unknown OS type: $OSTYPE"
-    GENERATOR="Unix Makefiles"
+    }
 fi
+
+# Handle build type
+case "$BUILD_TYPE" in
+    clean)
+        echo -e "${YELLOW}Cleaning build directory...${NC}"
+        rm -rf "$BUILD_DIR"
+        echo -e "${GREEN}Clean complete.${NC}"
+        exit 0
+        ;;
+    release)
+        CMAKE_BUILD_TYPE="Release"
+        ;;
+    debug|*)
+        CMAKE_BUILD_TYPE="Debug"
+        ;;
+esac
 
 # Create build directory
-mkdir -p build
-cd build
+mkdir -p "$BUILD_DIR"
+cd "$BUILD_DIR"
 
-# Configure with CMake
-echo ""
-echo "🔧 Configuring project..."
-cmake -G "$GENERATOR" -DCMAKE_BUILD_TYPE=Debug ..
-if [ $? -ne 0 ]; then
-    echo "❌ CMake configuration failed"
-    exit 1
+# Configure with Ninja generator
+echo -e "${GREEN}Configuring with Ninja (${CMAKE_BUILD_TYPE})...${NC}"
+cmake -G Ninja \
+    -DCMAKE_BUILD_TYPE="$CMAKE_BUILD_TYPE" \
+    -DUSE_NXRENDER=ON \
+    ..
+
+# Get number of cores and limit to half to prevent overload
+NPROC=$(nproc)
+JOBS=$((NPROC / 2))
+if [ "$JOBS" -lt 1 ]; then
+    JOBS=1
 fi
 
-# Build the project
-echo ""
-echo "🔨 Building project..."
-make -j$(nproc 2>/dev/null || sysctl -n hw.ncpu 2>/dev/null || echo 4)
-if [ $? -ne 0 ]; then
-    echo "❌ Build failed"
-    exit 1
-fi
+echo -e "${GREEN}Building with $JOBS parallel jobs (of $NPROC cores)...${NC}"
 
-echo ""
-echo "✅ Build completed successfully!"
-echo ""
-echo "🚀 To run Zepra Browser:"
-echo "   cd build"
-echo "   ./zepra"
-echo ""
+# Build with Ninja (less memory usage than make)
+ninja -j "$JOBS"
 
-# Create UEFI disk image
-dd if=/dev/zero of=neolyx.img bs=1G count=20
-parted neolyx.img mklabel gpt
-parted neolyx.img mkpart EFI fat32 1MiB 512MiB
-parted neolyx.img mkpart NXFS 512MiB 100%
-
-# Format partitions
-mkfs.fat -F32 /dev/sda1
-./nxfs-format /dev/sda2
+echo -e "${GREEN}=== Build Complete ===${NC}"
+echo -e "Binary: ${BUILD_DIR}/bin/zepra_browser"

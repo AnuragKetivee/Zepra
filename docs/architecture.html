@@ -1,0 +1,1004 @@
+<!DOCTYPE html>
+<html lang="en" class="scroll-smooth">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Architecture.md</title>
+    
+    <!-- Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+    
+    <!-- Tailwind CSS with Typography Plugin -->
+    <script src="https://cdn.tailwindcss.com?plugins=typography"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        bg: {
+                            primary: '#0a0a0f',
+                            secondary: '#12121a',
+                            tertiary: '#1a1a24'
+                        },
+                        accent: {
+                            DEFAULT: '#10b981',
+                            light: '#34d399',
+                            dark: '#059669',
+                            glow: 'rgba(16, 185, 129, 0.3)'
+                        }
+                    },
+                    fontFamily: {
+                        sans: ['Inter', 'sans-serif'],
+                        mono: ['JetBrains Mono', 'monospace'],
+                    },
+                    typography: (theme) => ({
+                        DEFAULT: {
+                            css: {
+                                color: theme('colors.gray.300'),
+                                a: {
+                                    color: theme('colors.emerald.400'),
+                                    '&:hover': {
+                                        color: theme('colors.emerald.300'),
+                                    },
+                                },
+                                h1: { color: theme('colors.white') },
+                                h2: { color: theme('colors.white') },
+                                h3: { color: theme('colors.white') },
+                                h4: { color: theme('colors.gray.100') },
+                                code: { color: theme('colors.pink.400') },
+                                'code::before': { content: '""' },
+                                'code::after': { content: '""' },
+                                pre: {
+                                    backgroundColor: theme('colors.bg.tertiary'),
+                                    color: theme('colors.gray.200'),
+                                },
+                                blockquote: {
+                                    color: theme('colors.gray.400'),
+                                    borderLeftColor: theme('colors.emerald.500'),
+                                },
+                            },
+                        },
+                    }),
+                }
+            }
+        }
+    </script>
+
+    <!-- Custom CSS -->
+    <link rel="stylesheet" href="assets/css/docs.css">
+</head>
+<body class="antialiased min-h-screen relative selection:bg-emerald-500/30 selection:text-emerald-200">
+
+    <!-- Background Elements -->
+    <div class="bg-grid"></div>
+    <div class="glow-orb orb-1"></div>
+    <div class="glow-orb orb-2"></div>
+
+    <!-- Navigation -->
+    
+    
+    <!-- Navigation Sidebar -->
+    <aside class="fixed left-0 top-0 w-72 h-screen bg-dark-800/90 backdrop-blur-xl border-r border-white/5 z-50 overflow-y-auto">
+        <div class="p-6 border-b border-white/5">
+            <div class="flex items-center gap-3">
+                <a href="index.html" class="flex items-center gap-3 w-full">
+                    <div class="w-10 h-10 rounded-xl bg-gradient-to-br from-emerald-500 to-blue-500 flex items-center justify-center glow">
+                        <img src="../resources/zepraicon/logo.svg" alt="Zepra Logo" class="w-8 h-8 object-contain">
+                    </div>
+                    <div>
+                        <h1 class="font-bold text-lg text-white">ZepraBrowser</h1>
+                        <span class="text-xs text-gray-500">Documentation Hub</span>
+                    </div>
+                </a>
+            </div>
+        </div>
+        <nav class="p-4">
+            <div class="mb-6">
+                <span class="text-[10px] font-semibold uppercase tracking-wider text-gray-500 px-3">Quick Navigation</span>
+                <div class="mt-2 space-y-1">
+                    <a href="index.html" class="nav-link flex items-center gap-3 px-3 py-2 text-sm text-gray-400 hover:text-white rounded-lg hover:bg-white/5 transition-all border-l-2 border-transparent">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"/></svg>
+                        Hub Home
+                    </a>
+                    <a href="zeprascript/index.html" class="nav-link flex items-center gap-3 px-3 py-2 text-sm text-gray-400 hover:text-white rounded-lg hover:bg-white/5 transition-all border-l-2 border-transparent">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>
+                        ZepraScript Engine
+                    </a>
+                </div>
+            </div>
+            <div class="mb-6">
+                <span class="text-[10px] font-semibold uppercase tracking-wider text-gray-500 px-3">Overview</span>
+                <div class="mt-2 space-y-1">
+                    <a href="architecture.html" class="nav-link flex items-center gap-3 px-3 py-2 text-sm text-gray-400 hover:text-white rounded-lg hover:bg-white/5 transition-all border-l-2 border-transparent pl-6">Architecture</a>
+                    <a href="advanced-developer-tools.html" class="nav-link flex items-center gap-3 px-3 py-2 text-sm text-gray-400 hover:text-white rounded-lg hover:bg-white/5 transition-all border-l-2 border-transparent pl-6">Developer Tools</a>
+                    <a href="security-model.html" class="nav-link flex items-center gap-3 px-3 py-2 text-sm text-gray-400 hover:text-white rounded-lg hover:bg-white/5 transition-all border-l-2 border-transparent pl-6">Security Model</a>
+                    <a href="NXRENDER/architecture.html" class="nav-link flex items-center gap-3 px-3 py-2 text-sm text-gray-400 hover:text-white rounded-lg hover:bg-white/5 transition-all border-l-2 border-transparent pl-6">NXRender</a>
+                </div>
+            </div>
+        </nav>
+    </aside>
+
+
+<main class="ml-72 flex-1 min-w-0 min-h-screen py-12 px-8 max-w-5xl mx-auto">
+<!-- Page Header with Icon -->
+                <div class="flex items-center gap-4 mb-8 border-b border-white/10 pb-8 animate-fade-in">
+                    <div class="w-16 h-16 rounded-2xl bg-bg-secondary border border-white/5 flex items-center justify-center shrink-0">
+                        <svg class="w-8 h-8 opacity-80 text-emerald-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>
+                    </div>
+                    <div>
+                        <h1 class="text-3xl sm:text-4xl font-bold text-white tracking-tight">Architecture.md</h1>
+                        <p class="text-gray-400 mt-1 text-sm font-mono">Architecture.html</p>
+                    </div>
+                </div>
+
+                <div class="prose prose-invert prose-emerald max-w-none animate-fade-up">
+
+
+
+
+<h1>ZepraBrowser - Complete Architecture</h1>
+<p><strong>Integration with Existing Project Structure</strong></p>
+<h2>Current Project Location</h2>
+<pre><code>~/Documents/zeprabrowser/
+</code></pre>
+<h2>🎯 Architecture Overview</h2>
+<pre><code>┌─────────────────────────────────────────────────────────────────┐
+│                      ZepraBrowser Application                    │
+│                                                                  │
+│  ┌────────────┐  ┌────────────┐  ┌────────────┐  ┌──────────┐ │
+│  │ Tabs/UI    │  │ DevTools   │  │ Extensions │  │ Settings │ │
+│  │ Manager    │  │ Native UI  │  │ Manager    │  │ Panel    │ │
+│  └─────┬──────┘  └─────┬──────┘  └─────┬──────┘  └────┬─────┘ │
+│        │               │               │              │        │
+└────────┼───────────────┼───────────────┼──────────────┼────────┘
+         │               │               │              │
+         └───────────────┴───────────────┴──────────────┘
+                         │
+         ┌───────────────▼────────────────────┐
+         │      Browser Engine (Zepra)        │
+         │  • Rendering Engine                │
+         │  • JavaScript Engine (ZebraScript) │
+         │  • Networking Stack                │
+         │  • Storage/Cache                   │
+         └───────────────┬────────────────────┘
+                         │
+         ┌───────────────▼────────────────────┐
+         │         Platform Layer             │
+         │  • OS Integration                  │
+         │  • GPU Acceleration                │
+         │  • Process Sandboxing              │
+         └────────────────────────────────────┘
+</code></pre>
+<h2>📁 Integrated Project Structure</h2>
+<pre><code>zeprabrowser/
+├── CMakeLists.txt                           # Root build file
+├── README.md
+├── LICENSE_PUBLIC.txt
+│
+├── source/                                   # ← Main source directory
+│   │
+│   ├── zepraScript/                         # ← JavaScript Engine (already defined)
+│   │   ├── CMakeLists.txt
+│   │   ├── include/zeprascript/             # Engine headers
+│   │   ├── src/                             # Engine implementation
+│   │   └── tests/                           # Engine tests
+│   │
+│   ├── webCore/                             # ← Browser Core (Rendering)
+│   │   ├── CMakeLists.txt
+│   │   │
+│   │   ├── include/
+│   │   │   └── webcore/
+│   │   │       ├── css/
+│   │   │       │   ├── css_parser.hpp
+│   │   │       │   ├── css_selector.hpp
+│   │   │       │   ├── css_style.hpp
+│   │   │       │   ├── css_computed_style.hpp
+│   │   │       │   └── css_engine.hpp
+│   │   │       │
+│   │   │       ├── dom/
+│   │   │       │   ├── document.hpp
+│   │   │       │   ├── element.hpp
+│   │   │       │   ├── node.hpp
+│   │   │       │   ├── text_node.hpp
+│   │   │       │   ├── comment_node.hpp
+│   │   │       │   ├── dom_tree.hpp
+│   │   │       │   ├── event.hpp
+│   │   │       │   ├── event_target.hpp
+│   │   │       │   └── mutation_observer.hpp
+│   │   │       │
+│   │   │       ├── html/
+│   │   │       │   ├── html_parser.hpp
+│   │   │       │   ├── html_tokenizer.hpp
+│   │   │       │   ├── html_tree_builder.hpp
+│   │   │       │   ├── html_element.hpp
+│   │   │       │   ├── html_document.hpp
+│   │   │       │   └── html_collection.hpp
+│   │   │       │
+│   │   │       ├── layout/
+│   │   │       │   ├── layout_engine.hpp
+│   │   │       │   ├── layout_box.hpp
+│   │   │       │   ├── block_layout.hpp
+│   │   │       │   ├── inline_layout.hpp
+│   │   │       │   ├── flex_layout.hpp
+│   │   │       │   ├── grid_layout.hpp
+│   │   │       │   └── layout_tree.hpp
+│   │   │       │
+│   │   │       ├── paint/
+│   │   │       │   ├── paint_context.hpp
+│   │   │       │   ├── paint_layer.hpp
+│   │   │       │   ├── painter.hpp
+│   │   │       │   ├── compositing.hpp
+│   │   │       │   └── display_list.hpp
+│   │   │       │
+│   │   │       ├── render/
+│   │   │       │   ├── render_tree.hpp
+│   │   │       │   ├── render_object.hpp
+│   │   │       │   ├── render_block.hpp
+│   │   │       │   ├── render_inline.hpp
+│   │   │       │   ├── render_text.hpp
+│   │   │       │   └── render_image.hpp
+│   │   │       │
+│   │   │       └── core/
+│   │   │           ├── page.hpp
+│   │   │           ├── frame.hpp
+│   │   │           ├── viewport.hpp
+│   │   │           └── scrolling.hpp
+│   │   │
+│   │   └── src/
+│   │       ├── css/
+│   │       │   ├── css_parser.cpp
+│   │       │   ├── css_selector.cpp
+│   │       │   ├── css_style.cpp
+│   │       │   └── css_engine.cpp
+│   │       │
+│   │       ├── dom/
+│   │       │   ├── document.cpp
+│   │       │   ├── element.cpp
+│   │       │   ├── node.cpp
+│   │       │   ├── dom_tree.cpp
+│   │       │   ├── event.cpp
+│   │       │   └── event_target.cpp
+│   │       │
+│   │       ├── html/
+│   │       │   ├── html_parser.cpp
+│   │       │   ├── html_tokenizer.cpp
+│   │       │   ├── html_tree_builder.cpp
+│   │       │   └── html_element.cpp
+│   │       │
+│   │       ├── layout/
+│   │       │   ├── layout_engine.cpp
+│   │       │   ├── layout_box.cpp
+│   │       │   ├── block_layout.cpp
+│   │       │   ├── flex_layout.cpp
+│   │       │   └── grid_layout.cpp
+│   │       │
+│   │       ├── paint/
+│   │       │   ├── paint_context.cpp
+│   │       │   ├── painter.cpp
+│   │       │   └── compositing.cpp
+│   │       │
+│   │       └── render/
+│   │           ├── render_tree.cpp
+│   │           ├── render_object.cpp
+│   │           └── render_block.cpp
+│   │
+│   ├── webGpu/                              # ← GPU Acceleration
+│   │   ├── CMakeLists.txt
+│   │   │
+│   │   ├── include/
+│   │   │   └── webgpu/
+│   │   │       ├── gpu_context.hpp
+│   │   │       ├── gpu_device.hpp
+│   │   │       ├── gpu_pipeline.hpp
+│   │   │       ├── gpu_buffer.hpp
+│   │   │       ├── gpu_texture.hpp
+│   │   │       ├── gpu_shader.hpp
+│   │   │       ├── webgl_context.hpp
+│   │   │       └── canvas_renderer.hpp
+│   │   │
+│   │   └── src/
+│   │       ├── gpu_context.cpp
+│   │       ├── gpu_device.cpp
+│   │       ├── gpu_pipeline.cpp
+│   │       ├── webgl_context.cpp
+│   │       └── canvas_renderer.cpp
+│   │
+│   ├── zepraEngine/                         # ← Browser Window &amp; UI Integration
+│   │   ├── CMakeLists.txt
+│   │   │
+│   │   ├── include/
+│   │   │   └── engine/
+│   │   │       ├── browser_window.hpp
+│   │   │       ├── tab_manager.hpp
+│   │   │       ├── navigation_controller.hpp
+│   │   │       ├── history_manager.hpp
+│   │   │       ├── bookmark_manager.hpp
+│   │   │       ├── download_manager.hpp
+│   │   │       └── session_manager.hpp
+│   │   │
+│   │   └── src/
+│   │       ├── browser_window.cpp
+│   │       ├── tab_manager.cpp
+│   │       ├── navigation_controller.cpp
+│   │       ├── history_manager.cpp
+│   │       ├── bookmark_manager.cpp
+│   │       └── download_manager.cpp
+│   │
+│   ├── networking/                          # ← NEW: Network Stack
+│   │   ├── CMakeLists.txt
+│   │   │
+│   │   ├── include/
+│   │   │   └── networking/
+│   │   │       ├── http_client.hpp
+│   │   │       ├── http_request.hpp
+│   │   │       ├── http_response.hpp
+│   │   │       ├── http_cache.hpp
+│   │   │       ├── websocket_client.hpp
+│   │   │       ├── dns_resolver.hpp
+│   │   │       ├── ssl_context.hpp
+│   │   │       ├── cookie_manager.hpp
+│   │   │       └── resource_loader.hpp
+│   │   │
+│   │   └── src/
+│   │       ├── http_client.cpp
+│   │       ├── http_request.cpp
+│   │       ├── http_response.cpp
+│   │       ├── http_cache.cpp
+│   │       ├── websocket_client.cpp
+│   │       ├── dns_resolver.cpp
+│   │       ├── ssl_context.cpp
+│   │       ├── cookie_manager.cpp
+│   │       └── resource_loader.cpp
+│   │
+│   ├── storage/                             # ← NEW: Storage &amp; Cache
+│   │   ├── CMakeLists.txt
+│   │   │
+│   │   ├── include/
+│   │   │   └── storage/
+│   │   │       ├── local_storage.hpp
+│   │   │       ├── session_storage.hpp
+│   │   │       ├── indexed_db.hpp
+│   │   │       ├── cache_storage.hpp
+│   │   │       ├── file_system.hpp
+│   │   │       └── quota_manager.hpp
+│   │   │
+│   │   └── src/
+│   │       ├── local_storage.cpp
+│   │       ├── session_storage.cpp
+│   │       ├── indexed_db.cpp
+│   │       ├── cache_storage.cpp
+│   │       ├── file_system.cpp
+│   │       └── quota_manager.cpp
+│   │
+│   ├── platform/                            # ← NEW: Platform Integration
+│   │   ├── CMakeLists.txt
+│   │   │
+│   │   ├── include/
+│   │   │   └── platform/
+│   │   │       ├── window_system.hpp
+│   │   │       ├── event_loop.hpp
+│   │   │       ├── clipboard.hpp
+│   │   │       ├── notification.hpp
+│   │   │       ├── file_picker.hpp
+│   │   │       ├── system_info.hpp
+│   │   │       └── process_manager.hpp
+│   │   │
+│   │   └── src/
+│   │       ├── windows/                     # Windows implementation
+│   │       │   ├── window_system_win.cpp
+│   │       │   └── clipboard_win.cpp
+│   │       │
+│   │       ├── linux/                       # Linux implementation
+│   │       │   ├── window_system_linux.cpp
+│   │       │   └── clipboard_linux.cpp
+│   │       │
+│   │       ├── macos/                       # macOS implementation
+│   │       │   ├── window_system_macos.mm
+│   │       │   └── clipboard_macos.mm
+│   │       │
+│   │       └── common/
+│   │           ├── event_loop.cpp
+│   │           └── system_info.cpp
+│   │
+│   ├── sandbox/                             # ← NEW: Process Sandboxing
+│   │   ├── CMakeLists.txt
+│   │   │
+│   │   ├── include/
+│   │   │   └── sandbox/
+│   │   │       ├── sandbox_manager.hpp
+│   │   │       ├── process_launcher.hpp
+│   │   │       ├── ipc_channel.hpp
+│   │   │       └── security_policy.hpp
+│   │   │
+│   │   └── src/
+│   │       ├── sandbox_manager.cpp
+│   │       ├── process_launcher.cpp
+│   │       ├── ipc_channel.cpp
+│   │       └── security_policy.cpp
+│   │
+│   ├── extensions/                          # ← NEW: Extension System
+│   │   ├── CMakeLists.txt
+│   │   │
+│   │   ├── include/
+│   │   │   └── extensions/
+│   │   │       ├── extension_manager.hpp
+│   │   │       ├── extension_runtime.hpp
+│   │   │       ├── extension_api.hpp
+│   │   │       ├── content_script.hpp
+│   │   │       └── background_script.hpp
+│   │   │
+│   │   └── src/
+│   │       ├── extension_manager.cpp
+│   │       ├── extension_runtime.cpp
+│   │       ├── extension_api.cpp
+│   │       └── content_script.cpp
+│   │
+│   ├── media/                               # ← NEW: Media Support
+│   │   ├── CMakeLists.txt
+│   │   │
+│   │   ├── include/
+│   │   │   └── media/
+│   │   │       ├── video_decoder.hpp
+│   │   │       ├── audio_decoder.hpp
+│   │   │       ├── media_player.hpp
+│   │   │       ├── webrtc_manager.hpp
+│   │   │       └── media_source.hpp
+│   │   │
+│   │   └── src/
+│   │       ├── video_decoder.cpp
+│   │       ├── audio_decoder.cpp
+│   │       ├── media_player.cpp
+│   │       └── webrtc_manager.cpp
+│   │
+│   ├── devtools/                            # ← NEW: Browser DevTools
+│   │   ├── CMakeLists.txt
+│   │   │
+│   │   ├── include/
+│   │   │   └── devtools/
+│   │   │       ├── devtools_window.hpp
+│   │   │       ├── elements_panel.hpp
+│   │   │       ├── console_panel.hpp
+│   │   │       ├── network_panel.hpp
+│   │   │       ├── sources_panel.hpp
+│   │   │       ├── performance_panel.hpp
+│   │   │       └── memory_panel.hpp
+│   │   │
+│   │   └── src/
+│   │       ├── devtools_window.cpp
+│   │       ├── elements_panel.cpp
+│   │       ├── console_panel.cpp
+│   │       ├── network_panel.cpp
+│   │       ├── sources_panel.cpp
+│   │       ├── performance_panel.cpp
+│   │       └── memory_panel.cpp
+│   │
+│   └── ThirdParty/                          # ← External dependencies
+│       ├── skia/                            # Graphics library
+│       ├── freetype/                        # Font rendering
+│       ├── harfbuzz/                        # Text shaping
+│       ├── libpng/                          # PNG images
+│       ├── libjpeg/                         # JPEG images
+│       ├── libwebp/                         # WebP images
+│       ├── zlib/                            # Compression
+│       ├── openssl/                         # SSL/TLS
+│       └── sqlite/                          # Database
+│
+├── include/                                 # ← Existing browser headers
+│   ├── auth/
+│   │   └── zepra_auth.h
+│   │
+│   ├── common/
+│   │   ├── constants.h
+│   │   └── types.h
+│   │
+│   ├── config/
+│   │   └── dual_config.h
+│   │
+│   ├── core/
+│   │   └── zepra_core.h
+│   │
+│   ├── engine/
+│   │   ├── ai_engine.h                     # AI features
+│   │   ├── ai_manager.h
+│   │   ├── attention_manager.h
+│   │   ├── auto_fill_manager.h
+│   │   ├── browser_connector.h
+│   │   ├── dev_tools.h
+│   │   ├── download_manager.h
+│   │   ├── extension.h
+│   │   ├── gpu_manager.h
+│   │   ├── html_parser.h
+│   │   ├── html_parser_modern.h
+│   │   ├── json_bridge.h
+│   │   ├── video_player.h
+│   │   ├── web_kernel.h
+│   │   └── webkit_engine.h
+│   │
+│   ├── net/
+│   │   ├── cookie_manager.h
+│   │   └── http.h
+│   │
+│   ├── sandbox/
+│   │   └── sandbox_manager.h
+│   │
+│   ├── search/
+│   │   └── ketivee_search.h                # Integrated search
+│   │
+│   └── ui/
+│       ├── auth_ui.h
+│       ├── dev_tools_ui.h
+│       ├── extension_manager_ui.h
+│       ├── settings_ui.h
+│       ├── tab_manager.h
+│       └── window.h
+│
+├── src/                                     # ← Existing browser sources
+│   ├── auth/
+│   │   └── zepra_auth.cpp
+│   │
+│   ├── config/
+│   │   ├── config_manager.cpp
+│   │   ├── config_manager.h
+│   │   └── config_test.cpp
+│   │
+│   ├── core/
+│   │   ├── ui_elements.cpp
+│   │   └── zepra_core.cpp
+│   │
+│   ├── engine/
+│   │   ├── browser_connector.cpp
+│   │   ├── dev_tools.cpp
+│   │   ├── download_manager.cpp
+│   │   ├── extension_registry.cpp
+│   │   ├── gpu_manager.cpp
+│   │   ├── html_parser.cpp
+│   │   ├── json_bridge.cpp
+│   │   ├── video_player.cpp
+│   │   └── webkit_engine.cpp
+│   │
+│   ├── net/
+│   │   └── cookie_manager.cpp
+│   │
+│   ├── platform/
+│   │   └── platform_infrastructure.cpp
+│   │
+│   ├── sandbox/
+│   │   └── sandbox_manager.cpp
+│   │
+│   ├── search/
+│   │   └── ketivee_search.cpp
+│   │
+│   ├── ui/
+│   │   ├── dev_tools_ui.cpp
+│   │   ├── extension_manager_ui.cpp
+│   │   ├── settings_ui.cpp
+│   │   ├── tab_manager.cpp
+│   │   └── window.cpp
+│   │
+│   ├── main.cpp                             # Browser entry point
+│   └── main_unified.cpp
+│
+├── tests/                                   # ← Browser tests
+│   ├── CMakeLists.txt
+│   │
+│   ├── unit/
+│   │   ├── dom_tests.cpp
+│   │   ├── css_parser_tests.cpp
+│   │   ├── layout_tests.cpp
+│   │   ├── render_tests.cpp
+│   │   └── network_tests.cpp
+│   │
+│   ├── integration/
+│   │   ├── page_load_tests.cpp
+│   │   ├── navigation_tests.cpp
+│   │   └── extension_tests.cpp
+│   │
+│   └── web_platform/
+│       └── wpt_runner.cpp                  # Web Platform Tests
+│
+├── tools/                                   # ← Development tools
+│   ├── zepracoretest/
+│   │   ├── main_orchestrator.py
+│   │   ├── analysis_tools/
+│   │   ├── analytics/
+│   │   ├── build_tools/
+│   │   ├── debugging/
+│   │   ├── dev_tools/
+│   │   ├── performance_tools/
+│   │   └── testing_tools/
+│   │
+│   └── sdk_tools/
+│       ├── extension_packager/
+│       └── theme_builder/
+│
+├── resources/                               # ← Browser resources
+│   ├── icons/
+│   ├── themes/
+│   ├── default_pages/
+│   │   ├── new_tab.html
+│   │   ├── error_page.html
+│   │   └── about.html
+│   └── translations/
+│       ├── en.json
+│       └── hi.json
+│
+├── config/                                  # ← Configuration
+│   ├── zepra_config.json
+│   ├── default_settings.json
+│   └── feature_flags.json
+│
+├── bin/                                     # ← Output binaries
+│   ├── configs/
+│   │   ├── system.ncf
+│   │   └── zepra_browser.tie
+│   └── Debug/
+│       └── ZepraBrowser.exe
+│
+├── docs/                                    # ← Documentation
+│   ├── ARCHITECTURE.md
+│   ├── API_REFERENCE.md
+│   ├── BUILDING.md
+│   ├── CONTRIBUTING.md
+│   ├── CONFIGURATION_SYSTEM.md
+│   ├── DEVELOPMENT_STATUS.md
+│   ├── SEARCH_ENGINE_INTEGRATION.md
+│   └── ADVANCED_DEVELOPER_TOOLS.md
+│
+├── external/                                # ← External libraries
+│   └── nlohmann/
+│       └── json.hpp
+│
+└── zepra.ketivee.com/                      # ← Branding assets
+    ├── color.xml
+    ├── logo.svg
+    └── zepraicon/
+        └── *.svg
+</code></pre>
+<h2>🏗️ Component Architecture</h2>
+<h3>1. Browser Core Stack</h3>
+<pre><code>┌────────────────────────────────────────┐
+│          Application Layer             │
+│  • Tab Management                      │
+│  • Window Management                   │
+│  • User Interface                      │
+│  • Settings &amp; Preferences              │
+└──────────────┬─────────────────────────┘
+               │
+┌──────────────▼─────────────────────────┐
+│         Browser Engine Layer           │
+│  ┌──────────────┐  ┌────────────────┐ │
+│  │  Rendering   │  │  JavaScript    │ │
+│  │  Engine      │◄─┤  Engine        │ │
+│  │  (WebCore)   │  │  (ZebraScript) │ │
+│  └──────┬───────┘  └────────────────┘ │
+│         │                              │
+│  ┌──────▼───────┐  ┌────────────────┐ │
+│  │  Layout      │  │  Networking    │ │
+│  │  Engine      │  │  Stack         │ │
+│  └──────┬───────┘  └────────────────┘ │
+│         │                              │
+│  ┌──────▼───────┐  ┌────────────────┐ │
+│  │  Paint       │  │  Storage       │ │
+│  │  &amp; Graphics  │  │  System        │ │
+│  └──────────────┘  └────────────────┘ │
+└──────────────┬─────────────────────────┘
+               │
+┌──────────────▼─────────────────────────┐
+│          Platform Layer                │
+│  • OS Integration                      │
+│  • GPU Acceleration (WebGPU)           │
+│  • Process Sandboxing                  │
+│  • IPC (Inter-Process Communication)   │
+└────────────────────────────────────────┘
+</code></pre>
+<h3>2. Page Loading Pipeline</h3>
+<pre><code>User Types URL
+      ↓
+Navigation Controller
+      ↓
+DNS Resolution
+      ↓
+HTTP Request → HTTP Response
+      ↓
+HTML Parser → DOM Tree
+      ↓
+CSS Parser → CSSOM Tree
+      ↓
+JavaScript Execution (ZebraScript)
+      ↓
+DOM + CSSOM → Render Tree
+      ↓
+Layout Engine → Layout Tree
+      ↓
+Paint Engine → Display List
+      ↓
+Compositing → GPU Layers
+      ↓
+Screen Display
+</code></pre>
+<h3>3. Multi-Process Architecture</h3>
+<pre><code>┌─────────────────────────────────────────────────────────┐
+│                   Browser Process                        │
+│  • Main UI                                              │
+│  • Tab Management                                       │
+│  • Network Service                                      │
+│  • Storage Service                                      │
+└───┬─────────────────┬─────────────────┬────────────────┘
+    │                 │                 │
+    │ IPC             │ IPC             │ IPC
+    │                 │                 │
+┌───▼──────────┐  ┌───▼──────────┐  ┌──▼──────────────┐
+│  Renderer    │  │  Renderer    │  │  GPU Process    │
+│  Process 1   │  │  Process 2   │  │                 │
+│  (Tab 1)     │  │  (Tab 2)     │  │  • Compositing  │
+│              │  │              │  │  • Rendering    │
+│  • WebCore   │  │  • WebCore   │  │  • 3D Graphics  │
+│  • JS Engine │  │  • JS Engine │  │                 │
+└──────────────┘  └──────────────┘  └─────────────────┘
+</code></pre>
+<h2>🔗 Integration Points</h2>
+<h3>ZebraScript ↔ WebCore Integration</h3>
+<pre><code class="language-cpp">// source/webCore/src/dom/document.cpp
+#include &quot;zeprascript/runtime/vm.hpp&quot;
+#include &quot;zeprascript/browser/window.hpp&quot;
+
+namespace WebCore {
+
+class Document {
+private:
+    // JavaScript VM instance
+    std::unique_ptr&lt;Zepra::Runtime::VM&gt; js_vm_;
+
+public:
+    void initializeJavaScript() {
+        js_vm_ = Zepra::Runtime::VM::create();
+
+        // Expose DOM to JavaScript
+        auto* window = js_vm_-&gt;getGlobalObject();
+        window-&gt;setProperty(&quot;document&quot;, this);
+    }
+
+    void executeScript(const std::string&amp; code) {
+        js_vm_-&gt;execute(code);
+    }
+};
+
+} // namespace WebCore
+</code></pre>
+<h3>WebCore ↔ Platform Integration</h3>
+<pre><code class="language-cpp">// source/platform/include/platform/window_system.hpp
+namespace Platform {
+
+class WindowSystem {
+public:
+    virtual void createWindow() = 0;
+    virtual void destroyWindow() = 0;
+    virtual void setTitle(const std::string&amp; title) = 0;
+    virtual void resize(int width, int height) = 0;
+};
+
+// Platform-specific implementations
+#ifdef _WIN32
+class WindowSystemWin : public WindowSystem { /* ... */ };
+#elif defined(__linux__)
+class WindowSystemLinux : public WindowSystem { /* ... */ };
+#elif defined(__APPLE__)
+class WindowSystemMacOS : public WindowSystem { /* ... */ };
+#endif
+
+} // namespace Platform
+</code></pre>
+<h2>📊 Root CMakeLists.txt Integration</h2>
+<pre><code class="language-cmake">cmake_minimum_required(VERSION 3.20)
+project(ZepraBrowser VERSION 1.0.0 LANGUAGES CXX)
+
+set(CMAKE_CXX_STANDARD 20)
+set(CMAKE_CXX_STANDARD_REQUIRED ON)
+
+# Options
+option(ZEPRA_BUILD_TESTS &quot;Build tests&quot; ON)
+option(ZEPRA_BUILD_DEVTOOLS &quot;Build DevTools&quot; ON)
+option(ZEPRA_ENABLE_GPU &quot;Enable GPU acceleration&quot; ON)
+option(ZEPRA_ENABLE_EXTENSIONS &quot;Enable extension support&quot; ON)
+
+# Browser Components (in source/)
+add_subdirectory(source/zepraScript)      # JavaScript Engine
+add_subdirectory(source/webCore)          # Rendering Engine
+add_subdirectory(source/webGpu)           # GPU Acceleration
+add_subdirectory(source/zepraEngine)      # Browser Window/UI
+add_subdirectory(source/networking)       # Network Stack
+add_subdirectory(source/storage)          # Storage System
+add_subdirectory(source/platform)         # Platform Layer
+add_subdirectory(source/sandbox)          # Sandboxing
+add_subdirectory(source/extensions)       # Extensions
+add_subdirectory(source/media)            # Media Support
+add_subdirectory(source/devtools)         # DevTools
+
+# Legacy Components (in src/ and include/)
+add_subdirectory(src/auth)
+add_subdirectory(src/config)
+add_subdirectory(src/search)
+
+# Main Browser Application
+add_executable(ZepraBrowser
+    src/main.cpp
+    src/core/zepra_core.cpp
+    src/ui/window.cpp
+    src/ui/tab_manager.cpp
+    # ... other sources
+)
+
+target_link_libraries(ZepraBrowser
+    PRIVATE
+        zepra-script          # JavaScript Engine
+        web-core              # Rendering Engine
+        zepra-engine          # Browser Window
+        networking            # HTTP/WebSocket
+        storage               # LocalStorage/IndexedDB
+        platform              # OS Integration
+        sandbox               # Security
+        extensions            # Extension System
+        media                 # Audio/Video
+        devtools              # Developer Tools
+)
+
+# Tests
+if(ZEPRA_BUILD_TESTS)
+    add_subdirectory(tests)
+endif()
+</code></pre>
+<hr />
+<h2>🔧 Build Instructions</h2>
+<h3>Prerequisites</h3>
+<pre><code class="language-bash"># Ubuntu/Debian
+sudo apt install cmake ninja-build libsdl2-dev libcurl4-openssl-dev \
+    libjson-c-dev libssl-dev libsqlite3-dev
+
+# macOS
+brew install cmake ninja sdl2 curl openssl sqlite
+</code></pre>
+<h3>Build Commands</h3>
+<pre><code class="language-bash"># Configure
+cmake -B build -G Ninja \
+    -DZEPRA_BUILD_TESTS=ON \
+    -DZEPRA_ENABLE_GPU=ON
+
+# Build
+cmake --build build -j$(nproc)
+
+# Run
+./build/bin/ZepraBrowser
+</code></pre>
+<h3>Component-Only Builds</h3>
+<pre><code class="language-bash"># Build only ZepraScript
+cmake --build build --target zepra-script
+
+# Build only Browser Window Demo
+cmake --build build --target zepra-browser
+</code></pre>
+<hr />
+<h2>📊 File Summary</h2>
+<table>
+<thead>
+<tr>
+<th>Component</th>
+<th>Location</th>
+<th>Files</th>
+<th>Status</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>ZepraScript</strong></td>
+<td><code>source/zepraScript/</code></td>
+<td>392</td>
+<td>✅ Complete</td>
+</tr>
+<tr>
+<td><strong>WebCore</strong></td>
+<td><code>source/webCore/</code></td>
+<td>10</td>
+<td>✅ Implemented</td>
+</tr>
+<tr>
+<td><strong>ZepraEngine</strong></td>
+<td><code>source/zepraEngine/</code></td>
+<td>31</td>
+<td>✅ Implemented</td>
+</tr>
+<tr>
+<td><strong>Browser Headers</strong></td>
+<td><code>include/</code></td>
+<td>30</td>
+<td>✅ Complete</td>
+</tr>
+<tr>
+<td><strong>Browser Sources</strong></td>
+<td><code>src/</code></td>
+<td>25</td>
+<td>✅ Complete</td>
+</tr>
+<tr>
+<td><strong>Tests</strong></td>
+<td><code>tests/</code></td>
+<td>15</td>
+<td>🔄 In Progress</td>
+</tr>
+<tr>
+<td><strong>TOTAL</strong></td>
+<td></td>
+<td><strong>~500</strong></td>
+<td>✅</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h2>🚀 Current Status</h2>
+<h3>✅ Completed</h3>
+<ul>
+<li>ZepraScript JavaScript Engine (full implementation)</li>
+<li>WebCore Rendering Engine (DOM, CSS, Layout)</li>
+<li>Browser Window Demo (NXRENDER native X11/OpenGL)</li>
+<li>DevTools Protocol (Chrome CDP)</li>
+<li>Authentication System (Ketivee SSO)</li>
+<li><strong>Zepra Stack Libraries:</strong></li>
+<li>NxBase - Buffer, string, memory utilities</li>
+<li>NxJSON - JSON parser/serializer</li>
+<li>NxHTTP - HTTP client (replaces libcurl)</li>
+<li>NxXML - XML/HTML parser</li>
+<li>NxCrypto - TLS/crypto abstraction</li>
+<li><strong>ZepraWebView Developer Tools:</strong></li>
+<li>Console tab with real ZepraScript logs</li>
+<li>Network tab with request monitoring</li>
+<li>Security tab with CORS/TLS info</li>
+<li>ConsoleLog, NetworkMonitor, SecurityChecker modules</li>
+</ul>
+<h3>🔄 In Progress</h3>
+<ul>
+<li>GPU Acceleration (WebGPU + NxGfx)</li>
+<li>NXRender widget integration</li>
+<li>HTML content rendering in viewport</li>
+<li>NXAudio browser integration</li>
+</ul>
+<h3>📋 Planned</h3>
+<ul>
+<li>Service Workers</li>
+<li>WebRTC</li>
+<li>PWA Support</li>
+<li>Extensions System</li>
+<li>WebAssembly execution</li>
+</ul>
+<hr />
+<h2>📝 Notes</h2>
+<ol>
+<li><strong>DO NOT MODIFY</strong> <code>source/zepraScript/</code> without careful consideration</li>
+<li>Browser tests require ZepraScript to be built first</li>
+<li>Use <code>FILETREE.md</code> for quick reference of all files</li>
+<li>See <code>docs/</code> for detailed API documentation</li>
+<li><strong>USE_ZEPRA_STACK=ON</strong> to build with custom libraries</li>
+<li><strong>USE_NXRENDER=ON</strong> for native X11/OpenGL rendering</li>
+</ol>
+<hr />
+<p><strong>Last Updated:</strong> 2025-12-14
+<strong>Version:</strong> 1.1.0
+<strong>Maintainer:</strong> Swanaya</p>
+
+        
+                </div>
+            </main>
+
+    <!-- Footer -->
+    <footer class="bg-bg-secondary border-t border-white/5 py-12 mt-12">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
+            <p class="text-gray-500 text-sm">© 2026 ZepraBrowser · Part of the NeolyxOS Project</p>
+        </div>
+    </footer>
+
+    <!-- Scripts -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/gsap.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/ScrollTrigger.min.js"></script>
+    <script src="assets/js/docs.js" defer></script>
+</body>
+</html>

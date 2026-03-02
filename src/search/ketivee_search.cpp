@@ -8,7 +8,7 @@
 #include <chrono>
 #include <iomanip>
 #include <sstream>
-#include <curl/curl.h>
+#include <nxhttp.h>
 #include <nlohmann/json.hpp>
 #include <unordered_set>
 
@@ -16,61 +16,42 @@ using json = nlohmann::json;
 
 namespace zepra {
 
-// HTTP callback for libcurl
-static size_t WriteCallback(void* contents, size_t size, size_t nmemb, std::string* userp) {
-    userp->append((char*)contents, size * nmemb);
-    return size * nmemb;
-}
-
-// HTTP utility functions
+// HTTP utility functions using nxhttp (replaces libcurl)
 namespace http_utils {
     std::string get(const std::string& url) {
-        CURL* curl = curl_easy_init();
-        std::string response;
-        
-        if (curl) {
-            curl_easy_setopt(curl, CURLOPT_URL, url.c_str());
-            curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, WriteCallback);
-            curl_easy_setopt(curl, CURLOPT_WRITEDATA, &response);
-            curl_easy_setopt(curl, CURLOPT_USERAGENT, BROWSER_USER_AGENT);
-            curl_easy_setopt(curl, CURLOPT_TIMEOUT, DEFAULT_TIMEOUT_MS / 1000);
-            curl_easy_setopt(curl, CURLOPT_FOLLOWLOCATION, 1L);
-            curl_easy_setopt(curl, CURLOPT_MAXREDIRS, MAX_REDIRECTS);
-            
-            CURLcode res = curl_easy_perform(curl);
-            if (res != CURLE_OK) {
-                std::cerr << "HTTP request failed: " << curl_easy_strerror(res) << std::endl;
+        try {
+            nx::HttpClient client;
+            auto response = client.get(url);
+            if (response.ok()) {
+                return response.body();
+            } else {
+                std::cerr << "HTTP GET failed: " << response.status() << " " << response.statusText() << std::endl;
+                return "";
             }
-            
-            curl_easy_cleanup(curl);
+        } catch (const nx::HttpException& e) {
+            std::cerr << "HTTP request failed: " << e.what() << std::endl;
+            return "";
         }
-        
-        return response;
     }
     
     std::string post(const std::string& url, const std::string& data) {
-        CURL* curl = curl_easy_init();
-        std::string response;
-        
-        if (curl) {
-            curl_easy_setopt(curl, CURLOPT_URL, url.c_str());
-            curl_easy_setopt(curl, CURLOPT_POSTFIELDS, data.c_str());
-            curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, WriteCallback);
-            curl_easy_setopt(curl, CURLOPT_WRITEDATA, &response);
-            curl_easy_setopt(curl, CURLOPT_USERAGENT, BROWSER_USER_AGENT);
-            curl_easy_setopt(curl, CURLOPT_TIMEOUT, DEFAULT_TIMEOUT_MS / 1000);
-            
-            CURLcode res = curl_easy_perform(curl);
-            if (res != CURLE_OK) {
-                std::cerr << "HTTP POST failed: " << curl_easy_strerror(res) << std::endl;
+        try {
+            nx::HttpClient client;
+            auto response = client.post(url, data, "application/x-www-form-urlencoded");
+            if (response.ok()) {
+                return response.body();
+            } else {
+                std::cerr << "HTTP POST failed: " << response.status() << " " << response.statusText() << std::endl;
+                return "";
             }
-            
-            curl_easy_cleanup(curl);
+        } catch (const nx::HttpException& e) {
+            std::cerr << "HTTP POST failed: " << e.what() << std::endl;
+            return "";
         }
-        
-        return response;
     }
 }
+
+// http_utils already defined above using nxhttp
 
 // KetiveeSearchEngine Implementation
 KetiveeSearchEngine::KetiveeSearchEngine() 
@@ -78,8 +59,7 @@ KetiveeSearchEngine::KetiveeSearchEngine()
     , localSearchEnabled(true)
     , maxLocalResults(100) {
     
-    // Initialize libcurl
-    curl_global_init(CURL_GLOBAL_DEFAULT);
+    // nxhttp does not require global initialization
     
     // TODO: Load search history and bookmarks from persistent storage
     // loadSearchHistory();
@@ -112,28 +92,15 @@ std::vector<String> KetiveeSearchEngine::getSuggestions(const String& query) {
         
         String jsonRequest = requestData.dump();
         
-        // Make HTTP POST request to suggestions endpoint
-        CURL* curl = curl_easy_init();
-        if (curl) {
-            struct curl_slist* headers = nullptr;
-            headers = curl_slist_append(headers, "Content-Type: application/json");
-            headers = curl_slist_append(headers, "Accept: application/json");
+        // Make HTTP POST request to suggestions endpoint using nxhttp
+        try {
+            nx::HttpClient client;
+            auto response = client.post(suggestionsUrl, jsonRequest, "application/json");
             
-            std::string response;
-            
-            curl_easy_setopt(curl, CURLOPT_URL, suggestionsUrl.c_str());
-            curl_easy_setopt(curl, CURLOPT_POSTFIELDS, jsonRequest.c_str());
-            curl_easy_setopt(curl, CURLOPT_HTTPHEADER, headers);
-            curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, WriteCallback);
-            curl_easy_setopt(curl, CURLOPT_WRITEDATA, &response);
-            curl_easy_setopt(curl, CURLOPT_TIMEOUT, 5L);
-            
-            CURLcode res = curl_easy_perform(curl);
-            
-            if (res == CURLE_OK) {
+            if (response.ok()) {
                 // Parse JSON response
                 try {
-                    json responseData = json::parse(response);
+                    json responseData = json::parse(response.body());
                     
                     if (responseData.is_array()) {
                         for (const auto& suggestion : responseData) {
@@ -144,11 +111,10 @@ std::vector<String> KetiveeSearchEngine::getSuggestions(const String& query) {
                     std::cerr << "Failed to parse suggestions response: " << e.what() << std::endl;
                 }
             } else {
-                std::cerr << "Suggestions request failed: " << curl_easy_strerror(res) << std::endl;
+                std::cerr << "Suggestions request failed: " << response.status() << std::endl;
             }
-            
-            curl_slist_free_all(headers);
-            curl_easy_cleanup(curl);
+        } catch (const nx::HttpException& e) {
+            std::cerr << "Suggestions HTTP error: " << e.what() << std::endl;
         }
         
     } catch (const std::exception& e) {
@@ -271,28 +237,15 @@ std::vector<SearchResult> KetiveeSearchEngine::performWebSearch(const SearchQuer
         searchUrl += "&page=" + std::to_string(query.page);
         searchUrl += "&limit=" + std::to_string(query.maxResults);
         
-        // Make HTTP GET request to search backend
-        CURL* curl = curl_easy_init();
-        if (curl) {
-            struct curl_slist* headers = nullptr;
-            headers = curl_slist_append(headers, "Accept: application/json");
-            headers = curl_slist_append(headers, "User-Agent: Zepra Browser/1.0");
+        // Make HTTP GET request to search backend using nxhttp
+        try {
+            nx::HttpClient client;
+            auto response = client.get(searchUrl);
             
-            std::string response;
-            
-            curl_easy_setopt(curl, CURLOPT_URL, searchUrl.c_str());
-            curl_easy_setopt(curl, CURLOPT_HTTPHEADER, headers);
-            curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, WriteCallback);
-            curl_easy_setopt(curl, CURLOPT_WRITEDATA, &response);
-            curl_easy_setopt(curl, CURLOPT_TIMEOUT, 10L);
-            curl_easy_setopt(curl, CURLOPT_FOLLOWLOCATION, 1L);
-            
-            CURLcode res = curl_easy_perform(curl);
-            
-            if (res == CURLE_OK) {
+            if (response.ok()) {
                 // Parse JSON response from unified API
                 try {
-                    json responseData = json::parse(response);
+                    json responseData = json::parse(response.body());
                     
                     // Handle new API response format
                     if (responseData.contains("results") && responseData["results"].is_array()) {
@@ -329,14 +282,13 @@ std::vector<SearchResult> KetiveeSearchEngine::performWebSearch(const SearchQuer
                     }
                 } catch (const json::exception& e) {
                     std::cerr << "Failed to parse search response: " << e.what() << std::endl;
-                    std::cerr << "Response: " << response << std::endl;
+                    std::cerr << "Response: " << response.body() << std::endl;
                 }
             } else {
-                std::cerr << "Search request failed: " << curl_easy_strerror(res) << std::endl;
+                std::cerr << "Search request failed: " << response.status() << std::endl;
             }
-            
-            curl_slist_free_all(headers);
-            curl_easy_cleanup(curl);
+        } catch (const nx::HttpException& e) {
+            std::cerr << "Search HTTP error: " << e.what() << std::endl;
         }
         
     } catch (const std::exception& e) {
@@ -528,16 +480,26 @@ float KetiveeSearchEngine::calculateRelevance(const String& query, const String&
 }
 
 String KetiveeSearchEngine::urlEncode(const String& text) const {
-    CURL* curl = curl_easy_init();
+    // Manual URL encoding without curl dependency
     String encoded;
+    encoded.reserve(text.length() * 3);  // Worst case: every char encoded
     
-    if (curl) {
-        char* encoded_str = curl_easy_escape(curl, text.c_str(), text.length());
-        if (encoded_str) {
-            encoded = encoded_str;
-            curl_free(encoded_str);
+    static const char* hex = "0123456789ABCDEF";
+    
+    for (unsigned char c : text) {
+        // Unreserved characters (RFC 3986)
+        if ((c >= 'A' && c <= 'Z') || (c >= 'a' && c <= 'z') ||
+            (c >= '0' && c <= '9') || c == '-' || c == '_' || 
+            c == '.' || c == '~') {
+            encoded += c;
+        } else if (c == ' ') {
+            encoded += '+';  // Space as plus (form encoding)
+        } else {
+            // Percent-encode
+            encoded += '%';
+            encoded += hex[(c >> 4) & 0x0F];
+            encoded += hex[c & 0x0F];
         }
-        curl_easy_cleanup(curl);
     }
     
     return encoded;

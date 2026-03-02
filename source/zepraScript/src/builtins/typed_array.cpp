@@ -228,7 +228,68 @@ Value TypedArrayBuiltin::float64ArrayConstructor(Runtime::Context*, const std::v
 }
 
 Object* TypedArrayBuiltin::createTypedArrayPrototype() {
-    return new Object();
+    Object* proto = new Object();
+
+    proto->set("set", Value::object(
+        new Runtime::Function("set", [](const Runtime::FunctionCallInfo& info) -> Value {
+            if (!info.thisValue().isObject()) return Value::undefined();
+            TypedArrayObject* ta = dynamic_cast<TypedArrayObject*>(info.thisValue().asObject());
+            if (!ta || info.argumentCount() < 2) return Value::undefined();
+            size_t idx = static_cast<size_t>(info.argument(0).asNumber());
+            ta->set(idx, info.argument(1));
+            return Value::undefined();
+        }, 2)));
+
+    proto->set("subarray", Value::object(
+        new Runtime::Function("subarray", [](const Runtime::FunctionCallInfo& info) -> Value {
+            if (!info.thisValue().isObject()) return Value::undefined();
+            TypedArrayObject* ta = dynamic_cast<TypedArrayObject*>(info.thisValue().asObject());
+            if (!ta) return Value::undefined();
+            size_t begin = info.argumentCount() > 0 ? static_cast<size_t>(info.argument(0).asNumber()) : 0;
+            size_t end = info.argumentCount() > 1 ? static_cast<size_t>(info.argument(1).asNumber()) : ta->length();
+            return Value::object(ta->subarray(begin, end));
+        }, 2)));
+
+    proto->set("fill", Value::object(
+        new Runtime::Function("fill", [](const Runtime::FunctionCallInfo& info) -> Value {
+            if (!info.thisValue().isObject()) return info.thisValue();
+            TypedArrayObject* ta = dynamic_cast<TypedArrayObject*>(info.thisValue().asObject());
+            if (!ta || info.argumentCount() < 1) return info.thisValue();
+            Value fillVal = info.argument(0);
+            size_t start = info.argumentCount() > 1 ? static_cast<size_t>(info.argument(1).asNumber()) : 0;
+            size_t end = info.argumentCount() > 2 ? static_cast<size_t>(info.argument(2).asNumber()) : ta->length();
+            for (size_t i = start; i < end && i < ta->length(); i++) {
+                ta->set(i, fillVal);
+            }
+            return info.thisValue();
+        }, 3)));
+
+    proto->set("indexOf", Value::object(
+        new Runtime::Function("indexOf", [](const Runtime::FunctionCallInfo& info) -> Value {
+            if (!info.thisValue().isObject()) return Value::number(-1);
+            TypedArrayObject* ta = dynamic_cast<TypedArrayObject*>(info.thisValue().asObject());
+            if (!ta || info.argumentCount() < 1) return Value::number(-1);
+            double target = info.argument(0).asNumber();
+            size_t start = info.argumentCount() > 1 ? static_cast<size_t>(info.argument(1).asNumber()) : 0;
+            for (size_t i = start; i < ta->length(); i++) {
+                if (ta->get(i).asNumber() == target) return Value::number(static_cast<double>(i));
+            }
+            return Value::number(-1);
+        }, 2)));
+
+    proto->set("includes", Value::object(
+        new Runtime::Function("includes", [](const Runtime::FunctionCallInfo& info) -> Value {
+            if (!info.thisValue().isObject()) return Value::boolean(false);
+            TypedArrayObject* ta = dynamic_cast<TypedArrayObject*>(info.thisValue().asObject());
+            if (!ta || info.argumentCount() < 1) return Value::boolean(false);
+            double target = info.argument(0).asNumber();
+            for (size_t i = 0; i < ta->length(); i++) {
+                if (ta->get(i).asNumber() == target) return Value::boolean(true);
+            }
+            return Value::boolean(false);
+        }, 1)));
+
+    return proto;
 }
 
 } // namespace Zepra::Builtins

@@ -1,0 +1,665 @@
+import React, { useState } from 'react';
+
+const NeolyxIconLibrary = () => {
+    const [copied, setCopied] = useState('');
+    const [selectedIcon, setSelectedIcon] = useState(null);
+    const [searchTerm, setSearchTerm] = useState('');
+    const [category, setCategory] = useState('all');
+
+    const downloadSVG = (name, svg) => {
+        const blob = new Blob([svg], { type: 'image/svg+xml' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = name + '.svg';
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+        setCopied(name);
+        setTimeout(() => setCopied(''), 2000);
+    };
+
+    const copySVGCode = (name, svg) => {
+        navigator.clipboard.writeText(svg);
+        setCopied(name);
+        setTimeout(() => setCopied(''), 2000);
+    };
+
+    const downloadAll = () => {
+        Object.entries(icons).forEach(([name, svg], index) => {
+            setTimeout(() => downloadSVG(name, svg), index * 100);
+        });
+    };
+
+    const iconCategories = {
+        'system': ['neolyx-home', 'neolyx-folder', 'neolyx-file', 'neolyx-settings', 'neolyx-apps', 'neolyx-terminal', 'neolyx-browser'],
+        'media': ['neolyx-music', 'neolyx-video', 'neolyx-image', 'neolyx-camera', 'neolyx-play', 'neolyx-pause', 'neolyx-volume', 'neolyx-mute'],
+        'communication': ['neolyx-mail', 'neolyx-chat', 'neolyx-notification', 'neolyx-user', 'neolyx-share'],
+        'files': ['neolyx-document', 'neolyx-download', 'neolyx-upload', 'neolyx-trash', 'neolyx-copy', 'neolyx-edit'],
+        'security': ['neolyx-lock', 'neolyx-unlock', 'neolyx-wifi', 'neolyx-power', 'neolyx-battery'],
+        'ui': ['neolyx-plus', 'neolyx-minus', 'neolyx-close', 'neolyx-check', 'neolyx-search', 'neolyx-refresh', 'neolyx-info', 'neolyx-warning'],
+        'time': ['neolyx-clock', 'neolyx-calendar'],
+        'favorites': ['neolyx-star', 'neolyx-heart', 'neolyx-bookmark'],
+        'hardware': ['neolyx-cpu', 'neolyx-memory', 'neolyx-storage', 'neolyx-display', 'neolyx-keyboard', 'neolyx-mouse', 'neolyx-printer', 'neolyx-network'],
+        'development': ['neolyx-code', 'neolyx-bug', 'neolyx-deploy', 'neolyx-database', 'neolyx-server', 'neolyx-cloud'],
+        'navigation': ['neolyx-arrow-up', 'neolyx-arrow-down', 'neolyx-arrow-left', 'neolyx-arrow-right', 'neolyx-chevron-up', 'neolyx-chevron-down', 'neolyx-menu', 'neolyx-grid'],
+        'business': ['neolyx-chart', 'neolyx-graph', 'neolyx-calculator', 'neolyx-wallet', 'neolyx-shopping-cart'],
+    };
+
+    const icons = {
+        // Original icons (40)
+        'neolyx-home': '<svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M3 9.5C3 8.5 3.5 7.5 4.5 7L11 3C11.6 2.7 12.4 2.7 13 3L19.5 7C20.5 7.5 21 8.5 21 9.5V19C21 20.1 20.1 21 19 21H5C3.9 21 3 20.1 3 19V9.5Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><path d="M9 21V14C9 13.4 9.4 13 10 13H14C14.6 13 15 13.4 15 14V21" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>',
+        'neolyx-folder': '<svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M3 7C3 5.9 3.9 5 5 5H9.5C10 5 10.5 5.2 10.7 5.6L12.3 8.4C12.5 8.8 13 9 13.5 9H19C20.1 9 21 9.9 21 11V18C21 19.1 20.1 20 19 20H5C3.9 20 3 19.1 3 18V7Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>',
+        'neolyx-file': '<svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M13 3H7C5.9 3 5 3.9 5 5V19C5 20.1 5.9 21 7 21H17C18.1 21 19 20.1 19 19V9L13 3Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><path d="M13 3V7C13 8.1 13.9 9 15 9H19" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>',
+        'neolyx-settings': '<svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><circle cx="12" cy="12" r="3" stroke="currentColor" stroke-width="2"/><path d="M19.4 15C19.3 15.3 19.4 15.7 19.6 16L20.6 17.4C20.8 17.7 20.8 18.1 20.5 18.4L18.4 20.5C18.1 20.8 17.7 20.8 17.4 20.6L16 19.6C15.7 19.4 15.3 19.3 15 19.4L14.2 19.6C13.9 19.7 13.6 19.9 13.6 20.2V22H10.4V20.2C10.4 19.9 10.1 19.7 9.8 19.6L9 19.4C8.7 19.3 8.3 19.4 8 19.6L6.6 20.6C6.3 20.8 5.9 20.8 5.6 20.5L3.5 18.4C3.2 18.1 3.2 17.7 3.4 17.4L4.4 16C4.6 15.7 4.7 15.3 4.6 15L4.4 14.2C4.3 13.9 4.1 13.6 3.8 13.6H2V10.4H3.8C4.1 10.4 4.3 10.1 4.4 9.8L4.6 9C4.7 8.7 4.6 8.3 4.4 8L3.4 6.6C3.2 6.3 3.2 5.9 3.5 5.6L5.6 3.5C5.9 3.2 6.3 3.2 6.6 3.4L8 4.4C8.3 4.6 8.7 4.7 9 4.6L9.8 4.4C10.1 4.3 10.4 4.1 10.4 3.8V2H13.6V3.8C13.6 4.1 13.9 4.3 14.2 4.4L15 4.6C15.3 4.7 15.7 4.6 16 4.4L17.4 3.4C17.7 3.2 18.1 3.2 18.4 3.5L20.5 5.6C20.8 5.9 20.8 6.3 20.6 6.6L19.6 8C19.4 8.3 19.3 8.7 19.4 9L19.6 9.8C19.7 10.1 19.9 10.4 20.2 10.4H22V13.6H20.2C19.9 13.6 19.7 13.9 19.6 14.2L19.4 15Z" stroke="currentColor" stroke-width="2"/></svg>',
+        'neolyx-search': '<svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><circle cx="11" cy="11" r="7" stroke="currentColor" stroke-width="2"/><path d="M16.5 16.5L21 21" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"/></svg>',
+        'neolyx-terminal': '<svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><rect x="3" y="4" width="18" height="16" rx="2" stroke="currentColor" stroke-width="2"/><path d="M7 10L10 13L7 16" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><path d="M13 16H17" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>',
+        'neolyx-apps': '<svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><rect x="4" y="4" width="6" height="6" rx="1.5" stroke="currentColor" stroke-width="2"/><rect x="14" y="4" width="6" height="6" rx="1.5" stroke="currentColor" stroke-width="2"/><rect x="4" y="14" width="6" height="6" rx="1.5" stroke="currentColor" stroke-width="2"/><rect x="14" y="14" width="6" height="6" rx="1.5" stroke="currentColor" stroke-width="2"/></svg>',
+        'neolyx-browser': '<svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><rect x="3" y="3" width="18" height="18" rx="3" stroke="currentColor" stroke-width="2"/><path d="M3 8H21" stroke="currentColor" stroke-width="2"/><circle cx="6.5" cy="5.5" r="0.5" fill="currentColor"/><circle cx="8.5" cy="5.5" r="0.5" fill="currentColor"/><circle cx="10.5" cy="5.5" r="0.5" fill="currentColor"/></svg>',
+        'neolyx-mail': '<svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><rect x="3" y="5" width="18" height="14" rx="2" stroke="currentColor" stroke-width="2"/><path d="M3 7L12 13L21 7" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>',
+        'neolyx-chat': '<svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M21 11.5C21 16.75 16.97 21 12 21C10.8 21 9.66 20.78 8.6 20.38L3 22L4.9 17.07C3.73 15.65 3 13.91 3 12C3 6.75 7.03 2.5 12 2.5C16.97 2.5 21 6.75 21 11.5Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>',
+        'neolyx-music': '<svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M9 18V5L20 3V16" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><circle cx="6" cy="18" r="3" stroke="currentColor" stroke-width="2"/><circle cx="17" cy="16" r="3" stroke="currentColor" stroke-width="2"/></svg>',
+        'neolyx-video': '<svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><rect x="2" y="5" width="15" height="14" rx="2" stroke="currentColor" stroke-width="2"/><path d="M17 8.5L22 5.5V18.5L17 15.5V8.5Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>',
+        'neolyx-image': '<svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><rect x="3" y="3" width="18" height="18" rx="3" stroke="currentColor" stroke-width="2"/><circle cx="8.5" cy="8.5" r="2" stroke="currentColor" stroke-width="2"/><path d="M21 15L16 10L3 18" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>',
+        'neolyx-camera': '<svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M23 17C23 18.1 22.1 19 21 19H3C1.9 19 1 18.1 1 17V8C1 6.9 1.9 6 3 6H6L7.5 3.5C7.8 3.2 8.2 3 8.6 3H15.4C15.8 3 16.2 3.2 16.5 3.5L18 6H21C22.1 6 23 6.9 23 8V17Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><circle cx="12" cy="12.5" r="3.5" stroke="currentColor" stroke-width="2"/></svg>',
+        'neolyx-document': '<svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M14 2H6C4.9 2 4 2.9 4 4V20C4 21.1 4.9 22 6 22H18C19.1 22 20 21.1 20 20V8L14 2Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><path d="M14 2V6C14 7.1 14.9 8 16 8H20" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><path d="M8 13H16M8 17H16M8 9H10" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>',
+        'neolyx-download': '<svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M12 3V15M8 11L12 15L16 11" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><path d="M3 16V18C3 19.7 4.3 21 6 21H18C19.7 21 21 19.7 21 18V16" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>',
+        'neolyx-upload': '<svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M12 15V3M16 7L12 3L8 7" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><path d="M3 16V18C3 19.7 4.3 21 6 21H18C19.7 21 21 19.7 21 18V16" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>',
+        'neolyx-trash': '<svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M3 6H21M19 6V20C19 21.1 18.1 22 17 22H7C5.9 22 5 21.1 5 20V6M8 6V4C8 2.9 8.9 2 10 2H14C15.1 2 16 2.9 16 4V6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><path d="M10 11V17M14 11V17" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>',
+        'neolyx-edit': '<svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M17 3L21 7L7.5 20.5L2 22L3.5 16.5L17 3Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>',
+        'neolyx-copy': '<svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><rect x="9" y="9" width="13" height="13" rx="2" stroke="currentColor" stroke-width="2"/><path d="M5 15H4C2.9 15 2 14.1 2 13V4C2 2.9 2.9 2 4 2H13C14.1 2 15 2.9 15 4V5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>',
+        'neolyx-share': '<svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><circle cx="18" cy="5" r="3" stroke="currentColor" stroke-width="2"/><circle cx="6" cy="12" r="3" stroke="currentColor" stroke-width="2"/><circle cx="18" cy="19" r="3" stroke="currentColor" stroke-width="2"/><path d="M8.59 13.51L15.42 17.49M15.41 6.51L8.59 10.49" stroke="currentColor" stroke-width="2"/></svg>',
+        'neolyx-user': '<svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><circle cx="12" cy="8" r="4" stroke="currentColor" stroke-width="2"/><path d="M4 20C4 16.7 7.1 14 11 14H13C16.9 14 20 16.7 20 20" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>',
+        'neolyx-lock': '<svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><rect x="5" y="11" width="14" height="11" rx="2" stroke="currentColor" stroke-width="2"/><path d="M8 11V7C8 4.8 9.8 3 12 3C14.2 3 16 4.8 16 7V11" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><circle cx="12" cy="16" r="1.5" fill="currentColor"/></svg>',
+        'neolyx-unlock': '<svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><rect x="5" y="11" width="14" height="11" rx="2" stroke="currentColor" stroke-width="2"/><path d="M8 11V7C8 4.8 9.8 3 12 3C13.7 3 15.2 4 15.8 5.5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><circle cx="12" cy="16" r="1.5" fill="currentColor"/></svg>',
+        'neolyx-wifi': '<svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M5 12.5C7.8 9.7 12.2 9.7 15 12.5M2 8.8C6.4 4.4 13.6 4.4 18 8.8M8.5 16.2C9.9 14.8 12.1 14.8 13.5 16.2" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><circle cx="11" cy="20" r="1.5" fill="currentColor"/></svg>',
+        'neolyx-battery': '<svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><rect x="2" y="7" width="18" height="10" rx="2" stroke="currentColor" stroke-width="2"/><path d="M22 10V14" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><rect x="5" y="10" width="10" height="4" rx="1" fill="currentColor"/></svg>',
+        'neolyx-power': '<svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M12 2V12M18.4 6.6C21.5 9.7 21.5 14.8 18.4 17.9C15.3 21 10.2 21 7.1 17.9C4 14.8 4 9.7 7.1 6.6" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/></svg>',
+        'neolyx-clock': '<svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><circle cx="12" cy="12" r="9" stroke="currentColor" stroke-width="2"/><path d="M12 7V12L15 15" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>',
+        'neolyx-calendar': '<svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><rect x="3" y="4" width="18" height="18" rx="2" stroke="currentColor" stroke-width="2"/><path d="M16 2V6M8 2V6M3 10H21" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>',
+        'neolyx-notification': '<svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M18 8C18 6.4 17.4 4.9 16.2 3.7C15 2.6 13.5 2 12 2C10.5 2 9 2.6 7.8 3.7C6.6 4.9 6 6.4 6 8C6 15 3 17 3 17H21C21 17 18 15 18 8Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><path d="M13.7 21C13.5 21.3 13.3 21.5 13 21.7C12.4 22.1 11.6 22.1 11 21.7C10.7 21.5 10.5 21.3 10.3 21" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>',
+        'neolyx-star': '<svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M12 2L15.09 8.26L22 9.27L17 14.14L18.18 21.02L12 17.77L5.82 21.02L7 14.14L2 9.27L8.91 8.26L12 2Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>',
+        'neolyx-heart': '<svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M20.8 4.6C18.8 2.6 15.5 2.6 13.5 4.6L12 6.1L10.5 4.6C8.5 2.6 5.2 2.6 3.2 4.6C1.2 6.6 1.2 9.9 3.2 11.9L12 20.7L20.8 11.9C22.8 9.9 22.8 6.6 20.8 4.6Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>',
+        'neolyx-bookmark': '<svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M19 21L12 16L5 21V5C5 3.9 5.9 3 7 3H17C18.1 3 19 3.9 19 5V21Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>',
+        'neolyx-refresh': '<svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M21.5 2V8H15.5M2.5 22V16H8.5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><path d="M19.1 7C17 4 13.7 2.5 10.3 3C6.5 3.6 3.6 6.5 3 10.3M4.9 17C7 20 10.3 21.5 13.7 21C17.5 20.4 20.4 17.5 21 13.7" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>',
+        'neolyx-play': '<svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="2"/><path d="M10 8L16 12L10 16V8Z" fill="currentColor"/></svg>',
+        'neolyx-pause': '<svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="2"/><rect x="9" y="8" width="2" height="8" rx="1" fill="currentColor"/><rect x="13" y="8" width="2" height="8" rx="1" fill="currentColor"/></svg>',
+        'neolyx-volume': '<svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M11 5L6 9H2V15H6L11 19V5Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><path d="M15.5 8.5C16.5 9.5 17 10.7 17 12C17 13.3 16.5 14.5 15.5 15.5M18 5.5C19.7 7.2 20.8 9.5 20.8 12C20.8 14.5 19.7 16.8 18 18.5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>',
+        'neolyx-mute': '<svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M11 5L6 9H2V15H6L11 19V5Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><path d="M23 9L17 15M17 9L23 15" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>',
+        'neolyx-plus': '<svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="2"/><path d="M12 8V16M8 12H16" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>',
+        'neolyx-minus': '<svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="2"/><path d="M8 12H16" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>',
+        'neolyx-close': '<svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="2"/><path d="M15 9L9 15M9 9L15 15" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>',
+        'neolyx-check': '<svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="2"/><path d="M8 12L11 15L16 9" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>',
+        'neolyx-info': '<svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="2"/><path d="M12 16V12M12 8H12.01" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>',
+        'neolyx-warning': '<svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M10.3 3.9L2.1 18C1.9 18.3 1.8 18.7 1.8 19C1.8 20.1 2.7 21 3.8 21H20.2C20.5 21 20.9 20.9 21.2 20.7C22.1 20.2 22.4 19 21.9 18.1L13.7 3.9C13.5 3.6 13.2 3.3 12.9 3.2C12 2.6 10.8 2.9 10.3 3.9Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>',
+
+        // New Hardware Icons (40+)
+        'neolyx-cpu': '<svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><rect x="5" y="5" width="14" height="14" rx="2" stroke="currentColor" stroke-width="2"/><rect x="8" y="8" width="8" height="8" stroke="currentColor" stroke-width="2"/><path d="M5 2V5M19 2V5M5 19V22M19 19V22M2 5H5M2 19H5M22 5H19M22 19H19" stroke="currentColor" stroke-width="2"/></svg>',
+        'neolyx-memory': '<svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><rect x="4" y="4" width="16" height="16" rx="2" stroke="currentColor" stroke-width="2"/><path d="M8 8V16M16 8V16M12 8V16" stroke="currentColor" stroke-width="2"/></svg>',
+        'neolyx-storage': '<svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><rect x="3" y="3" width="18" height="18" rx="2" stroke="currentColor" stroke-width="2"/><circle cx="8" cy="8" r="1" fill="currentColor"/><circle cx="8" cy="12" r="1" fill="currentColor"/><circle cx="8" cy="16" r="1" fill="currentColor"/><path d="M12 8H18M12 12H18M12 16H18" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>',
+        'neolyx-display': '<svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><rect x="2" y="3" width="20" height="14" rx="2" stroke="currentColor" stroke-width="2"/><path d="M8 21H16M12 17V21" stroke="currentColor" stroke-width="2"/></svg>',
+        'neolyx-keyboard': '<svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><rect x="3" y="5" width="18" height="12" rx="2" stroke="currentColor" stroke-width="2"/><circle cx="6" cy="9" r="0.5" fill="currentColor"/><circle cx="9" cy="9" r="0.5" fill="currentColor"/><circle cx="12" cy="9" r="0.5" fill="currentColor"/><circle cx="15" cy="9" r="0.5" fill="currentColor"/><circle cx="18" cy="9" r="0.5" fill="currentColor"/><circle cx="6" cy="12" r="0.5" fill="currentColor"/><circle cx="9" cy="12" r="0.5" fill="currentColor"/><circle cx="12" cy="12" r="0.5" fill="currentColor"/><circle cx="15" cy="12" r="0.5" fill="currentColor"/><circle cx="18" cy="12" r="0.5" fill="currentColor"/><rect x="8" y="15" width="8" height="2" rx="1" fill="currentColor"/></svg>',
+        'neolyx-mouse': '<svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M12 2C8.1 2 5 5.1 5 9V15C5 18.9 8.1 22 12 22C15.9 22 19 18.9 19 15V9C19 5.1 15.9 2 12 2Z" stroke="currentColor" stroke-width="2"/><path d="M12 6V12" stroke="currentColor" stroke-width="2"/></svg>',
+        'neolyx-printer': '<svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M6 9V2H18V9M6 18H4C2.9 18 2 17.1 2 16V12C2 10.9 2.9 10 4 10H20C21.1 10 22 10.9 22 12V16C22 17.1 21.1 18 20 18H18M6 14H18V22H6V14Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>',
+        'neolyx-network': '<svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><circle cx="12" cy="12" r="3" stroke="currentColor" stroke-width="2"/><path d="M12 2V5M12 19V22M2 12H5M19 12H22M4.9 4.9L7 7M17 17L19.1 19.1M4.9 19.1L7 17M17 7L19.1 4.9" stroke="currentColor" stroke-width="2"/></svg>',
+        'neolyx-bluetooth': '<svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M6 7L18 17L12 22V2L18 7L6 17" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>',
+        'neolyx-usb': '<svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M12 2V6M15 3L9 9M15 21C16.7 21 18 19.7 18 18C18 16.3 16.7 15 15 15C13.3 15 12 16.3 12 18C12 19.7 13.3 21 15 21Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><rect x="5" y="11" width="14" height="4" rx="1" stroke="currentColor" stroke-width="2"/></svg>',
+        'neolyx-microphone': '<svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M12 15C14.2 15 16 13.2 16 11V5C16 2.8 14.2 1 12 1C9.8 1 8 2.8 8 5V11C8 13.2 9.8 15 12 15Z" stroke="currentColor" stroke-width="2"/><path d="M4 9V11C4 15 7 18 11 19V22H13V19C17 18 20 15 20 11V9" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>',
+        'neolyx-headphones': '<svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M3 12V18C3 19.7 4.3 21 6 21H7C8.7 21 10 19.7 10 18V15C10 13.3 8.7 12 7 12H3Z" stroke="currentColor" stroke-width="2"/><path d="M21 12V18C21 19.7 19.7 21 18 21H17C15.3 21 14 19.7 14 18V15C14 13.3 15.3 12 17 12H21Z" stroke="currentColor" stroke-width="2"/><path d="M3 12C3 7 7 3 12 3C17 3 21 7 21 12" stroke="currentColor" stroke-width="2"/></svg>',
+        'neolyx-speaker': '<svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><rect x="4" y="4" width="16" height="16" rx="2" stroke="currentColor" stroke-width="2"/><circle cx="12" cy="12" r="4" stroke="currentColor" stroke-width="2"/><circle cx="12" cy="12" r="1" fill="currentColor"/></svg>',
+
+        // New Development Icons
+        'neolyx-code': '<svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M16 18L22 12L16 6M8 6L2 12L8 18" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>',
+        'neolyx-bug': '<svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M12 2C10 2 8.5 3.5 8.5 5.5V7H15.5V5.5C15.5 3.5 14 2 12 2Z" stroke="currentColor" stroke-width="2"/><path d="M20 12H22M2 12H4M8 19V22M16 19V22" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><path d="M12 22C15.3 22 18 19.3 18 16V8C18 4.7 15.3 2 12 2C8.7 2 6 4.7 6 8V16C6 19.3 8.7 22 12 22Z" stroke="currentColor" stroke-width="2"/><path d="M9 15L11 17L15 13" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>',
+        'neolyx-deploy': '<svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M12 2L2 7L12 12L22 7L12 2Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><path d="M2 17L12 22L22 17" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><path d="M2 12L12 17L22 12" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>',
+        'neolyx-database': '<svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><ellipse cx="12" cy="5" rx="9" ry="3" stroke="currentColor" stroke-width="2"/><path d="M21 12C21 13.7 17 15 12 15C7 15 3 13.7 3 12" stroke="currentColor" stroke-width="2"/><path d="M3 5V19C3 20.7 7 22 12 22C17 22 21 20.7 21 19V5" stroke="currentColor" stroke-width="2"/></svg>',
+        'neolyx-server': '<svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><rect x="2" y="4" width="20" height="4" rx="1" stroke="currentColor" stroke-width="2"/><rect x="2" y="12" width="20" height="4" rx="1" stroke="currentColor" stroke-width="2"/><rect x="2" y="20" width="20" height="4" rx="1" stroke="currentColor" stroke-width="2"/><circle cx="5" cy="6" r="1" fill="currentColor"/><circle cx="5" cy="14" r="1" fill="currentColor"/><circle cx="5" cy="22" r="1" fill="currentColor"/></svg>',
+        'neolyx-cloud': '<svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M18 10H16C16 7.8 14.2 6 12 6C9.8 6 8 7.8 8 10H6C3.8 10 2 11.8 2 14C2 16.2 3.8 18 6 18H18C20.2 18 22 16.2 22 14C22 11.8 20.2 10 18 10Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>',
+        'neolyx-api': '<svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M12 15L8 11L12 7M12 17L16 21M12 7L16 3" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><circle cx="12" cy="12" r="3" stroke="currentColor" stroke-width="2"/></svg>',
+
+        // New Navigation Icons
+        'neolyx-arrow-up': '<svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M12 19V5M5 12L12 5L19 12" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>',
+        'neolyx-arrow-down': '<svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M12 5V19M5 12L12 19L19 12" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>',
+        'neolyx-arrow-left': '<svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M19 12H5M12 19L5 12L12 5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>',
+        'neolyx-arrow-right': '<svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M5 12H19M12 5L19 12L12 19" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>',
+        'neolyx-chevron-up': '<svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M18 15L12 9L6 15" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>',
+        'neolyx-chevron-down': '<svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M6 9L12 15L18 9" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>',
+        'neolyx-chevron-left': '<svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M15 18L9 12L15 6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>',
+        'neolyx-chevron-right': '<svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M9 18L15 12L9 6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>',
+        'neolyx-menu': '<svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M3 12H21M3 6H21M3 18H21" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>',
+        'neolyx-grid': '<svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><rect x="3" y="3" width="7" height="7" rx="1" stroke="currentColor" stroke-width="2"/><rect x="14" y="3" width="7" height="7" rx="1" stroke="currentColor" stroke-width="2"/><rect x="3" y="14" width="7" height="7" rx="1" stroke="currentColor" stroke-width="2"/><rect x="14" y="14" width="7" height="7" rx="1" stroke="currentColor" stroke-width="2"/></svg>',
+
+        // New Business Icons
+        'neolyx-chart': '<svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M3 3V18C3 19.7 4.3 21 6 21H21" stroke="currentColor" stroke-width="2"/><path d="M7 14L10 10L13 13L18 8" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>',
+        'neolyx-graph': '<svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><rect x="3" y="3" width="18" height="18" rx="2" stroke="currentColor" stroke-width="2"/><path d="M7 16L10 13L13 16L17 11" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>',
+        'neolyx-calculator': '<svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><rect x="4" y="2" width="16" height="20" rx="2" stroke="currentColor" stroke-width="2"/><rect x="7" y="6" width="10" height="4" rx="1" stroke="currentColor" stroke-width="2"/><circle cx="8" cy="13" r="1.5" fill="currentColor"/><circle cx="12" cy="13" r="1.5" fill="currentColor"/><circle cx="16" cy="13" r="1.5" fill="currentColor"/><circle cx="8" cy="17" r="1.5" fill="currentColor"/><circle cx="12" cy="17" r="1.5" fill="currentColor"/><circle cx="16" cy="17" r="1.5" fill="currentColor"/></svg>',
+        'neolyx-wallet': '<svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M19 7V5C19 3.9 18.1 3 17 3H5C3.9 3 3 3.9 3 5V19C3 20.1 3.9 21 5 21H17C18.1 21 19 20.1 19 19V17" stroke="currentColor" stroke-width="2"/><rect x="15" y="11" width="6" height="6" rx="2" stroke="currentColor" stroke-width="2"/><circle cx="17" cy="14" r="1" fill="currentColor"/></svg>',
+        'neolyx-shopping-cart': '<svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><circle cx="9" cy="21" r="1" stroke="currentColor" stroke-width="2"/><circle cx="20" cy="21" r="1" stroke="currentColor" stroke-width="2"/><path d="M1 1H5L7.7 14.4C7.9 15.4 8.8 16 9.8 16H19C20 16 20.9 15.4 21.1 14.4L23 6H6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>',
+        'neolyx-credit-card': '<svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><rect x="2" y="5" width="20" height="14" rx="2" stroke="currentColor" stroke-width="2"/><path d="M2 10H22" stroke="currentColor" stroke-width="2"/><rect x="15" y="15" width="4" height="2" rx="1" fill="currentColor"/></svg>',
+
+        // Additional System Icons
+        'neolyx-restart': '<svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M23 4V10H17" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><path d="M20.5 7C19 4.5 16 2.5 12.5 2.5C7.5 2.5 3.5 6.5 3.5 11.5C3.5 16.5 7.5 20.5 12.5 20.5C16.5 20.5 20 18 21 14.5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>',
+        'neolyx-shutdown': '<svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M12 12V2M15 4L12 1L9 4M9 20L12 23L15 20" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><circle cx="12" cy="12" r="9" stroke="currentColor" stroke-width="2"/></svg>',
+        'neolyx-logout': '<svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M9 21H5C3.9 21 3 20.1 3 19V5C3 3.9 3.9 3 5 3H9" stroke="currentColor" stroke-width="2"/><path d="M16 17L21 12L16 7M21 12H9" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>',
+        'neolyx-login': '<svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M15 21H19C20.1 21 21 20.1 21 19V5C21 3.9 20.1 3 19 3H15" stroke="currentColor" stroke-width="2"/><path d="M8 17L3 12L8 7M3 12H15" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>',
+        'neolyx-users': '<svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><circle cx="9" cy="7" r="4" stroke="currentColor" stroke-width="2"/><path d="M3 21V19C3 16.8 4.8 15 7 15H11C13.2 15 15 16.8 15 19V21" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><path d="M16 3C17.7 3 19 4.3 19 6C19 7.7 17.7 9 16 9" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><path d="M21 21V19C21 17.3 19.7 16 18 16" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>',
+        'neolyx-group': '<svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><circle cx="12" cy="8" r="3" stroke="currentColor" stroke-width="2"/><path d="M6 21V19C6 16.8 7.8 15 10 15H14C16.2 15 18 16.8 18 19V21" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><circle cx="18" cy="8" r="3" stroke="currentColor" stroke-width="2"/><path d="M22 21V19C22 17.1 20.9 15.5 19 15" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><circle cx="6" cy="8" r="3" stroke="currentColor" stroke-width="2"/><path d="M2 21V19C2 17.1 3.1 15.5 5 15" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>',
+        'neolyx-tasks': '<svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><rect x="3" y="4" width="18" height="16" rx="2" stroke="currentColor" stroke-width="2"/><path d="M8 8H16M8 12H16M8 16H12" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><circle cx="18" cy="8" r="1" fill="currentColor"/><circle cx="18" cy="12" r="1" fill="currentColor"/><circle cx="18" cy="16" r="1" fill="currentColor"/></svg>',
+        'neolyx-history': '<svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><circle cx="12" cy="12" r="9" stroke="currentColor" stroke-width="2"/><path d="M12 8V12L15 15" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><path d="M3 3L6 6M21 3L18 6" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>',
+        'neolyx-filter': '<svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M22 3H2L10 12.5V19L14 21V12.5L22 3Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>',
+        'neolyx-sort': '<svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M3 6H21M6 12H18M10 18H14" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>',
+
+        // Media Control Icons
+        'neolyx-skip-back': '<svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="2"/><path d="M10 8L6 12L10 16V8Z" fill="currentColor"/><rect x="14" y="8" width="2" height="8" rx="1" fill="currentColor"/></svg>',
+        'neolyx-skip-forward': '<svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="2"/><path d="M14 16L18 12L14 8V16Z" fill="currentColor"/><rect x="8" y="8" width="2" height="8" rx="1" fill="currentColor"/></svg>',
+        'neolyx-stop': '<svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="2"/><rect x="9" y="9" width="6" height="6" rx="1" fill="currentColor"/></svg>',
+        'neolyx-record': '<svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="2"/><circle cx="12" cy="12" r="5" fill="currentColor"/></svg>',
+
+        // File Type Icons
+        'neolyx-pdf': '<svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M14 2H6C4.9 2 4 2.9 4 4V20C4 21.1 4.9 22 6 22H18C19.1 22 20 21.1 20 20V8L14 2Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><path d="M14 2V6C14 7.1 14.9 8 16 8H20" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><path d="M8 13H16M8 17H12M16 17H12" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><rect x="7" y="9" width="3" height="3" rx="1" stroke="currentColor" stroke-width="2"/></svg>',
+        'neolyx-zip': '<svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M14 2H6C4.9 2 4 2.9 4 4V20C4 21.1 4.9 22 6 22H18C19.1 22 20 21.1 20 20V8L14 2Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><path d="M14 2V6C14 7.1 14.9 8 16 8H20" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><path d="M8 12H16V16H8V12Z" stroke="currentColor" stroke-width="2"/><path d="M10 14H14" stroke="currentColor" stroke-width="2"/></svg>',
+        'neolyx-exe': '<svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M14 2H6C4.9 2 4 2.9 4 4V20C4 21.1 4.9 22 6 22H18C19.1 22 20 21.1 20 20V8L14 2Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><path d="M14 2V6C14 7.1 14.9 8 16 8H20" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><path d="M9 15L12 12L15 15M9 9L12 12L15 9" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>',
+    };
+
+    const filteredIcons = Object.entries(icons).filter(([name]) => {
+        const matchesSearch = name.toLowerCase().includes(searchTerm.toLowerCase());
+        const matchesCategory = category === 'all' ||
+            (iconCategories[category] && iconCategories[category].includes(name));
+        return matchesSearch && matchesCategory;
+    });
+
+    const IconPreviewModal = () => {
+        if (!selectedIcon) return null;
+
+        return (
+            <div className="modal-overlay" onClick={() => setSelectedIcon(null)}>
+                <div className="modal-content" onClick={e => e.stopPropagation()}>
+                    <div className="modal-header">
+                        <h3>{selectedIcon.name}</h3>
+                        <button onClick={() => setSelectedIcon(null)} className="close-btn">
+                            <div dangerouslySetInnerHTML={{ __html: icons['neolyx-close'] }} />
+                        </button>
+                    </div>
+                    <div className="icon-preview-large">
+                        <div dangerouslySetInnerHTML={{ __html: selectedIcon.svg }} />
+                    </div>
+                    <div className="modal-actions">
+                        <button onClick={() => downloadSVG(selectedIcon.name, selectedIcon.svg)}>
+                            Download SVG
+                        </button>
+                        <button onClick={() => copySVGCode(selectedIcon.name, selectedIcon.svg)}>
+                            Copy SVG Code
+                        </button>
+                        <button onClick={() => {
+                            navigator.clipboard.writeText(`<div dangerouslySetInnerHTML={{ __html: icons['${selectedIcon.name}'] }} />`);
+                            setCopied(selectedIcon.name);
+                            setTimeout(() => setCopied(''), 2000);
+                        }}>
+                            Copy React Usage
+                        </button>
+                    </div>
+                </div>
+            </div>
+        );
+    };
+
+    return (
+        <div className="neolyx-icon-library">
+            <header>
+                <h1>Neolyx Icon Library</h1>
+                <p className="subtitle">A comprehensive icon set for modern operating systems</p>
+            </header>
+
+            <div className="controls">
+                <div className="search-bar">
+                    <div className="search-icon">
+                        <div dangerouslySetInnerHTML={{ __html: icons['neolyx-search'] }} />
+                    </div>
+                    <input
+                        type="text"
+                        placeholder="Search icons..."
+                        value={searchTerm}
+                        onChange={(e) => setSearchTerm(e.target.value)}
+                    />
+                </div>
+
+                <div className="category-filters">
+                    <select value={category} onChange={(e) => setCategory(e.target.value)}>
+                        <option value="all">All Categories</option>
+                        {Object.keys(iconCategories).map(cat => (
+                            <option key={cat} value={cat}>
+                                {cat.charAt(0).toUpperCase() + cat.slice(1)} ({iconCategories[cat].length})
+                            </option>
+                        ))}
+                    </select>
+                </div>
+
+                <button onClick={downloadAll} className="download-all-btn">
+                    Download All Icons
+                </button>
+            </div>
+
+            <div className="stats">
+                <div className="stat">
+                    <span className="stat-number">{Object.keys(icons).length}</span>
+                    <span className="stat-label">Total Icons</span>
+                </div>
+                <div className="stat">
+                    <span className="stat-number">{filteredIcons.length}</span>
+                    <span className="stat-label">Filtered Icons</span>
+                </div>
+            </div>
+
+            <div className="icon-grid">
+                {filteredIcons.map(([name, svg]) => (
+                    <div key={name} className="icon-card">
+                        <div
+                            className="icon-preview"
+                            onClick={() => setSelectedIcon({ name, svg })}
+                        >
+                            <div dangerouslySetInnerHTML={{ __html: svg }} />
+                        </div>
+                        <div className="icon-info">
+                            <span className="icon-name">{name}</span>
+                            <div className="icon-actions">
+                                <button
+                                    onClick={() => downloadSVG(name, svg)}
+                                    className="action-btn"
+                                    title="Download"
+                                >
+                                    <div dangerouslySetInnerHTML={{ __html: icons['neolyx-download'] }} />
+                                </button>
+                                <button
+                                    onClick={() => copySVGCode(name, svg)}
+                                    className="action-btn"
+                                    title="Copy SVG"
+                                >
+                                    <div dangerouslySetInnerHTML={{ __html: icons['neolyx-copy'] }} />
+                                </button>
+                            </div>
+                        </div>
+                        {copied === name && (
+                            <div className="copied-message">Copied!</div>
+                        )}
+                    </div>
+                ))}
+            </div>
+
+            {filteredIcons.length === 0 && (
+                <div className="no-results">
+                    <div className="no-results-icon">
+                        <div dangerouslySetInnerHTML={{ __html: icons['neolyx-search'] }} />
+                    </div>
+                    <h3>No icons found</h3>
+                    <p>Try adjusting your search or filter criteria</p>
+                </div>
+            )}
+
+            <IconPreviewModal />
+
+            <style jsx>{`
+        .neolyx-icon-library {
+          max-width: 1200px;
+          margin: 0 auto;
+          padding: 20px;
+          font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+        }
+
+        header {
+          text-align: center;
+          margin-bottom: 40px;
+        }
+
+        h1 {
+          font-size: 2.5rem;
+          color: #333;
+          margin-bottom: 10px;
+        }
+
+        .subtitle {
+          color: #666;
+          font-size: 1.1rem;
+        }
+
+        .controls {
+          display: flex;
+          gap: 20px;
+          margin-bottom: 30px;
+          flex-wrap: wrap;
+        }
+
+        .search-bar {
+          flex: 1;
+          min-width: 300px;
+          position: relative;
+        }
+
+        .search-bar input {
+          width: 100%;
+          padding: 12px 20px 12px 45px;
+          border: 2px solid #e0e0e0;
+          border-radius: 8px;
+          font-size: 16px;
+          transition: border-color 0.3s;
+        }
+
+        .search-bar input:focus {
+          outline: none;
+          border-color: #4a90e2;
+        }
+
+        .search-icon {
+          position: absolute;
+          left: 15px;
+          top: 50%;
+          transform: translateY(-50%);
+          width: 20px;
+          height: 20px;
+          color: #999;
+        }
+
+        .category-filters select {
+          padding: 12px 20px;
+          border: 2px solid #e0e0e0;
+          border-radius: 8px;
+          font-size: 16px;
+          background: white;
+          min-width: 200px;
+        }
+
+        .download-all-btn {
+          padding: 12px 24px;
+          background: #4a90e2;
+          color: white;
+          border: none;
+          border-radius: 8px;
+          font-size: 16px;
+          cursor: pointer;
+          transition: background 0.3s;
+        }
+
+        .download-all-btn:hover {
+          background: #3a80d2;
+        }
+
+        .stats {
+          display: flex;
+          gap: 30px;
+          margin-bottom: 30px;
+          padding: 20px;
+          background: #f8f9fa;
+          border-radius: 8px;
+        }
+
+        .stat {
+          text-align: center;
+        }
+
+        .stat-number {
+          display: block;
+          font-size: 2rem;
+          font-weight: bold;
+          color: #4a90e2;
+        }
+
+        .stat-label {
+          font-size: 0.9rem;
+          color: #666;
+        }
+
+        .icon-grid {
+          display: grid;
+          grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+          gap: 20px;
+          margin-bottom: 40px;
+        }
+
+        .icon-card {
+          background: white;
+          border: 1px solid #e0e0e0;
+          border-radius: 12px;
+          padding: 20px;
+          transition: all 0.3s;
+          position: relative;
+        }
+
+        .icon-card:hover {
+          transform: translateY(-4px);
+          box-shadow: 0 8px 24px rgba(0,0,0,0.1);
+          border-color: #4a90e2;
+        }
+
+        .icon-preview {
+          width: 60px;
+          height: 60px;
+          margin: 0 auto 15px;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          color: #333;
+          cursor: pointer;
+          transition: color 0.3s;
+        }
+
+        .icon-preview:hover {
+          color: #4a90e2;
+        }
+
+        .icon-preview svg {
+          width: 100%;
+          height: 100%;
+        }
+
+        .icon-info {
+          text-align: center;
+        }
+
+        .icon-name {
+          display: block;
+          font-size: 12px;
+          color: #666;
+          margin-bottom: 10px;
+          font-family: 'Monaco', 'Courier New', monospace;
+          word-break: break-all;
+        }
+
+        .icon-actions {
+          display: flex;
+          justify-content: center;
+          gap: 10px;
+        }
+
+        .action-btn {
+          width: 32px;
+          height: 32px;
+          border: 1px solid #e0e0e0;
+          border-radius: 6px;
+          background: white;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          cursor: pointer;
+          transition: all 0.3s;
+          color: #666;
+        }
+
+        .action-btn:hover {
+          background: #f8f9fa;
+          border-color: #4a90e2;
+          color: #4a90e2;
+        }
+
+        .action-btn svg {
+          width: 16px;
+          height: 16px;
+        }
+
+        .copied-message {
+          position: absolute;
+          top: -10px;
+          right: -10px;
+          background: #4a90e2;
+          color: white;
+          padding: 4px 8px;
+          border-radius: 4px;
+          font-size: 12px;
+          animation: fadeIn 0.3s;
+        }
+
+        @keyframes fadeIn {
+          from { opacity: 0; transform: translateY(10px); }
+          to { opacity: 1; transform: translateY(0); }
+        }
+
+        .no-results {
+          text-align: center;
+          padding: 60px 20px;
+          color: #666;
+        }
+
+        .no-results-icon {
+          width: 80px;
+          height: 80px;
+          margin: 0 auto 20px;
+          color: #ccc;
+        }
+
+        .no-results h3 {
+          margin-bottom: 10px;
+          color: #333;
+        }
+
+        /* Modal Styles */
+        .modal-overlay {
+          position: fixed;
+          top: 0;
+          left: 0;
+          right: 0;
+          bottom: 0;
+          background: rgba(0,0,0,0.5);
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          z-index: 1000;
+          animation: fadeIn 0.3s;
+        }
+
+        .modal-content {
+          background: white;
+          border-radius: 16px;
+          padding: 30px;
+          width: 90%;
+          max-width: 500px;
+          animation: slideUp 0.3s;
+        }
+
+        @keyframes slideUp {
+          from { transform: translateY(50px); opacity: 0; }
+          to { transform: translateY(0); opacity: 1; }
+        }
+
+        .modal-header {
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
+          margin-bottom: 20px;
+        }
+
+        .modal-header h3 {
+          margin: 0;
+          color: #333;
+          font-family: 'Monaco', 'Courier New', monospace;
+        }
+
+        .close-btn {
+          width: 36px;
+          height: 36px;
+          border: none;
+          background: #f8f9fa;
+          border-radius: 50%;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          cursor: pointer;
+          color: #666;
+          transition: all 0.3s;
+        }
+
+        .close-btn:hover {
+          background: #e0e0e0;
+          color: #333;
+        }
+
+        .icon-preview-large {
+          width: 120px;
+          height: 120px;
+          margin: 0 auto 30px;
+          color: #333;
+        }
+
+        .icon-preview-large svg {
+          width: 100%;
+          height: 100%;
+        }
+
+        .modal-actions {
+          display: flex;
+          gap: 10px;
+          justify-content: center;
+        }
+
+        .modal-actions button {
+          padding: 12px 24px;
+          border: none;
+          border-radius: 8px;
+          background: #4a90e2;
+          color: white;
+          font-size: 14px;
+          cursor: pointer;
+          transition: background 0.3s;
+        }
+
+        .modal-actions button:hover {
+          background: #3a80d2;
+        }
+
+        .modal-actions button:nth-child(2) {
+          background: #34c759;
+        }
+
+        .modal-actions button:nth-child(2):hover {
+          background: #28a745;
+        }
+
+        .modal-actions button:nth-child(3) {
+          background: #5856d6;
+        }
+
+        .modal-actions button:nth-child(3):hover {
+          background: #4846c6;
+        }
+
+        @media (max-width: 768px) {
+          .icon-grid {
+            grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+          }
+
+          .controls {
+            flex-direction: column;
+          }
+
+          .search-bar {
+            min-width: 100%;
+          }
+
+          .modal-actions {
+            flex-direction: column;
+          }
+        }
+      `}</style>
+        </div>
+    );
+};
+
+export default NeolyxIconLibrary;

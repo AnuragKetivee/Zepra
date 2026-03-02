@@ -1,0 +1,197 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>DOM Parsing Test - Zepra Browser</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; background: #f5f5f5; }
+        .test-section { background: white; padding: 15px; margin: 10px 0; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
+        h1 { color: #333; }
+        h2 { color: #555; border-bottom: 2px solid #007acc; padding-bottom: 5px; }
+        .pass { color: green; }
+        .fail { color: red; }
+        table { border-collapse: collapse; width: 100%; }
+        th, td { border: 1px solid #ddd; padding: 8px; text-align: left; }
+        th { background: #007acc; color: white; }
+        a { color: #007acc; }
+        a:hover { text-decoration: underline; }
+        ul, ol { margin: 10px 0; }
+        .flex-container { display: flex; gap: 10px; }
+        .flex-item { background: #e0e0e0; padding: 10px; border-radius: 4px; }
+        img { max-width: 100px; border: 1px solid #ccc; }
+        form input, form button { margin: 5px; padding: 8px; }
+        code { background: #f0f0f0; padding: 2px 6px; border-radius: 3px; }
+    </style>
+</head>
+<body>
+    <h1>🧪 DOM Parsing Test Suite</h1>
+    <p>Testing HTML structure resolution in Zepra Browser</p>
+
+    <!-- Test 1: Basic Text Elements -->
+    <div class="test-section">
+        <h2>1. Basic Text Elements</h2>
+        <p>This is a <strong>bold</strong> and <em>italic</em> paragraph.</p>
+        <p>Inline <code>code</code> and <mark>highlighted</mark> text.</p>
+        <blockquote>This is a blockquote element.</blockquote>
+        <pre>Preformatted text
+    with preserved    spacing</pre>
+    </div>
+
+    <!-- Test 2: Links -->
+    <div class="test-section">
+        <h2>2. Links (Anchor Tags)</h2>
+        <p><a href="https://example.com">External Link</a></p>
+        <p><a href="#section3">Internal Anchor Link</a></p>
+        <p><a href="mailto:test@example.com">Email Link</a></p>
+        <p>Link with title: <a href="https://test.com" title="Hover tooltip">Hover Me</a></p>
+    </div>
+
+    <!-- Test 3: Lists -->
+    <div class="test-section" id="section3">
+        <h2>3. Lists</h2>
+        <h3>Unordered List:</h3>
+        <ul>
+            <li>Item One</li>
+            <li>Item Two
+                <ul>
+                    <li>Nested Item A</li>
+                    <li>Nested Item B</li>
+                </ul>
+            </li>
+            <li>Item Three</li>
+        </ul>
+        <h3>Ordered List:</h3>
+        <ol>
+            <li>First</li>
+            <li>Second</li>
+            <li>Third</li>
+        </ol>
+        <h3>Definition List:</h3>
+        <dl>
+            <dt>HTML</dt>
+            <dd>HyperText Markup Language</dd>
+            <dt>CSS</dt>
+            <dd>Cascading Style Sheets</dd>
+        </dl>
+    </div>
+
+    <!-- Test 4: Tables -->
+    <div class="test-section">
+        <h2>4. Tables</h2>
+        <table>
+            <thead>
+                <tr>
+                    <th>Browser</th>
+                    <th>Engine</th>
+                    <th>Status</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td>Zepra</td>
+                    <td>Custom</td>
+                    <td class="pass">✓ Active</td>
+                </tr>
+                <tr>
+                    <td>WebKit</td>
+                    <td>WebCore</td>
+                    <td class="pass">✓ Reference</td>
+                </tr>
+                <tr>
+                    <td>Firefox</td>
+                    <td>Gecko</td>
+                    <td class="pass">✓ Reference</td>
+                </tr>
+            </tbody>
+        </table>
+    </div>
+
+    <!-- Test 5: Forms -->
+    <div class="test-section">
+        <h2>5. Form Elements</h2>
+        <form action="#" method="post">
+            <label for="name">Name:</label>
+            <input type="text" id="name" name="name" placeholder="Enter name">
+            <br><br>
+            <label for="email">Email:</label>
+            <input type="email" id="email" name="email" placeholder="Enter email">
+            <br><br>
+            <label>
+                <input type="checkbox" name="agree"> I agree
+            </label>
+            <br><br>
+            <label><input type="radio" name="choice" value="a"> Option A</label>
+            <label><input type="radio" name="choice" value="b"> Option B</label>
+            <br><br>
+            <select name="dropdown">
+                <option value="1">Option 1</option>
+                <option value="2">Option 2</option>
+                <option value="3">Option 3</option>
+            </select>
+            <br><br>
+            <textarea name="message" rows="3" cols="30" placeholder="Message..."></textarea>
+            <br><br>
+            <button type="submit">Submit</button>
+            <button type="reset">Reset</button>
+        </form>
+    </div>
+
+    <!-- Test 6: Semantic Elements -->
+    <div class="test-section">
+        <h2>6. Semantic HTML5 Elements</h2>
+        <article>
+            <header>
+                <h3>Article Header</h3>
+                <time datetime="2026-02-06">February 6, 2026</time>
+            </header>
+            <section>
+                <p>Article content section.</p>
+            </section>
+            <footer>
+                <small>Article footer</small>
+            </footer>
+        </article>
+        <nav>
+            <a href="#">Home</a> | <a href="#">About</a> | <a href="#">Contact</a>
+        </nav>
+        <aside>
+            <p>This is an aside element.</p>
+        </aside>
+    </div>
+
+    <!-- Test 7: Media -->
+    <div class="test-section">
+        <h2>7. Media Elements</h2>
+        <p>Image with alt text:</p>
+        <img src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='100' height='100'%3E%3Crect fill='%23007acc' width='100' height='100'/%3E%3Ctext x='50' y='55' text-anchor='middle' fill='white' font-size='12'%3ESVG Test%3C/text%3E%3C/svg%3E" alt="Test SVG Image">
+        <p>Figure with caption:</p>
+        <figure>
+            <img src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='100' height='60'%3E%3Crect fill='%23e74c3c' width='100' height='60'/%3E%3C/svg%3E" alt="Figure image">
+            <figcaption>Figure caption text</figcaption>
+        </figure>
+    </div>
+
+    <!-- Test 8: Flexbox Layout -->
+    <div class="test-section">
+        <h2>8. Flexbox Layout</h2>
+        <div class="flex-container">
+            <div class="flex-item">Flex 1</div>
+            <div class="flex-item">Flex 2</div>
+            <div class="flex-item">Flex 3</div>
+        </div>
+    </div>
+
+    <!-- Test 9: JavaScript Interaction -->
+    <div class="test-section">
+        <h2>9. JavaScript Test</h2>
+        <p id="js-output">JavaScript not executed yet.</p>
+        <button onclick="document.getElementById('js-output').textContent = '✓ JavaScript works! DOM manipulation successful.'">Test JS</button>
+    </div>
+
+    <script>
+        console.log("DOM Test Page Loaded");
+        console.log("Document title:", document.title);
+        console.log("Body children count:", document.body.children.length);
+    </script>
+</body>
+</html>

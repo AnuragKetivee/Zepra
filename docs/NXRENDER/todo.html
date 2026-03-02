@@ -1,0 +1,652 @@
+<!DOCTYPE html>
+<html lang="en" class="scroll-smooth">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TODO.md</title>
+    
+    <!-- Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+    
+    <!-- Tailwind CSS with Typography Plugin -->
+    <script src="https://cdn.tailwindcss.com?plugins=typography"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        bg: {
+                            primary: '#0a0a0f',
+                            secondary: '#12121a',
+                            tertiary: '#1a1a24'
+                        },
+                        accent: {
+                            DEFAULT: '#10b981',
+                            light: '#34d399',
+                            dark: '#059669',
+                            glow: 'rgba(16, 185, 129, 0.3)'
+                        }
+                    },
+                    fontFamily: {
+                        sans: ['Inter', 'sans-serif'],
+                        mono: ['JetBrains Mono', 'monospace'],
+                    },
+                    typography: (theme) => ({
+                        DEFAULT: {
+                            css: {
+                                color: theme('colors.gray.300'),
+                                a: {
+                                    color: theme('colors.emerald.400'),
+                                    '&:hover': {
+                                        color: theme('colors.emerald.300'),
+                                    },
+                                },
+                                h1: { color: theme('colors.white') },
+                                h2: { color: theme('colors.white') },
+                                h3: { color: theme('colors.white') },
+                                h4: { color: theme('colors.gray.100') },
+                                code: { color: theme('colors.pink.400') },
+                                'code::before': { content: '""' },
+                                'code::after': { content: '""' },
+                                pre: {
+                                    backgroundColor: theme('colors.bg.tertiary'),
+                                    color: theme('colors.gray.200'),
+                                },
+                                blockquote: {
+                                    color: theme('colors.gray.400'),
+                                    borderLeftColor: theme('colors.emerald.500'),
+                                },
+                            },
+                        },
+                    }),
+                }
+            }
+        }
+    </script>
+
+    <!-- Custom CSS -->
+    <link rel="stylesheet" href="../assets/css/docs.css">
+</head>
+<body class="antialiased min-h-screen relative selection:bg-emerald-500/30 selection:text-emerald-200">
+
+    <!-- Background Elements -->
+    <div class="bg-grid"></div>
+    <div class="glow-orb orb-1"></div>
+    <div class="glow-orb orb-2"></div>
+
+    <!-- Navigation -->
+    <nav class="fixed top-0 w-full z-50 bg-bg-primary/80 backdrop-blur-md border-b border-white/5">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex items-center justify-between h-16">
+                <!-- Logo -->
+                <div class="flex items-center gap-3">
+                    <a href="../index.html" class="flex items-center gap-3">
+                        <svg class="w-8 h-8 text-emerald-500" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <circle cx="12" cy="12" r="10"/>
+                            <path d="M12 6v6l4 2"/>
+                        </svg>
+                        <span class="text-xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-emerald-400 to-blue-500">
+                            ZepraBrowser
+                        </span>
+                    </a>
+                </div>
+
+                <!-- Desktop Menu -->
+                <div class="hidden md:block">
+                    <div class="flex items-center gap-8">
+                        <a href="../index.html#modules" class="nav-link text-sm font-medium text-gray-400 hover:text-white transition-colors">Modules</a>
+                        <a href="../index.html#index" class="nav-link text-sm font-medium text-gray-400 hover:text-white transition-colors">Docs Index</a>
+                        <a href="../index.html" class="nav-link text-sm font-medium text-gray-400 hover:text-white transition-colors">ZepraScript</a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Main Content Layout -->
+    <div class="pt-24 pb-12 sm:pt-32 sm:pb-16 lg:pb-24 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div class="flex flex-col lg:flex-row gap-12">
+            
+            <!-- Sidebar (Desktop) -->
+            <aside class="hidden lg:block w-64 shrink-0">
+                <div class="sticky top-32 space-y-8">
+                    <div class="space-y-4">
+                        <h3 class="text-xs font-bold text-gray-500 uppercase tracking-wider">On This Page</h3>
+                        <!-- TOC injected by JS or simple placeholder for now -->
+                         <nav id="toc" class="text-sm text-gray-400 space-y-2 border-l border-white/10 pl-4">
+                            <!-- TOC links will be populated here -->
+                             <a href="#" class="block hover:text-white">Top</a>
+                        </nav>
+                    </div>
+                    
+                     <div class="space-y-4">
+                        <h3 class="text-xs font-bold text-gray-500 uppercase tracking-wider">Quick Links</h3>
+                        <nav class="text-sm text-gray-400 space-y-2">
+                            <a href="../index.html" class="block hover:text-emerald-400 transition-colors">Home</a>
+                            <a href="../architecture.html" class="block hover:text-emerald-400 transition-colors">Architecture</a>
+                            <a href="../security-model.html" class="block hover:text-emerald-400 transition-colors">Security</a>
+                            <a href="../ai.html" class="block hover:text-emerald-400 transition-colors">AI System</a>
+                        </nav>
+                    </div>
+                </div>
+            </aside>
+
+            <!-- Content Area -->
+            <main class="flex-1 min-w-0">
+                <!-- Page Header with Icon -->
+                <div class="flex items-center gap-4 mb-8 border-b border-white/10 pb-8 animate-fade-in">
+                    <div class="w-16 h-16 rounded-2xl bg-bg-secondary border border-white/5 flex items-center justify-center shrink-0">
+                        <img src="../assets/icons/help.svg" alt="Icon" class="w-8 h-8 opacity-80">
+                    </div>
+                    <div>
+                        <h1 class="text-3xl sm:text-4xl font-bold text-white tracking-tight">TODO.md</h1>
+                        <p class="text-gray-400 mt-1 text-sm font-mono">TODO.html</p>
+                    </div>
+                </div>
+
+                <div class="prose prose-invert prose-emerald max-w-none animate-fade-up">
+
+
+
+
+<h1>NXRENDER - Step-by-Step Implementation TODO</h1>
+<blockquote>
+<p><strong>Goal</strong>: Build a custom rendering system for ZepraBrowser (and later NeolyxOS) to replace third-party SDL dependency. This makes the browser independent, like Chrome/Firefox/Safari with their own rendering systems.</p>
+</blockquote>
+<h2>📋 Implementation Overview</h2>
+<pre><code>Phase 1: Foundation (Weeks 1-4)     → Graphics Backend + Compositor
+Phase 2: Core UI (Weeks 5-8)        → Widgets + Layout Engine
+Phase 3: Polish (Weeks 9-12)        → Theming + Input + Animation
+Phase 4: Integration (Weeks 13-16)  → Browser Integration + Examples
+</code></pre>
+<hr />
+<h2>Phase 1: Foundation</h2>
+<h3>Week 1-2: Graphics Backend (NXGFX)</h3>
+<p><strong>Status</strong>: [/] In Progress</p>
+<ul>
+<li>[x] <strong>Step 1.1</strong>: Set up Rust project structure ✅ COMPLETE</li>
+<li>[x] Create <code>nxrender/</code> directory in <code>source/</code></li>
+<li>[x] Initialize Cargo workspace with <code>nxrender/Cargo.toml</code></li>
+<li>
+<p>[x] Create <code>nxgfx/</code> crate for graphics backend</p>
+</li>
+<li>
+<p>[x] <strong>Step 1.2</strong>: Core graphics context ✅ COMPLETE</p>
+</li>
+<li>[x] Implement <code>GpuContext</code> struct</li>
+<li>[x] Add GPU device initialization</li>
+<li>[x] Implement memory allocator</li>
+<li>
+<p>[x] Create command queue system</p>
+</li>
+<li>
+<p>[x] <strong>Step 1.3</strong>: Primitives rendering ✅ COMPLETE</p>
+</li>
+<li>[x] Rectangle drawing (<code>fill_rect</code>, <code>stroke_rect</code>)</li>
+<li>[x] Rounded rectangle with border radius</li>
+<li>[x] Circle/ellipse rendering</li>
+<li>[x] Line rendering</li>
+<li>
+<p>[ ] Path/Bezier curve support</p>
+</li>
+<li>
+<p>[x] <strong>Step 1.4</strong>: Text rendering ✅ COMPLETE</p>
+</li>
+<li>[x] Font loading with rusttype</li>
+<li>[x] Glyph rasterization with caching</li>
+<li>[x] Unicode text shaping and normalization</li>
+<li>
+<p>[x] Text layout and measurement</p>
+</li>
+<li>
+<p>[x] <strong>Step 1.5</strong>: Image support ✅ COMPLETE</p>
+</li>
+<li>[x] PNG decoder (via image crate)</li>
+<li>[x] JPEG decoder (via image crate)</li>
+<li>[x] WebP decoder (via image crate)</li>
+<li>[ ] SVG renderer (resvg - optional, heavy dependency)</li>
+<li>
+<p>[x] Texture caching with LRU eviction</p>
+</li>
+<li>
+<p>[x] <strong>Step 1.6</strong>: Effects ✅ COMPLETE</p>
+</li>
+<li>[x] Gradient fills (linear, radial)</li>
+<li>[x] Shadow rendering</li>
+<li>[x] Blur effects (box blur, Gaussian kernel)</li>
+<li>
+<p>[x] Alpha blending (OpenGL backend)</p>
+</li>
+<li>
+<p>[x] <strong>Step 1.7</strong>: Backend implementations ✅ OpenGL COMPLETE</p>
+</li>
+<li>[x] OpenGL ES 3.0 backend (primary for now)</li>
+<li>[ ] Software fallback (CPU renderer)</li>
+<li>[ ] Vulkan backend (future)</li>
+</ul>
+<p><strong>Deliverable</strong>: Working graphics library that can draw primitives, text, and images.</p>
+<hr />
+<ul>
+<li>[ ] <code>Layer</code> struct with z-ordering</li>
+<li>[ ] Opacity blending</li>
+<li>[ ] Transform support (translate, scale, rotate)</li>
+<li>
+<p>[ ] Clipping regions</p>
+</li>
+<li>
+<p>[ ] <strong>Step 2.3</strong>: Damage tracking</p>
+</li>
+<li>[ ] <code>DamageTracker</code> for changed regions</li>
+<li>[ ] Merge overlapping damage rects</li>
+<li>[ ] Skip rendering unchanged areas</li>
+<li>
+<p>[ ] Performance optimization</p>
+</li>
+<li>
+<p>[ ] <strong>Step 2.4</strong>: Compositor core</p>
+</li>
+<li>[ ] Main <code>Compositor</code> struct</li>
+<li>[ ] Frame compositing loop</li>
+<li>[ ] VSync support</li>
+<li>
+<p>[ ] Layer blending</p>
+</li>
+<li>
+<p>[ ] <strong>Step 2.5</strong>: Window management</p>
+</li>
+<li>[ ] Basic window creation</li>
+<li>[ ] Window focus management</li>
+<li>[ ] Z-order stacking</li>
+</ul>
+<p><strong>Deliverable</strong>: Working compositor that can manage multiple surfaces/windows.</p>
+<hr />
+<h2>Phase 2: Core UI</h2>
+<h3>Week 5-6: Widget Library (Core Widgets)</h3>
+<p><strong>Status</strong>: [ ] Not Started</p>
+<ul>
+<li>[ ] <strong>Step 3.1</strong>: Base widget system</li>
+<li>[ ] <code>Widget</code> trait definition</li>
+<li>[ ] <code>WidgetId</code> unique identifiers</li>
+<li>[ ] Widget hierarchy (parent/children)</li>
+<li>
+<p>[ ] Common widget state (visible, enabled, focused)</p>
+</li>
+<li>
+<p>[ ] <strong>Step 3.2</strong>: Container widgets</p>
+</li>
+<li>[ ] <code>View</code> - generic container</li>
+<li>[ ] <code>Window</code> - top-level container</li>
+<li>[ ] <code>ScrollView</code> - scrollable container</li>
+<li>
+<p>[ ] <code>StackView</code> - layered views</p>
+</li>
+<li>
+<p>[ ] <strong>Step 3.3</strong>: Basic controls</p>
+</li>
+<li>[ ] <code>Button</code> - clickable button</li>
+<li>[ ] <code>Label</code> - text display</li>
+<li>[ ] <code>TextField</code> - text input</li>
+<li>[ ] <code>Checkbox</code> - toggle checkbox</li>
+<li>
+<p>[ ] <code>Switch</code> - on/off toggle</p>
+</li>
+<li>
+<p>[ ] <strong>Step 3.4</strong>: Advanced controls</p>
+</li>
+<li>[ ] <code>Slider</code> - value slider</li>
+<li>[ ] <code>Dropdown</code> - select menu</li>
+<li>[ ] <code>RadioButton</code> - radio selection</li>
+<li>
+<p>[ ] <code>ProgressBar</code> - progress indicator</p>
+</li>
+<li>
+<p>[ ] <strong>Step 3.5</strong>: Display widgets</p>
+</li>
+<li>[ ] <code>ImageView</code> - image display</li>
+<li>[ ] <code>Icon</code> - icon rendering</li>
+<li>[ ] <code>Separator</code> - divider line</li>
+<li>
+<p>[ ] <code>Spinner</code> - loading indicator</p>
+</li>
+<li>
+<p>[ ] <strong>Step 3.6</strong>: Advanced widgets</p>
+</li>
+<li>[ ] <code>ListView</code> - scrollable list</li>
+<li>[ ] <code>TabView</code> - tabbed interface</li>
+<li>[ ] <code>SplitView</code> - resizable split</li>
+<li>[ ] <code>TableView</code> - data table</li>
+</ul>
+<p><strong>Deliverable</strong>: 20+ widgets ready for use.</p>
+<hr />
+<h3>Week 7-8: Layout Engine</h3>
+<p><strong>Status</strong>: [ ] Not Started</p>
+<ul>
+<li>[ ] <strong>Step 4.1</strong>: Layout trait</li>
+<li>[ ] <code>Layout</code> trait definition</li>
+<li>[ ] <code>Constraints</code> for size constraints</li>
+<li>
+<p>[ ] Measure and layout phases</p>
+</li>
+<li>
+<p>[ ] <strong>Step 4.2</strong>: Flexbox layout</p>
+</li>
+<li>[ ] Flex direction (row, column)</li>
+<li>[ ] Justify content (start, center, end, space-between)</li>
+<li>[ ] Align items (start, center, end, stretch)</li>
+<li>[ ] Gap spacing</li>
+<li>
+<p>[ ] Flex wrap</p>
+</li>
+<li>
+<p>[ ] <strong>Step 4.3</strong>: Grid layout</p>
+</li>
+<li>[ ] Fixed columns/rows</li>
+<li>[ ] Fraction units (fr)</li>
+<li>[ ] Auto-sized tracks</li>
+<li>
+<p>[ ] Grid gaps</p>
+</li>
+<li>
+<p>[ ] <strong>Step 4.4</strong>: Stack layout</p>
+</li>
+<li>[ ] Z-axis layering</li>
+<li>[ ] Alignment options</li>
+<li>
+<p>[ ] Absolute positioning within stack</p>
+</li>
+<li>
+<p>[ ] <strong>Step 4.5</strong>: Absolute layout</p>
+</li>
+<li>[ ] Anchors (top, left, right, bottom)</li>
+<li>[ ] Center alignment</li>
+<li>
+<p>[ ] Size constraints</p>
+</li>
+<li>
+<p>[ ] <strong>Step 4.6</strong>: Layout helpers</p>
+</li>
+<li>[ ] <code>Row</code> convenience widget</li>
+<li>[ ] <code>Column</code> convenience widget</li>
+<li>[ ] <code>Grid</code> convenience widget</li>
+<li>[ ] Padding and margin utilities</li>
+</ul>
+<p><strong>Deliverable</strong>: Flexible layout system supporting multiple modes.</p>
+<hr />
+<h2>Phase 3: Polish</h2>
+<h3>Week 9-10: Theme System</h3>
+<p><strong>Status</strong>: [ ] Not Started</p>
+<ul>
+<li>[ ] <strong>Step 5.1</strong>: Theme structure</li>
+<li>[ ] <code>Theme</code> struct definition</li>
+<li>[ ] Color palette system</li>
+<li>[ ] Typography system</li>
+<li>
+<p>[ ] Spacing scale</p>
+</li>
+<li>
+<p>[ ] <strong>Step 5.2</strong>: Color system</p>
+</li>
+<li>[ ] Semantic colors (primary, secondary, accent)</li>
+<li>[ ] State colors (hover, pressed, disabled)</li>
+<li>[ ] Background/foreground colors</li>
+<li>
+<p>[ ] Color interpolation</p>
+</li>
+<li>
+<p>[ ] <strong>Step 5.3</strong>: Typography</p>
+</li>
+<li>[ ] Font families</li>
+<li>[ ] Font sizes scale</li>
+<li>[ ] Font weights</li>
+<li>
+<p>[ ] Line heights</p>
+</li>
+<li>
+<p>[ ] <strong>Step 5.4</strong>: Built-in themes</p>
+</li>
+<li>[ ] Light theme</li>
+<li>[ ] Dark theme</li>
+<li>
+<p>[ ] High contrast theme</p>
+</li>
+<li>
+<p>[ ] <strong>Step 5.5</strong>: Theme runtime</p>
+</li>
+<li>[ ] Runtime theme switching</li>
+<li>[ ] Animated theme transitions</li>
+<li>[ ] System preference detection</li>
+</ul>
+<p><strong>Deliverable</strong>: Complete theming system with light/dark modes.</p>
+<hr />
+<h3>Week 11-12: Input Handling &amp; Events</h3>
+<p><strong>Status</strong>: [ ] Not Started</p>
+<ul>
+<li>[ ] <strong>Step 6.1</strong>: Event system</li>
+<li>[ ] Event enum definition</li>
+<li>[ ] Event propagation (bubbling)</li>
+<li>
+<p>[ ] Event result handling</p>
+</li>
+<li>
+<p>[ ] <strong>Step 6.2</strong>: Mouse input</p>
+</li>
+<li>[ ] Mouse move, enter, leave</li>
+<li>[ ] Mouse button press/release</li>
+<li>[ ] Click and double-click</li>
+<li>
+<p>[ ] Scroll wheel</p>
+</li>
+<li>
+<p>[ ] <strong>Step 6.3</strong>: Keyboard input</p>
+</li>
+<li>[ ] Key press/release</li>
+<li>[ ] Text input handling</li>
+<li>[ ] Modifier keys (Ctrl, Shift, Alt)</li>
+<li>
+<p>[ ] Keyboard shortcuts</p>
+</li>
+<li>
+<p>[ ] <strong>Step 6.4</strong>: Touch input</p>
+</li>
+<li>[ ] Touch start/move/end</li>
+<li>[ ] Multi-touch support</li>
+<li>
+<p>[ ] Gesture recognition (tap, swipe, pinch)</p>
+</li>
+<li>
+<p>[ ] <strong>Step 6.5</strong>: Focus management</p>
+</li>
+<li>[ ] Focus widget tracking</li>
+<li>[ ] Tab navigation</li>
+<li>[ ] Focus ring rendering</li>
+</ul>
+<p><strong>Deliverable</strong>: Complete input system with gestures.</p>
+<hr />
+<h3>Week 13-14: Animation System</h3>
+<p><strong>Status</strong>: [ ] Not Started</p>
+<ul>
+<li>[ ] <strong>Step 7.1</strong>: Animation core</li>
+<li>[ ] <code>Animator</code> struct</li>
+<li>[ ] <code>Animation</code> definition</li>
+<li>
+<p>[ ] Animatable properties</p>
+</li>
+<li>
+<p>[ ] <strong>Step 7.2</strong>: Easing functions</p>
+</li>
+<li>[ ] Linear</li>
+<li>[ ] EaseIn, EaseOut, EaseInOut</li>
+<li>[ ] Cubic Bezier</li>
+<li>[ ] Spring physics</li>
+<li>
+<p>[ ] Bounce, Elastic</p>
+</li>
+<li>
+<p>[ ] <strong>Step 7.3</strong>: Animation types</p>
+</li>
+<li>[ ] Property animations</li>
+<li>[ ] Keyframe animations</li>
+<li>
+<p>[ ] Repeat modes (once, loop, reverse)</p>
+</li>
+<li>
+<p>[ ] <strong>Step 7.4</strong>: High-level API</p>
+</li>
+<li>[ ] Fluent animation API</li>
+<li>[ ] Predefined animations</li>
+<li>[ ] View transitions</li>
+</ul>
+<p><strong>Deliverable</strong>: Smooth animation system at 60 FPS.</p>
+<hr />
+<h2>Phase 4: Integration</h2>
+<h3>Week 15-16: Browser Integration &amp; Examples</h3>
+<p><strong>Status</strong>: [ ] Not Started</p>
+<ul>
+<li>[ ] <strong>Step 8.1</strong>: Application framework</li>
+<li>[ ] <code>Application</code> struct</li>
+<li>[ ] Window management</li>
+<li>[ ] Event loop integration</li>
+<li>
+<p>[ ] Resource management</p>
+</li>
+<li>
+<p>[ ] <strong>Step 8.2</strong>: Browser UI components</p>
+</li>
+<li>[ ] Tab bar component</li>
+<li>[ ] Address bar component</li>
+<li>[ ] Navigation buttons</li>
+<li>[ ] Bookmark bar</li>
+<li>
+<p>[ ] Status bar</p>
+</li>
+<li>
+<p>[ ] <strong>Step 8.3</strong>: Replace SDL in browser</p>
+</li>
+<li>[ ] Create NXRender window backend</li>
+<li>[ ] Migrate browser UI to NXRender widgets</li>
+<li>
+<p>[ ] Test browser functionality</p>
+</li>
+<li>
+<p>[ ] <strong>Step 8.4</strong>: Example applications</p>
+</li>
+<li>[ ] Hello World example</li>
+<li>[ ] Calculator app</li>
+<li>[ ] Text editor</li>
+<li>
+<p>[ ] Widget gallery</p>
+</li>
+<li>
+<p>[ ] <strong>Step 8.5</strong>: Documentation</p>
+</li>
+<li>[ ] API reference</li>
+<li>[ ] Widget guide</li>
+<li>[ ] Theming guide</li>
+<li>[ ] Migration guide from SDL</li>
+</ul>
+<p><strong>Deliverable</strong>: Production-ready NXRender integrated with ZepraBrowser.</p>
+<hr />
+<h2>📊 Progress Tracking</h2>
+<table>
+<thead>
+<tr>
+<th>Phase</th>
+<th>Weeks</th>
+<th>Status</th>
+<th>Progress</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Foundation</td>
+<td>1-4</td>
+<td>[ ] Not Started</td>
+<td>0%</td>
+</tr>
+<tr>
+<td>Core UI</td>
+<td>5-8</td>
+<td>[ ] Not Started</td>
+<td>0%</td>
+</tr>
+<tr>
+<td>Polish</td>
+<td>9-12</td>
+<td>[ ] Not Started</td>
+<td>0%</td>
+</tr>
+<tr>
+<td>Integration</td>
+<td>13-16</td>
+<td>[ ] Not Started</td>
+<td>0%</td>
+</tr>
+<tr>
+<td><strong>TOTAL</strong></td>
+<td>16</td>
+<td></td>
+<td><strong>0%</strong></td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h2>🔧 Technical Notes</h2>
+<h3>Why Custom Rendering?</h3>
+<ul>
+<li><strong>Independence</strong>: No SDL/Qt/GTK dependency</li>
+<li><strong>Control</strong>: Optimize for browser UI specifically</li>
+<li><strong>Future-proof</strong>: Easy to port to NeolyxOS</li>
+<li><strong>Performance</strong>: Direct GPU access, efficient compositing</li>
+</ul>
+<h3>Directory Structure (Target)</h3>
+<pre><code>source/nxrender/
+├── Cargo.toml                    # Workspace config
+├── nxgfx/                        # Graphics backend
+│   ├── src/
+│   │   ├── lib.rs
+│   │   ├── context.rs            # GPU context
+│   │   ├── primitives/           # Drawing primitives
+│   │   ├── text/                 # Text rendering
+│   │   ├── image/                # Image loading
+│   │   └── backend/              # OpenGL/Vulkan/Software
+│   └── Cargo.toml
+├── nxrender-core/                # Compositor
+├── nxrender-widgets/             # Widget library
+├── nxrender-layout/              # Layout engine
+├── nxrender-theme/               # Theming
+├── nxrender-input/               # Input handling
+├── nxrender-animation/           # Animations
+└── examples/                     # Demo apps
+</code></pre>
+<hr />
+<h2>⏭️ Next Steps</h2>
+<p><strong>Current Focus</strong>: Week 1-2 → Graphics Backend (NXGFX)</p>
+<p>Start with:
+1. Create <code>source/nxrender/</code> directory
+2. Initialize Rust workspace
+3. Implement basic <code>GpuContext</code>
+4. Draw first rectangle on screen</p>
+<hr />
+<p><em>Last Updated: 2024-12-13</em></p>
+
+        
+                </div>
+            </main>
+        </div>
+    </div>
+
+    <!-- Footer -->
+    <footer class="bg-bg-secondary border-t border-white/5 py-12 mt-12">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
+            <p class="text-gray-500 text-sm">© 2026 ZepraBrowser · Part of the NeolyxOS Project</p>
+        </div>
+    </footer>
+
+    <!-- Scripts -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/gsap.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/ScrollTrigger.min.js"></script>
+    <script src="../assets/js/docs.js" defer></script>
+</body>
+</html>

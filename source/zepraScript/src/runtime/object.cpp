@@ -5,9 +5,13 @@
 
 #include "zeprascript/runtime/object.hpp"
 #include "zeprascript/runtime/function.hpp"
+#include "zeprascript/builtins/array.hpp"
 #include <algorithm>
 
 namespace Zepra::Runtime {
+
+// Global shape counter for inline cache validation
+uint32_t Object::nextShapeId_ = 1;
 
 // =============================================================================
 // Object
@@ -15,6 +19,7 @@ namespace Zepra::Runtime {
 
 Object::Object(ObjectType type)
     : objectType_(type)
+    , shapeId_(nextShapeId_++)
 {
 }
 
@@ -51,7 +56,12 @@ bool Object::set(const std::string& key, Value value) {
         }
     }
     
+    // Shape transition on new property (not on update)
+    bool isNew = properties_.find(key) == properties_.end();
     properties_[key] = value;
+    if (isNew) {
+        shapeId_ = nextShapeId_++;
+    }
     return true;
 }
 
@@ -89,7 +99,9 @@ bool Object::deleteProperty(const std::string& key) {
         descriptors_.erase(descIt);
     }
     
-    properties_.erase(key);
+    if (properties_.erase(key) > 0) {
+        shapeId_ = nextShapeId_++;  // Shape transition on delete
+    }
     return true;
 }
 
@@ -438,33 +450,8 @@ namespace Zepra::Builtins { class ArrayBuiltin; }
 static Object* getArrayPrototype() {
     static Object* arrayProto = nullptr;
     if (!arrayProto) {
-        // Create minimal array prototype with essential methods
-        arrayProto = new Object();
-        
-        // push() method
-        arrayProto->set("push", Value::object(
-            new Function("push", [](const FunctionCallInfo& info) -> Value {
-                Value thisVal = info.thisValue();
-                if (!thisVal.isObject()) return Value::undefined();
-                Array* arr = dynamic_cast<Array*>(thisVal.asObject());
-                if (!arr) return Value::undefined();
-                for (size_t i = 0; i < info.argumentCount(); i++) {
-                    arr->push(info.argument(i));
-                }
-                return Value::number(static_cast<double>(arr->length()));
-            }, 1)));
-        
-        // pop() method
-        arrayProto->set("pop", Value::object(
-            new Function("pop", [](const FunctionCallInfo& info) -> Value {
-                Value thisVal = info.thisValue();
-                if (!thisVal.isObject()) return Value::undefined();
-                Array* arr = dynamic_cast<Array*>(thisVal.asObject());
-                if (!arr || arr->length() == 0) return Value::undefined();
-                return arr->pop();
-            }, 0)));
-        
-        // length property access is handled by the Array class directly
+        // Use the full ArrayBuiltin prototype
+        arrayProto = Builtins::ArrayBuiltin::createArrayPrototype(nullptr);
     }
     return arrayProto;
 }

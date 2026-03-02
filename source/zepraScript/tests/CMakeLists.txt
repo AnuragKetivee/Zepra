@@ -34,6 +34,13 @@ set(UNIT_TEST_SOURCES
     unit/class_tests.cpp
     unit/b3_tests.cpp
     unit/runtime_tests.cpp
+    unit/RuntimeTests.cpp
+    unit/JITTests.cpp
+    unit/WASMTests.cpp
+    unit/sandbox_tests.cpp
+    unit/robustness_tests.cpp
+    unit/stress_tests.cpp
+    unit/browser_integration_tests.cpp
 )
 
 add_executable(zepra-unit-tests ${UNIT_TEST_SOURCES})
@@ -61,6 +68,7 @@ set(INTEGRATION_TEST_SOURCES
     integration/module_tests.cpp
     integration/promise_tests.cpp
     integration/fetch_tests.cpp
+    integration/indexeddb_tests.cpp
 )
 
 add_executable(zepra-integration-tests ${INTEGRATION_TEST_SOURCES})

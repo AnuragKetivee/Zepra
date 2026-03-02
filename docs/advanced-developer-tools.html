@@ -1,0 +1,783 @@
+<!DOCTYPE html>
+<html lang="en" class="scroll-smooth">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ADVANCED_DEVELOPER_TOOLS.md</title>
+    
+    <!-- Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+    
+    <!-- Tailwind CSS with Typography Plugin -->
+    <script src="https://cdn.tailwindcss.com?plugins=typography"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        bg: {
+                            primary: '#0a0a0f',
+                            secondary: '#12121a',
+                            tertiary: '#1a1a24'
+                        },
+                        accent: {
+                            DEFAULT: '#10b981',
+                            light: '#34d399',
+                            dark: '#059669',
+                            glow: 'rgba(16, 185, 129, 0.3)'
+                        }
+                    },
+                    fontFamily: {
+                        sans: ['Inter', 'sans-serif'],
+                        mono: ['JetBrains Mono', 'monospace'],
+                    },
+                    typography: (theme) => ({
+                        DEFAULT: {
+                            css: {
+                                color: theme('colors.gray.300'),
+                                a: {
+                                    color: theme('colors.emerald.400'),
+                                    '&:hover': {
+                                        color: theme('colors.emerald.300'),
+                                    },
+                                },
+                                h1: { color: theme('colors.white') },
+                                h2: { color: theme('colors.white') },
+                                h3: { color: theme('colors.white') },
+                                h4: { color: theme('colors.gray.100') },
+                                code: { color: theme('colors.pink.400') },
+                                'code::before': { content: '""' },
+                                'code::after': { content: '""' },
+                                pre: {
+                                    backgroundColor: theme('colors.bg.tertiary'),
+                                    color: theme('colors.gray.200'),
+                                },
+                                blockquote: {
+                                    color: theme('colors.gray.400'),
+                                    borderLeftColor: theme('colors.emerald.500'),
+                                },
+                            },
+                        },
+                    }),
+                }
+            }
+        }
+    </script>
+
+    <!-- Custom CSS -->
+    <link rel="stylesheet" href="assets/css/docs.css">
+</head>
+<body class="antialiased min-h-screen relative selection:bg-emerald-500/30 selection:text-emerald-200">
+
+    <!-- Background Elements -->
+    <div class="bg-grid"></div>
+    <div class="glow-orb orb-1"></div>
+    <div class="glow-orb orb-2"></div>
+
+    <!-- Navigation -->
+    
+    
+    <!-- Navigation Sidebar -->
+    <aside class="fixed left-0 top-0 w-72 h-screen bg-dark-800/90 backdrop-blur-xl border-r border-white/5 z-50 overflow-y-auto">
+        <div class="p-6 border-b border-white/5">
+            <div class="flex items-center gap-3">
+                <a href="index.html" class="flex items-center gap-3 w-full">
+                    <div class="w-10 h-10 rounded-xl bg-gradient-to-br from-emerald-500 to-blue-500 flex items-center justify-center glow">
+                        <img src="../resources/zepraicon/logo.svg" alt="Zepra Logo" class="w-8 h-8 object-contain">
+                    </div>
+                    <div>
+                        <h1 class="font-bold text-lg text-white">ZepraBrowser</h1>
+                        <span class="text-xs text-gray-500">Documentation Hub</span>
+                    </div>
+                </a>
+            </div>
+        </div>
+        <nav class="p-4">
+            <div class="mb-6">
+                <span class="text-[10px] font-semibold uppercase tracking-wider text-gray-500 px-3">Quick Navigation</span>
+                <div class="mt-2 space-y-1">
+                    <a href="index.html" class="nav-link flex items-center gap-3 px-3 py-2 text-sm text-gray-400 hover:text-white rounded-lg hover:bg-white/5 transition-all border-l-2 border-transparent">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"/></svg>
+                        Hub Home
+                    </a>
+                    <a href="zeprascript/index.html" class="nav-link flex items-center gap-3 px-3 py-2 text-sm text-gray-400 hover:text-white rounded-lg hover:bg-white/5 transition-all border-l-2 border-transparent">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>
+                        ZepraScript Engine
+                    </a>
+                </div>
+            </div>
+            <div class="mb-6">
+                <span class="text-[10px] font-semibold uppercase tracking-wider text-gray-500 px-3">Overview</span>
+                <div class="mt-2 space-y-1">
+                    <a href="architecture.html" class="nav-link flex items-center gap-3 px-3 py-2 text-sm text-gray-400 hover:text-white rounded-lg hover:bg-white/5 transition-all border-l-2 border-transparent pl-6">Architecture</a>
+                    <a href="advanced-developer-tools.html" class="nav-link flex items-center gap-3 px-3 py-2 text-sm text-gray-400 hover:text-white rounded-lg hover:bg-white/5 transition-all border-l-2 border-transparent pl-6">Developer Tools</a>
+                    <a href="security-model.html" class="nav-link flex items-center gap-3 px-3 py-2 text-sm text-gray-400 hover:text-white rounded-lg hover:bg-white/5 transition-all border-l-2 border-transparent pl-6">Security Model</a>
+                    <a href="NXRENDER/architecture.html" class="nav-link flex items-center gap-3 px-3 py-2 text-sm text-gray-400 hover:text-white rounded-lg hover:bg-white/5 transition-all border-l-2 border-transparent pl-6">NXRender</a>
+                </div>
+            </div>
+        </nav>
+    </aside>
+
+
+<main class="ml-72 flex-1 min-w-0 min-h-screen py-12 px-8 max-w-5xl mx-auto">
+<!-- Page Header with Icon -->
+                <div class="flex items-center gap-4 mb-8 border-b border-white/10 pb-8 animate-fade-in">
+                    <div class="w-16 h-16 rounded-2xl bg-bg-secondary border border-white/5 flex items-center justify-center shrink-0">
+                        <svg class="w-8 h-8 opacity-80 text-emerald-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>
+                    </div>
+                    <div>
+                        <h1 class="text-3xl sm:text-4xl font-bold text-white tracking-tight">ADVANCED_DEVELOPER_TOOLS.md</h1>
+                        <p class="text-gray-400 mt-1 text-sm font-mono">ADVANCED_DEVELOPER_TOOLS.html</p>
+                    </div>
+                </div>
+
+                <div class="prose prose-invert prose-emerald max-w-none animate-fade-up">
+
+
+
+
+<h1>Zepra Browser Advanced Developer Tools</h1>
+<h2>Overview</h2>
+<p>The Zepra Browser now includes comprehensive developer tools similar to Chrome DevTools, Firefox Developer Tools, and Safari Web Inspector. This advanced system provides full debugging, profiling, and development capabilities with Node.js integration.</p>
+<h2>🚀 Key Features</h2>
+<h3>Core Developer Tools</h3>
+<ul>
+<li><strong>Console Panel</strong>: Advanced JavaScript console with filtering and history</li>
+<li><strong>Elements Panel</strong>: DOM inspector with real-time editing</li>
+<li><strong>Network Panel</strong>: Request/response monitoring and analysis</li>
+<li><strong>Performance Panel</strong>: Profiling and performance metrics</li>
+<li><strong>Sources Panel</strong>: JavaScript debugging with breakpoints</li>
+<li><strong>Application Panel</strong>: Storage, cache, and service worker inspection</li>
+<li><strong>Security Panel</strong>: Certificate and permission management</li>
+<li><strong>Node.js Panel</strong>: Server-side JavaScript execution and module management</li>
+</ul>
+<h3>Advanced Browser Engine</h3>
+<ul>
+<li><strong>WebKit Integration</strong>: Full WebKit engine with modern web standards</li>
+<li><strong>JavaScript Engine</strong>: ES2022 support with async/await and modules</li>
+<li><strong>Web APIs</strong>: WebGL, WebAudio, WebRTC, Service Workers</li>
+<li><strong>Security Features</strong>: HTTPS enforcement, CSP, XSS protection</li>
+<li><strong>Performance Optimization</strong>: Memory management, caching, compression</li>
+<li><strong>Accessibility</strong>: Screen reader support, high contrast, keyboard navigation</li>
+</ul>
+<h2>🔧 Developer Tools Architecture</h2>
+<h3>Components</h3>
+<h4>1. DeveloperTools Class</h4>
+<pre><code class="language-cpp">class DeveloperTools {
+    // Console management
+    void log(const String&amp; message, ConsoleLevel level);
+    void clearConsole();
+    std::vector&lt;ConsoleMessage&gt; getConsoleMessages();
+
+    // Network monitoring
+    void logNetworkRequest(const NetworkRequest&amp; request);
+    void logNetworkResponse(const NetworkResponse&amp; response);
+
+    // DOM inspection
+    void setDOMTree(std::shared_ptr&lt;DOMNode&gt; root);
+    std::shared_ptr&lt;DOMNode&gt; getNodeById(int nodeId);
+
+    // JavaScript execution
+    String executeJavaScript(const String&amp; script);
+    void executeJavaScriptAsync(const String&amp; script);
+
+    // Performance monitoring
+    void startPerformanceMonitoring();
+    PerformanceMetrics getPerformanceMetrics();
+
+    // Node.js integration
+    void enableNodeIntegration(bool enabled);
+    String executeNodeScript(const String&amp; script);
+};
+</code></pre>
+<h4>2. DevToolsManager Class</h4>
+<pre><code class="language-cpp">class DevToolsManager {
+    std::shared_ptr&lt;DeveloperTools&gt; createTools();
+    void destroyTools(std::shared_ptr&lt;DeveloperTools&gt; tools);
+    void setGlobalNodeIntegration(bool enabled);
+    void startGlobalPerformanceMonitoring();
+};
+</code></pre>
+<h4>3. DevToolsUI Class</h4>
+<pre><code class="language-cpp">class DevToolsUI {
+    // Panel management
+    void showPanel(DevToolsPanel panel);
+    void setCurrentPanel(DevToolsPanel panel);
+
+    // Console panel
+    void updateConsole();
+    void executeConsoleCommand(const String&amp; command);
+
+    // Elements panel
+    void updateDOMTree();
+    void highlightElement(int nodeId);
+
+    // Network panel
+    void updateNetworkLog();
+    void exportNetworkLog(const String&amp; filePath);
+
+    // Performance panel
+    void startPerformanceRecording();
+    void exportPerformanceData(const String&amp; filePath);
+
+    // Node.js panel
+    void updateNodeModules();
+    void executeNodeScript(const String&amp; script);
+    void installNodePackage(const String&amp; packageName);
+};
+</code></pre>
+<h2>🌐 WebKit Engine Features</h2>
+<h3>Configuration</h3>
+<pre><code class="language-cpp">struct WebKitConfig {
+    bool enableJavaScript = true;
+    bool enableWebGL = true;
+    bool enableWebAudio = true;
+    bool enableWebRTC = true;
+    bool enableServiceWorkers = true;
+    bool enableNotifications = true;
+    bool enableGeolocation = true;
+    bool enableDevTools = true;
+    bool enableNodeIntegration = true;
+    String userAgent = &quot;Zepra Browser/3.0&quot;;
+    int maxMemoryUsage = 1024; // MB
+    int maxConcurrentRequests = 20;
+    bool enableCaching = true;
+    bool enableCompression = true;
+};
+</code></pre>
+<h3>Advanced Features</h3>
+<ul>
+<li><strong>Security</strong>: HTTPS enforcement, content security policy, XSS auditor</li>
+<li><strong>Performance</strong>: Memory management, garbage collection, caching</li>
+<li><strong>Accessibility</strong>: Screen reader support, keyboard navigation</li>
+<li><strong>Media</strong>: Camera/microphone access, WebRTC, WebAudio</li>
+<li><strong>Storage</strong>: LocalStorage, SessionStorage, IndexedDB, Cache API</li>
+<li><strong>Network</strong>: HTTP/2, compression, custom headers, proxy support</li>
+</ul>
+<h2>🟢 Node.js Integration</h2>
+<h3>Backend API Routes</h3>
+<h4>JavaScript Execution</h4>
+<pre><code class="language-javascript">POST /api/devtools/execute
+{
+    &quot;script&quot;: &quot;console.log('Hello from Node.js'); return 'result';&quot;,
+    &quot;modulesPath&quot;: &quot;./node_modules&quot;,
+    &quot;contextId&quot;: &quot;main&quot;
+}
+</code></pre>
+<h4>Node.js Script Execution</h4>
+<pre><code class="language-javascript">POST /api/devtools/node/execute
+{
+    &quot;script&quot;: &quot;const fs = require('fs'); return fs.readdirSync('.');&quot;,
+    &quot;modulesPath&quot;: &quot;./node_modules&quot;,
+    &quot;requireModules&quot;: [
+        {&quot;name&quot;: &quot;fs&quot;, &quot;path&quot;: &quot;fs&quot;},
+        {&quot;name&quot;: &quot;path&quot;, &quot;path&quot;: &quot;path&quot;}
+    ]
+}
+</code></pre>
+<h4>Module Management</h4>
+<pre><code class="language-javascript">GET /api/devtools/modules
+POST /api/devtools/modules/install
+{
+    &quot;packageName&quot;: &quot;express&quot;,
+    &quot;version&quot;: &quot;4.18.2&quot;,
+    &quot;modulesPath&quot;: &quot;./node_modules&quot;
+}
+</code></pre>
+<h4>Performance Monitoring</h4>
+<pre><code class="language-javascript">POST /api/devtools/performance/start
+POST /api/devtools/performance/stop
+</code></pre>
+<h3>C++ Integration</h3>
+<pre><code class="language-cpp">// Enable Node.js integration
+webKitEngine.enableNodeIntegration(true);
+webKitEngine.setNodeModulesPath(&quot;./node_modules&quot;);
+
+// Execute Node.js script
+String result = webKitEngine.executeNodeScript(
+    &quot;const fs = require('fs'); &quot;
+    &quot;return fs.readdirSync('.').join(', ');&quot;
+);
+</code></pre>
+<h2>🎨 Developer Tools UI</h2>
+<h3>Panel Types</h3>
+<pre><code class="language-cpp">enum class DevToolsPanel {
+    CONSOLE,      // JavaScript console
+    ELEMENTS,     // DOM inspector
+    NETWORK,      // Network monitoring
+    PERFORMANCE,  // Performance profiling
+    SOURCES,      // JavaScript debugging
+    APPLICATION,  // Storage and cache
+    SECURITY,     // Security information
+    NODE_JS,      // Node.js integration
+    SETTINGS      // DevTools configuration
+};
+</code></pre>
+<h3>Console Features</h3>
+<ul>
+<li><strong>Message Filtering</strong>: By level (log, info, warn, error, debug)</li>
+<li><strong>Source Filtering</strong>: Filter by file or domain</li>
+<li><strong>Search</strong>: Text search in console messages</li>
+<li><strong>History</strong>: Command history with up/down navigation</li>
+<li><strong>Auto-completion</strong>: JavaScript expression completion</li>
+</ul>
+<h3>Network Features</h3>
+<ul>
+<li><strong>Request Monitoring</strong>: All HTTP/HTTPS requests</li>
+<li><strong>Response Analysis</strong>: Status codes, headers, timing</li>
+<li><strong>Filtering</strong>: By type (XHR, JS, CSS, images, etc.)</li>
+<li><strong>Export</strong>: HAR format export</li>
+<li><strong>Timeline</strong>: Request timing visualization</li>
+</ul>
+<h3>Performance Features</h3>
+<ul>
+<li><strong>CPU Profiling</strong>: JavaScript execution profiling</li>
+<li><strong>Memory Profiling</strong>: Memory usage and leaks</li>
+<li><strong>Network Profiling</strong>: Request timing and bandwidth</li>
+<li><strong>Rendering Profiling</strong>: Paint and layout timing</li>
+<li><strong>Export</strong>: Performance data export</li>
+</ul>
+<h2>🔒 Security Features</h2>
+<h3>Security Policies</h3>
+<pre><code class="language-cpp">// Set strict security policy
+webKitEngine.setSecurityPolicy(&quot;strict&quot;);
+
+// Request permissions
+webKitEngine.requestPermission(&quot;geolocation&quot;, &quot;https://example.com&quot;);
+webKitEngine.requestPermission(&quot;notifications&quot;, &quot;https://example.com&quot;);
+
+// Grant/deny permissions
+webKitEngine.grantPermission(&quot;camera&quot;, &quot;https://example.com&quot;);
+webKitEngine.denyPermission(&quot;microphone&quot;, &quot;https://example.com&quot;);
+</code></pre>
+<h3>Security Information</h3>
+<ul>
+<li><strong>Certificate Inspection</strong>: SSL/TLS certificate details</li>
+<li><strong>Permission Management</strong>: Site permission controls</li>
+<li><strong>Content Security Policy</strong>: CSP violation reporting</li>
+<li><strong>Mixed Content</strong>: Insecure content blocking</li>
+<li><strong>Cross-Origin</strong>: CORS policy enforcement</li>
+</ul>
+<h2>📊 Performance Monitoring</h2>
+<h3>Metrics Collection</h3>
+<pre><code class="language-cpp">struct PerformanceMetrics {
+    double domContentLoaded;
+    double loadComplete;
+    double firstPaint;
+    double firstContentfulPaint;
+    double largestContentfulPaint;
+    double cumulativeLayoutShift;
+    double firstInputDelay;
+    int totalBytes;
+    int totalRequests;
+    double averageResponseTime;
+};
+</code></pre>
+<h3>Monitoring Features</h3>
+<ul>
+<li><strong>Real-time Metrics</strong>: Live performance data</li>
+<li><strong>Historical Data</strong>: Performance trends over time</li>
+<li><strong>Threshold Alerts</strong>: Performance degradation warnings</li>
+<li><strong>Export Reports</strong>: Performance analysis reports</li>
+<li><strong>Comparison</strong>: Performance comparison between versions</li>
+</ul>
+<h2>🎯 Usage Examples</h2>
+<h3>Basic Developer Tools Setup</h3>
+<pre><code class="language-cpp">#include &quot;engine/dev_tools.h&quot;
+#include &quot;ui/dev_tools_ui.h&quot;
+
+// Initialize developer tools
+zepra::DevToolsManager devToolsManager;
+auto devTools = devToolsManager.createTools();
+
+// Configure tools
+devTools-&gt;enableNodeIntegration(true);
+devTools-&gt;enableNetworkMonitoring(true);
+devTools-&gt;startPerformanceMonitoring();
+
+// Set up callbacks
+devTools-&gt;setConsoleCallback([](const zepra::ConsoleMessage&amp; msg) {
+    std::cout &lt;&lt; &quot;Console: &quot; &lt;&lt; msg.message &lt;&lt; std::endl;
+});
+
+devTools-&gt;setPerformanceCallback([](const zepra::PerformanceMetrics&amp; metrics) {
+    std::cout &lt;&lt; &quot;Performance: &quot; &lt;&lt; metrics.totalRequests &lt;&lt; &quot; requests&quot; &lt;&lt; std::endl;
+});
+</code></pre>
+<h3>WebKit Engine with Developer Tools</h3>
+<pre><code class="language-cpp">#include &quot;engine/webkit_engine.h&quot;
+
+// Initialize WebKit engine
+zepra::WebKitEngine webKitEngine;
+zepra::WebKitConfig config;
+
+config.enableJavaScript = true;
+config.enableWebGL = true;
+config.enableDevTools = true;
+config.enableNodeIntegration = true;
+config.userAgent = &quot;Zepra Browser/3.0&quot;;
+
+if (webKitEngine.initialize(config)) {
+    // Integrate developer tools
+    webKitEngine.setDeveloperTools(devTools);
+    webKitEngine.enableDeveloperTools(true);
+    webKitEngine.enableNetworkMonitoring(true);
+
+    // Set up event handlers
+    webKitEngine.setEventHandler([](const zepra::WebKitEvent&amp; event) {
+        std::cout &lt;&lt; &quot;WebKit Event: &quot; &lt;&lt; event.url &lt;&lt; std::endl;
+    });
+
+    // Create and load page
+    webKitEngine.createPage();
+    webKitEngine.loadHTML(&quot;&lt;html&gt;&lt;body&gt;&lt;h1&gt;Hello World&lt;/h1&gt;&lt;/body&gt;&lt;/html&gt;&quot;);
+
+    // Execute JavaScript
+    String result = webKitEngine.executeJavaScript(&quot;document.title&quot;);
+
+    // Open developer tools
+    webKitEngine.openDeveloperTools();
+}
+</code></pre>
+<h3>Developer Tools UI</h3>
+<pre><code class="language-cpp">#include &quot;ui/dev_tools_ui.h&quot;
+
+// Initialize UI
+zepra::DevToolsUI devToolsUI;
+devToolsUI.initialize(devTools);
+
+// Show panels
+devToolsUI.showPanel(zepra::DevToolsPanel::CONSOLE);
+devToolsUI.showPanel(zepra::DevToolsPanel::NETWORK);
+devToolsUI.showPanel(zepra::DevToolsPanel::PERFORMANCE);
+
+// Configure console
+zepra::ConsoleFilter filter;
+filter.showLog = true;
+filter.showError = true;
+filter.searchText = &quot;error&quot;;
+devToolsUI.setConsoleFilter(filter);
+
+// Execute console command
+devToolsUI.executeConsoleCommand(&quot;console.log('Hello from DevTools UI');&quot;);
+
+// Start performance recording
+devToolsUI.startPerformanceRecording();
+
+// Export data
+devToolsUI.exportNetworkLog(&quot;network_log.har&quot;);
+devToolsUI.exportPerformanceData(&quot;performance_data.json&quot;);
+</code></pre>
+<h2>🚀 Advanced Features</h2>
+<h3>Node.js Module Management</h3>
+<pre><code class="language-cpp">// Update available modules
+devToolsUI.updateNodeModules();
+
+// Install package
+devToolsUI.installNodePackage(&quot;express&quot;, &quot;4.18.2&quot;);
+devToolsUI.installNodePackage(&quot;lodash&quot;, &quot;4.17.21&quot;);
+
+// Execute Node.js script
+devToolsUI.executeNodeScript(R&quot;(
+    const express = require('express');
+    const app = express();
+
+    app.get('/', (req, res) =&gt; {
+        res.json({ message: 'Hello from Node.js!' });
+    });
+
+    console.log('Express app created');
+    return 'Server ready on port 3000';
+)&quot;);
+</code></pre>
+<h3>Network Monitoring</h3>
+<pre><code class="language-cpp">// Enable network monitoring
+webKitEngine.enableNetworkMonitoring(true);
+
+// Get network data
+auto requests = webKitEngine.getNetworkRequests();
+auto responses = webKitEngine.getNetworkResponses();
+
+// Configure network filter
+zepra::NetworkFilter filter;
+filter.showXHR = true;
+filter.showJS = true;
+filter.statusFilter = &quot;200,404&quot;;
+devToolsUI.setNetworkFilter(filter);
+
+// Export network log
+devToolsUI.exportNetworkLog(&quot;network_analysis.har&quot;);
+</code></pre>
+<h3>Performance Profiling</h3>
+<pre><code class="language-cpp">// Start performance monitoring
+webKitEngine.startPerformanceMonitoring();
+
+// Get performance metrics
+auto metrics = webKitEngine.getPerformanceMetrics();
+std::cout &lt;&lt; &quot;Load time: &quot; &lt;&lt; metrics.loadComplete &lt;&lt; &quot;ms&quot; &lt;&lt; std::endl;
+std::cout &lt;&lt; &quot;First paint: &quot; &lt;&lt; metrics.firstPaint &lt;&lt; &quot;ms&quot; &lt;&lt; std::endl;
+
+// Export performance data
+devToolsUI.exportPerformanceData(&quot;performance_profile.json&quot;);
+</code></pre>
+<h2>🔧 Configuration</h2>
+<h3>Environment Variables</h3>
+<pre><code class="language-bash"># Node.js backend
+PORT=6329
+NODE_ENV=development
+FRONTEND_URL=http://localhost:3000
+
+# Browser settings
+ZEPRA_DEVTOOLS_ENABLED=true
+ZEPRA_NODE_INTEGRATION=true
+ZEPRA_NETWORK_MONITORING=true
+ZEPRA_PERFORMANCE_MONITORING=true
+</code></pre>
+<h3>Settings File</h3>
+<pre><code class="language-json">{
+    &quot;devTools&quot;: {
+        &quot;enabled&quot;: true,
+        &quot;nodeIntegration&quot;: true,
+        &quot;networkMonitoring&quot;: true,
+        &quot;performanceMonitoring&quot;: true,
+        &quot;preserveLog&quot;: true,
+        &quot;showTimestamps&quot;: true
+    },
+    &quot;ui&quot;: {
+        &quot;theme&quot;: &quot;dark&quot;,
+        &quot;fontSize&quot;: 14,
+        &quot;colorScheme&quot;: &quot;dark&quot;,
+        &quot;layout&quot;: &quot;default&quot;,
+        &quot;autoRefresh&quot;: true,
+        &quot;refreshInterval&quot;: 1000
+    },
+    &quot;webkit&quot;: {
+        &quot;enableJavaScript&quot;: true,
+        &quot;enableWebGL&quot;: true,
+        &quot;enableDevTools&quot;: true,
+        &quot;enableNodeIntegration&quot;: true,
+        &quot;maxMemoryUsage&quot;: 1024,
+        &quot;enableCaching&quot;: true
+    }
+}
+</code></pre>
+<h2>🎯 Keyboard Shortcuts</h2>
+<h3>Default Shortcuts</h3>
+<ul>
+<li><code>F12</code> - Toggle Developer Tools</li>
+<li><code>Ctrl+Shift+I</code> - Open Inspector</li>
+<li><code>Ctrl+Shift+J</code> - Open Console</li>
+<li><code>Ctrl+Shift+C</code> - Inspect Element</li>
+<li><code>Ctrl+Shift+N</code> - Open Network Panel</li>
+<li><code>Ctrl+Shift+P</code> - Open Performance Panel</li>
+<li><code>Ctrl+R</code> - Reload page</li>
+<li><code>Ctrl+Shift+R</code> - Hard reload</li>
+<li><code>Ctrl+U</code> - View page source</li>
+<li><code>Ctrl+Shift+M</code> - Toggle device mode</li>
+</ul>
+<h3>Custom Shortcuts</h3>
+<pre><code class="language-cpp">// Register custom shortcuts
+devToolsUI.registerShortcut(&quot;Ctrl+Shift+Z&quot;, []() {
+    std::cout &lt;&lt; &quot;Custom shortcut executed&quot; &lt;&lt; std::endl;
+});
+
+devToolsUI.registerShortcut(&quot;F5&quot;, []() {
+    webKitEngine.reload();
+});
+</code></pre>
+<h2>📈 Performance Optimization</h2>
+<h3>Memory Management</h3>
+<pre><code class="language-cpp">// Set memory limits
+webKitEngine.setMemoryLimit(1024 * 1024 * 1024); // 1GB
+
+// Monitor memory usage
+size_t usage = webKitEngine.getMemoryUsage();
+size_t limit = webKitEngine.getMemoryLimit();
+
+// Garbage collection
+webKitEngine.garbageCollect();
+
+// Clear caches
+webKitEngine.clearCache();
+webKitEngine.clearMemoryCache();
+</code></pre>
+<h3>Caching Strategy</h3>
+<pre><code class="language-cpp">// Enable caching
+webKitEngine.setCacheEnabled(true);
+webKitEngine.setCacheSize(100 * 1024 * 1024); // 100MB
+
+// Configure cache policies
+webKitEngine.setCustomHeaders({
+    {&quot;Cache-Control&quot;, &quot;max-age=3600&quot;},
+    {&quot;ETag&quot;, &quot;zepra-browser-v3.0&quot;}
+});
+</code></pre>
+<h2>🔍 Debugging Features</h2>
+<h3>Console Debugging</h3>
+<pre><code class="language-cpp">// Log different levels
+devTools-&gt;log(&quot;Info message&quot;, zepra::ConsoleLevel::INFO);
+devTools-&gt;log(&quot;Warning message&quot;, zepra::ConsoleLevel::WARN);
+devTools-&gt;log(&quot;Error message&quot;, zepra::ConsoleLevel::ERROR);
+
+// Log with source information
+devTools-&gt;log(&quot;Debug message&quot;, &quot;app.js&quot;, 42, 10);
+
+// Clear console
+devTools-&gt;clearConsole();
+</code></pre>
+<h3>Network Debugging</h3>
+<pre><code class="language-cpp">// Monitor network requests
+devTools-&gt;logNetworkRequest({
+    .url = &quot;https://api.example.com/data&quot;,
+    .method = &quot;POST&quot;,
+    .headers = &quot;Content-Type: application/json&quot;,
+    .postData = &quot;{\&quot;key\&quot;:\&quot;value\&quot;}&quot;
+});
+
+// Monitor network responses
+devTools-&gt;logNetworkResponse({
+    .url = &quot;https://api.example.com/data&quot;,
+    .statusCode = 200,
+    .statusText = &quot;OK&quot;,
+    .headers = &quot;Content-Type: application/json&quot;,
+    .body = &quot;{\&quot;result\&quot;:\&quot;success\&quot;}&quot;
+});
+</code></pre>
+<h2>🎨 UI Customization</h2>
+<h3>Themes</h3>
+<pre><code class="language-cpp">// Available themes
+devToolsUI.setTheme(&quot;light&quot;);   // Light theme
+devToolsUI.setTheme(&quot;dark&quot;);    // Dark theme
+devToolsUI.setTheme(&quot;auto&quot;);    // System theme
+</code></pre>
+<h3>Layout</h3>
+<pre><code class="language-cpp">// Available layouts
+devToolsUI.setLayout(&quot;default&quot;);     // Default layout
+devToolsUI.setLayout(&quot;compact&quot;);     // Compact layout
+devToolsUI.setLayout(&quot;expanded&quot;);    // Expanded layout
+devToolsUI.setLayout(&quot;custom&quot;);      // Custom layout
+</code></pre>
+<h3>Font and Colors</h3>
+<pre><code class="language-cpp">// Font settings
+devToolsUI.setFontSize(12);          // Small
+devToolsUI.setFontSize(14);          // Medium
+devToolsUI.setFontSize(16);          // Large
+
+// Color schemes
+devToolsUI.setColorScheme(&quot;light&quot;);  // Light colors
+devToolsUI.setColorScheme(&quot;dark&quot;);   // Dark colors
+devToolsUI.setColorScheme(&quot;high-contrast&quot;); // High contrast
+</code></pre>
+<h2>🚀 Getting Started</h2>
+<h3>1. Build the Project</h3>
+<pre><code class="language-bash"># Clone the repository
+git clone https://github.com/ketivee/zepra-browser.git
+cd zepra-browser
+
+# Build with CMake
+mkdir build &amp;&amp; cd build
+cmake ..
+make -j$(nproc)
+
+# Or use the build script
+./build.sh
+</code></pre>
+<h3>2. Start the Backend</h3>
+<pre><code class="language-bash"># Install Node.js dependencies
+cd ketiveeserchengin/backend
+npm install
+
+# Start the server
+npm start
+# or
+node server.js
+</code></pre>
+<h3>3. Run the Browser</h3>
+<pre><code class="language-bash"># From the build directory
+./bin/zepra
+
+# Or use the startup script
+./start_browser.bat
+</code></pre>
+<h3>4. Open Developer Tools</h3>
+<ul>
+<li>Press <code>F12</code> to open developer tools</li>
+<li>Use <code>Ctrl+Shift+I</code> for inspector</li>
+<li>Use <code>Ctrl+Shift+J</code> for console</li>
+<li>Use <code>Ctrl+Shift+N</code> for network panel</li>
+</ul>
+<h2>📚 API Reference</h2>
+<h3>DeveloperTools API</h3>
+<p>See <code>include/engine/dev_tools.h</code> for complete API documentation.</p>
+<h3>WebKit Engine API</h3>
+<p>See <code>include/engine/webkit_engine.h</code> for complete API documentation.</p>
+<h3>DevTools UI API</h3>
+<p>See <code>include/ui/dev_tools_ui.h</code> for complete API documentation.</p>
+<h3>Node.js Backend API</h3>
+<p>See <code>ketiveeserchengin/backend/routes/devtools.js</code> for complete API documentation.</p>
+<h2>🤝 Contributing</h2>
+<h3>Development Setup</h3>
+<ol>
+<li>Fork the repository</li>
+<li>Create a feature branch</li>
+<li>Make your changes</li>
+<li>Add tests for new features</li>
+<li>Submit a pull request</li>
+</ol>
+<h3>Code Style</h3>
+<ul>
+<li>Follow the existing C++ coding style</li>
+<li>Use meaningful variable and function names</li>
+<li>Add comments for complex logic</li>
+<li>Include error handling</li>
+<li>Write unit tests for new features</li>
+</ul>
+<h3>Testing</h3>
+<pre><code class="language-bash"># Run unit tests
+make test
+
+# Run integration tests
+./test/integration_test.sh
+
+# Run performance tests
+./test/performance_test.sh
+</code></pre>
+<h2>📄 License</h2>
+<p>This project is licensed under the MIT License - see the <a href="../LICENSE_DEV.txt">LICENSE</a> file for details.</p>
+<h2>🙏 Acknowledgments</h2>
+<ul>
+<li>WebKit team for the excellent browser engine</li>
+<li>Node.js team for the JavaScript runtime</li>
+<li>Chrome DevTools team for inspiration</li>
+<li>Firefox Developer Tools team for ideas</li>
+<li>Safari Web Inspector team for concepts</li>
+</ul>
+<h2>📞 Support</h2>
+<ul>
+<li><strong>Documentation</strong>: <a href="https://zepra.ketivee.com/docs">https://zepra.ketivee.com/docs</a></li>
+<li><strong>Issues</strong>: <a href="https://github.com/ketivee/zepra-browser/issues">https://github.com/ketivee/zepra-browser/issues</a></li>
+<li><strong>Discussions</strong>: <a href="https://github.com/ketivee/zepra-browser/discussions">https://github.com/ketivee/zepra-browser/discussions</a></li>
+<li><strong>Email</strong>: support@ketivee.org</li>
+</ul>
+<hr />
+<p><strong>Zepra Browser</strong> - Advanced Developer Tools for Modern Web Development </p>
+
+        
+                </div>
+            </main>
+
+    <!-- Footer -->
+    <footer class="bg-bg-secondary border-t border-white/5 py-12 mt-12">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
+            <p class="text-gray-500 text-sm">© 2026 ZepraBrowser · Part of the NeolyxOS Project</p>
+        </div>
+    </footer>
+
+    <!-- Scripts -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/gsap.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/ScrollTrigger.min.js"></script>
+    <script src="assets/js/docs.js" defer></script>
+</body>
+</html>

@@ -1,0 +1,371 @@
+<!DOCTYPE html>
+<html lang="en" class="scroll-smooth">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TODO.md</title>
+    
+    <!-- Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+    
+    <!-- Tailwind CSS with Typography Plugin -->
+    <script src="https://cdn.tailwindcss.com?plugins=typography"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        bg: {
+                            primary: '#0a0a0f',
+                            secondary: '#12121a',
+                            tertiary: '#1a1a24'
+                        },
+                        accent: {
+                            DEFAULT: '#10b981',
+                            light: '#34d399',
+                            dark: '#059669',
+                            glow: 'rgba(16, 185, 129, 0.3)'
+                        }
+                    },
+                    fontFamily: {
+                        sans: ['Inter', 'sans-serif'],
+                        mono: ['JetBrains Mono', 'monospace'],
+                    },
+                    typography: (theme) => ({
+                        DEFAULT: {
+                            css: {
+                                color: theme('colors.gray.300'),
+                                a: {
+                                    color: theme('colors.emerald.400'),
+                                    '&:hover': {
+                                        color: theme('colors.emerald.300'),
+                                    },
+                                },
+                                h1: { color: theme('colors.white') },
+                                h2: { color: theme('colors.white') },
+                                h3: { color: theme('colors.white') },
+                                h4: { color: theme('colors.gray.100') },
+                                code: { color: theme('colors.pink.400') },
+                                'code::before': { content: '""' },
+                                'code::after': { content: '""' },
+                                pre: {
+                                    backgroundColor: theme('colors.bg.tertiary'),
+                                    color: theme('colors.gray.200'),
+                                },
+                                blockquote: {
+                                    color: theme('colors.gray.400'),
+                                    borderLeftColor: theme('colors.emerald.500'),
+                                },
+                            },
+                        },
+                    }),
+                }
+            }
+        }
+    </script>
+
+    <!-- Custom CSS -->
+    <link rel="stylesheet" href="assets/css/docs.css">
+</head>
+<body class="antialiased min-h-screen relative selection:bg-emerald-500/30 selection:text-emerald-200">
+
+    <!-- Background Elements -->
+    <div class="bg-grid"></div>
+    <div class="glow-orb orb-1"></div>
+    <div class="glow-orb orb-2"></div>
+
+    <!-- Navigation -->
+    
+    
+    <!-- Navigation Sidebar -->
+    <aside class="fixed left-0 top-0 w-72 h-screen bg-dark-800/90 backdrop-blur-xl border-r border-white/5 z-50 overflow-y-auto">
+        <div class="p-6 border-b border-white/5">
+            <div class="flex items-center gap-3">
+                <a href="index.html" class="flex items-center gap-3 w-full">
+                    <div class="w-10 h-10 rounded-xl bg-gradient-to-br from-emerald-500 to-blue-500 flex items-center justify-center glow">
+                        <img src="../resources/zepraicon/logo.svg" alt="Zepra Logo" class="w-8 h-8 object-contain">
+                    </div>
+                    <div>
+                        <h1 class="font-bold text-lg text-white">ZepraBrowser</h1>
+                        <span class="text-xs text-gray-500">Documentation Hub</span>
+                    </div>
+                </a>
+            </div>
+        </div>
+        <nav class="p-4">
+            <div class="mb-6">
+                <span class="text-[10px] font-semibold uppercase tracking-wider text-gray-500 px-3">Quick Navigation</span>
+                <div class="mt-2 space-y-1">
+                    <a href="index.html" class="nav-link flex items-center gap-3 px-3 py-2 text-sm text-gray-400 hover:text-white rounded-lg hover:bg-white/5 transition-all border-l-2 border-transparent">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"/></svg>
+                        Hub Home
+                    </a>
+                    <a href="zeprascript/index.html" class="nav-link flex items-center gap-3 px-3 py-2 text-sm text-gray-400 hover:text-white rounded-lg hover:bg-white/5 transition-all border-l-2 border-transparent">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>
+                        ZepraScript Engine
+                    </a>
+                </div>
+            </div>
+            <div class="mb-6">
+                <span class="text-[10px] font-semibold uppercase tracking-wider text-gray-500 px-3">Overview</span>
+                <div class="mt-2 space-y-1">
+                    <a href="architecture.html" class="nav-link flex items-center gap-3 px-3 py-2 text-sm text-gray-400 hover:text-white rounded-lg hover:bg-white/5 transition-all border-l-2 border-transparent pl-6">Architecture</a>
+                    <a href="advanced-developer-tools.html" class="nav-link flex items-center gap-3 px-3 py-2 text-sm text-gray-400 hover:text-white rounded-lg hover:bg-white/5 transition-all border-l-2 border-transparent pl-6">Developer Tools</a>
+                    <a href="security-model.html" class="nav-link flex items-center gap-3 px-3 py-2 text-sm text-gray-400 hover:text-white rounded-lg hover:bg-white/5 transition-all border-l-2 border-transparent pl-6">Security Model</a>
+                    <a href="NXRENDER/architecture.html" class="nav-link flex items-center gap-3 px-3 py-2 text-sm text-gray-400 hover:text-white rounded-lg hover:bg-white/5 transition-all border-l-2 border-transparent pl-6">NXRender</a>
+                </div>
+            </div>
+        </nav>
+    </aside>
+
+
+<main class="ml-72 flex-1 min-w-0 min-h-screen py-12 px-8 max-w-5xl mx-auto">
+<!-- Page Header with Icon -->
+                <div class="flex items-center gap-4 mb-8 border-b border-white/10 pb-8 animate-fade-in">
+                    <div class="w-16 h-16 rounded-2xl bg-bg-secondary border border-white/5 flex items-center justify-center shrink-0">
+                        <img src="assets/icons/help.svg" alt="Icon" class="w-8 h-8 opacity-80">
+                    </div>
+                    <div>
+                        <h1 class="text-3xl sm:text-4xl font-bold text-white tracking-tight">TODO.md</h1>
+                        <p class="text-gray-400 mt-1 text-sm font-mono">TODO.html</p>
+                    </div>
+                </div>
+
+                <div class="prose prose-invert prose-emerald max-w-none animate-fade-up">
+
+
+
+
+<h1>ZepraBrowser Development TODO</h1>
+<h2>Priority 1: Core Web Engine</h2>
+<h3>Networking Layer</h3>
+<ul>
+<li>[ ] HTTP/1.1 client with curl integration</li>
+<li>[ ] HTTPS/TLS support with OpenSSL</li>
+<li>[ ] HTTP/2 support</li>
+<li>[ ] DNS resolution and caching</li>
+<li>[ ] Cookie management (storage, expiry, secure flags)</li>
+<li>[ ] CORS implementation</li>
+<li>[ ] Redirect handling (301, 302, 307, 308)</li>
+<li>[ ] Request/response streaming</li>
+<li>[ ] WebSocket client</li>
+</ul>
+<h3>HTML Parser</h3>
+<ul>
+<li>[ ] Tokenizer (HTML5 spec compliant)</li>
+<li>[ ] Tree builder (DOM construction)</li>
+<li>[ ] Error recovery and quirks mode</li>
+<li>[ ] Entity decoding</li>
+<li>[ ] Script/style element handling</li>
+<li>[ ] Template element support</li>
+<li>[ ] Custom elements</li>
+</ul>
+<h3>CSS Engine</h3>
+<ul>
+<li>[ ] CSS tokenizer and parser</li>
+<li>[ ] Selector matching (specificity)</li>
+<li>[ ] Cascade and inheritance</li>
+<li>[ ] Box model calculation</li>
+<li>[ ] Flexbox layout</li>
+<li>[ ] Grid layout</li>
+<li>[ ] Positioned elements (absolute, relative, fixed, sticky)</li>
+<li>[ ] Float and clear</li>
+<li>[ ] Media queries</li>
+<li>[ ] CSS variables (custom properties)</li>
+<li>[ ] Animations and transitions</li>
+</ul>
+<h3>DOM Implementation</h3>
+<ul>
+<li>[ ] Node, Element, Document interfaces</li>
+<li>[ ] Event system (capture, bubble, prevent)</li>
+<li>[ ] MutationObserver</li>
+<li>[ ] querySelector/querySelectorAll</li>
+<li>[ ] classList, dataset</li>
+<li>[ ] innerHTML, textContent</li>
+<li>[ ] createElement, appendChild, removeChild</li>
+<li>[ ] Attribute manipulation</li>
+</ul>
+<hr />
+<h2>Priority 2: ZepraScript Integration</h2>
+<h3>JavaScript Engine (ZepraScript)</h3>
+<ul>
+<li>[ ] ES2024 compliance</li>
+<li>[ ] JIT compilation tiers</li>
+<li>[ ] Garbage collection</li>
+<li>[ ] async/await, Promises</li>
+<li>[ ] Modules (import/export)</li>
+<li>[ ] Classes and inheritance</li>
+<li>[ ] Proxies and Reflect</li>
+<li>[ ] WeakMap, WeakSet</li>
+<li>[ ] BigInt, Symbol</li>
+<li>[ ] RegExp (full spec)</li>
+</ul>
+<h3>Web APIs (via ZepraScript)</h3>
+<ul>
+<li>[ ] Console API</li>
+<li>[ ] Fetch API</li>
+<li>[ ] DOM manipulation APIs</li>
+<li>[ ] setTimeout, setInterval, requestAnimationFrame</li>
+<li>[ ] LocalStorage, SessionStorage</li>
+<li>[ ] IndexedDB</li>
+<li>[ ] Web Workers</li>
+<li>[ ] Service Workers</li>
+<li>[ ] History API</li>
+<li>[ ] Geolocation API</li>
+<li>[ ] Notifications API</li>
+<li>[ ] Clipboard API</li>
+<li>[ ] Canvas 2D API</li>
+<li>[ ] WebGL API</li>
+<li>[ ] WebAudio API</li>
+<li>[ ] MediaDevices API</li>
+</ul>
+<hr />
+<h2>Priority 3: Rendering Engine</h2>
+<h3>NXRENDER Graphics</h3>
+<ul>
+<li>[ ] Real OpenGL context (not stub)</li>
+<li>[ ] Texture atlas for images</li>
+<li>[ ] Font rendering (FreeType + HarfBuzz)</li>
+<li>[ ] Text layout (line breaking, bidi)</li>
+<li>[ ] Image decoding (PNG, JPEG, WebP, GIF, SVG)</li>
+<li>[ ] GPU-accelerated compositing</li>
+<li>[ ] Damage tracking</li>
+<li>[ ] VSync and frame pacing</li>
+</ul>
+<h3>Layout Engine</h3>
+<ul>
+<li>[ ] Block formatting context</li>
+<li>[ ] Inline formatting context</li>
+<li>[ ] Table layout</li>
+<li>[ ] Multi-column layout</li>
+<li>[ ] Flow layout</li>
+<li>[ ] Reflow optimization</li>
+<li>[ ] Layer tree</li>
+</ul>
+<h3>Paint and Composite</h3>
+<ul>
+<li>[ ] Paint order (z-index, stacking context)</li>
+<li>[ ] Opacity and blending</li>
+<li>[ ] Filters (blur, drop-shadow)</li>
+<li>[ ] Transforms (2D and 3D)</li>
+<li>[ ] Clipping and masking</li>
+<li>[ ] Border rendering (solid, dashed, radius)</li>
+<li>[ ] Box shadows</li>
+<li>[ ] Gradients (linear, radial, conic)</li>
+</ul>
+<hr />
+<h2>Priority 4: Browser Features</h2>
+<h3>Tab Management</h3>
+<ul>
+<li>[ ] Tab creation/destruction</li>
+<li>[ ] Tab switching</li>
+<li>[ ] Tab reordering (drag)</li>
+<li>[ ] Tab groups</li>
+<li>[ ] Tab hibernation (memory)</li>
+<li>[ ] Private/incognito tabs</li>
+</ul>
+<h3>Navigation</h3>
+<ul>
+<li>[ ] URL parsing (RFC 3986)</li>
+<li>[ ] Back/forward history</li>
+<li>[ ] Address bar with autocomplete</li>
+<li>[ ] Search engine integration</li>
+<li>[ ] Bookmarks</li>
+<li>[ ] Download manager</li>
+</ul>
+<h3>DevTools</h3>
+<ul>
+<li>[ ] Elements panel (DOM inspector)</li>
+<li>[ ] Console panel</li>
+<li>[ ] Network panel</li>
+<li>[ ] Sources panel (debugger)</li>
+<li>[ ] Performance panel</li>
+<li>[ ] Application panel (storage)</li>
+<li>[ ] WebDriver protocol (Selenium)</li>
+</ul>
+<h3>Settings</h3>
+<ul>
+<li>[ ] Privacy settings</li>
+<li>[ ] Security settings</li>
+<li>[ ] Appearance (themes)</li>
+<li>[ ] Default search engine</li>
+<li>[ ] Language preferences</li>
+<li>[ ] Permissions manager</li>
+</ul>
+<hr />
+<h2>Priority 5: Security</h2>
+<h3>Content Security</h3>
+<ul>
+<li>[ ] Same-origin policy</li>
+<li>[ ] Content Security Policy (CSP)</li>
+<li>[ ] X-Frame-Options</li>
+<li>[ ] XSS protection</li>
+<li>[ ] HTTPS-only mode</li>
+<li>[ ] Certificate verification</li>
+<li>[ ] Safe browsing</li>
+</ul>
+<h3>Process Isolation</h3>
+<ul>
+<li>[ ] Sandbox per tab</li>
+<li>[ ] IPC between processes</li>
+<li>[ ] Memory protection</li>
+<li>[ ] File system sandboxing</li>
+</ul>
+<h3>Authentication</h3>
+<ul>
+<li>[ ] Password manager</li>
+<li>[ ] Autofill</li>
+<li>[ ] WebAuthn / FIDO2</li>
+<li>[ ] Two-factor authentication</li>
+</ul>
+<hr />
+<h2>Priority 6: Platform Integration</h2>
+<h3>System Integration</h3>
+<ul>
+<li>[ ] Default browser registration</li>
+<li>[ ] File associations</li>
+<li>[ ] Protocol handlers</li>
+<li>[ ] Notifications</li>
+<li>[ ] System tray</li>
+<li>[ ] Auto-updates</li>
+</ul>
+<h3>Accessibility</h3>
+<ul>
+<li>[ ] Screen reader support</li>
+<li>[ ] Keyboard navigation</li>
+<li>[ ] High contrast mode</li>
+<li>[ ] Font scaling</li>
+<li>[ ] Reduced motion</li>
+</ul>
+<hr />
+<h2>Immediate Next Steps</h2>
+<ol>
+<li><strong>Week 1</strong>: HTTP client with curl, basic HTML tokenizer</li>
+<li><strong>Week 2</strong>: DOM tree construction, CSS tokenizer</li>
+<li><strong>Week 3</strong>: Box model, block/inline layout</li>
+<li><strong>Week 4</strong>: ZepraScript DOM bindings</li>
+<li><strong>Week 5</strong>: Text rendering with FreeType</li>
+<li><strong>Week 6</strong>: Image loading and rendering</li>
+<li><strong>Week 7</strong>: Event system (mouse, keyboard)</li>
+<li><strong>Week 8</strong>: Navigation and history</li>
+</ol>
+
+        
+                </div>
+            </main>
+
+    <!-- Footer -->
+    <footer class="bg-bg-secondary border-t border-white/5 py-12 mt-12">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
+            <p class="text-gray-500 text-sm">© 2026 ZepraBrowser · Part of the NeolyxOS Project</p>
+        </div>
+    </footer>
+
+    <!-- Scripts -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/gsap.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/ScrollTrigger.min.js"></script>
+    <script src="assets/js/docs.js" defer></script>
+</body>
+</html>

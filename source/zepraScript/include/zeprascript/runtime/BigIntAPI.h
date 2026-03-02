@@ -180,7 +180,7 @@ public:
     }
     
     BigInt operator~() const {
-        return -((*this) + BigInt(1));
+        return ((*this) + BigInt(1)).negate();
     }
     
     BigInt operator<<(int shift) const {

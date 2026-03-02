@@ -36,7 +36,9 @@ set(ZEPRA_CORE_SOURCES
     gc/handle.cpp
     gc/write_barrier.cpp
     gc/incremental_gc.cpp
-    
+    gc/compacting.cpp
+    gc/generational_gc.cpp
+    gc/finalizer.cpp    
     # Bytecode
     bytecode/bytecode_generator.cpp
     bytecode/opcode.cpp
@@ -61,6 +63,8 @@ set(ZEPRA_CORE_SOURCES
     builtins/regexp.cpp
     builtins/symbol.cpp
     builtins/weakmap.cpp
+    builtins/reflect.cpp
+    builtins/generator.cpp
     builtins/intl.cpp
     builtins/typed_array.cpp
     builtins/data_view.cpp
@@ -78,10 +82,14 @@ set(ZEPRA_CORE_SOURCES
     jit/type_profiler.cpp
     jit/baseline_jit.cpp
     jit/osr.cpp
+    jit/macro_assembler.cpp
+    jit/deoptimizer.cpp
     
     # DFG Optimizer
     dfg/DFGGraph.cpp
     dfg/DFGBuilder.cpp
+    dfg/DFGLowering.cpp
+    dfg/DFGPipeline.cpp
     
     # Memory
     memory/page_allocator.cpp
@@ -105,6 +113,12 @@ set(ZEPRA_CORE_SOURCES
     debug/profiler.cpp
     debug/console.cpp
     
+    # Profiler
+    profiler/cpu_profiler.cpp
+    profiler/heap_profiler.cpp
+    profiler/sampling_profiler.cpp
+    profiler/timeline.cpp
+    
     # Utils
     utils/platform.cpp
     utils/unicode.cpp
@@ -124,6 +138,26 @@ set(ZEPRA_CORE_SOURCES
     browser/storage_api.cpp
     browser/secure_storage.cpp
     browser/password_vault.cpp
+    browser/structured_clone.cpp
+    browser/indexeddb.cpp
+    browser/service_worker.cpp
+    browser/websocket.cpp
+    browser/performance.cpp
+    browser/console_api.cpp
+    browser/devtools.cpp
+
+    # Regex Engine
+    regex/regex_compiler.cpp
+    regex/regex_engine.cpp
+
+    # Threading
+    threading/thread_pool.cpp
+
+    # Optimization
+    optimization/hidden_class.cpp
+    optimization/inline_cache_opt.cpp
+    optimization/property_table.cpp
+    optimization/speculation.cpp
 )
 
 # Create core library

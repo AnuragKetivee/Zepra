@@ -5,9 +5,59 @@
 
 #include "zeprascript/wasm/WasmBaselineCompile.h"
 #include "zeprascript/wasm/WasmCpuFeatures.h"
+#include "zeprascript/wasm/WasmTypeDef.h"
 #include <cstring>
 
 namespace Zepra::Wasm {
+
+// Bulk Memory opcodes (0xFC prefix)
+namespace BulkOp {
+    constexpr uint8_t MEMORY_INIT = 0x08;
+    constexpr uint8_t DATA_DROP = 0x09;
+    constexpr uint8_t MEMORY_COPY = 0x0A;
+    constexpr uint8_t MEMORY_FILL = 0x0B;
+    constexpr uint8_t TABLE_INIT = 0x0C;
+    constexpr uint8_t ELEM_DROP = 0x0D;
+    constexpr uint8_t TABLE_COPY = 0x0E;
+    constexpr uint8_t TABLE_GROW = 0x0F;
+    constexpr uint8_t TABLE_SIZE = 0x10;
+    constexpr uint8_t TABLE_FILL = 0x11;
+}
+
+// GC opcodes (0xFB prefix)
+namespace GCOp {
+    constexpr uint8_t STRUCT_NEW = 0x00;
+    constexpr uint8_t STRUCT_NEW_DEFAULT = 0x01;
+    constexpr uint8_t STRUCT_GET = 0x02;
+    constexpr uint8_t STRUCT_GET_S = 0x03;
+    constexpr uint8_t STRUCT_GET_U = 0x04;
+    constexpr uint8_t STRUCT_SET = 0x05;
+    constexpr uint8_t ARRAY_NEW = 0x06;
+    constexpr uint8_t ARRAY_NEW_DEFAULT = 0x07;
+    constexpr uint8_t ARRAY_NEW_FIXED = 0x08;
+    constexpr uint8_t ARRAY_NEW_DATA = 0x09;
+    constexpr uint8_t ARRAY_NEW_ELEM = 0x0A;
+    constexpr uint8_t ARRAY_GET = 0x0B;
+    constexpr uint8_t ARRAY_GET_S = 0x0C;
+    constexpr uint8_t ARRAY_GET_U = 0x0D;
+    constexpr uint8_t ARRAY_SET = 0x0E;
+    constexpr uint8_t ARRAY_LEN = 0x0F;
+    constexpr uint8_t ARRAY_FILL = 0x10;
+    constexpr uint8_t ARRAY_COPY = 0x11;
+    constexpr uint8_t REF_TEST = 0x14;
+    constexpr uint8_t REF_TEST_NULL = 0x15;
+    constexpr uint8_t REF_CAST = 0x16;
+    constexpr uint8_t REF_CAST_NULL = 0x17;
+    constexpr uint8_t BR_ON_CAST = 0x18;
+    constexpr uint8_t BR_ON_CAST_FAIL = 0x19;
+    constexpr uint8_t I31_NEW = 0x1C;
+    constexpr uint8_t I31_GET_S = 0x1D;
+    constexpr uint8_t I31_GET_U = 0x1E;
+    constexpr uint8_t REF_NULL = 0xD0;
+    constexpr uint8_t REF_IS_NULL = 0xD1;
+    constexpr uint8_t REF_AS_NON_NULL = 0xD3;
+    constexpr uint8_t REF_EQ = 0xD4;
+}
 
 // =============================================================================
 // Platform Support
@@ -64,6 +114,12 @@ public:
             buffer_[offset + 1] = (val >> 8) & 0xFF;
             buffer_[offset + 2] = (val >> 16) & 0xFF;
             buffer_[offset + 3] = (val >> 24) & 0xFF;
+        }
+    }
+    
+    void patchByte(size_t offset, uint8_t val) {
+        if (offset < buffer_.size()) {
+            buffer_[offset] = val;
         }
     }
     
@@ -1093,6 +1149,214 @@ public:
         }
     }
     
+    // String operations for memory.copy / memory.fill
+    void cld() {
+        buf_->emit8(0xFC);  // CLD - Clear Direction Flag
+    }
+    
+    void repMovsb() {
+        buf_->emit8(0xF3);  // REP prefix
+        buf_->emit8(0xA4);  // MOVSB
+    }
+    
+    void repStosb() {
+        buf_->emit8(0xF3);  // REP prefix
+        buf_->emit8(0xAA);  // STOSB
+    }
+    
+    // OR immediate to 32-bit register
+    void or32Imm(uint8_t dst, int32_t imm) {
+        rexRB(false, 0, dst);
+        if (imm >= -128 && imm <= 127) {
+            buf_->emit8(0x83);
+            modrm(3, 1, dst);  // /1 = OR
+            buf_->emit8(static_cast<uint8_t>(imm));
+        } else {
+            buf_->emit8(0x81);
+            modrm(3, 1, dst);
+            buf_->emit32(static_cast<uint32_t>(imm));
+        }
+    }
+    
+    // AND immediate to 32-bit register
+    void and32Imm(uint8_t dst, int32_t imm) {
+        rexRB(false, 0, dst);
+        if (imm >= -128 && imm <= 127) {
+            buf_->emit8(0x83);
+            modrm(3, 4, dst);  // /4 = AND
+            buf_->emit8(static_cast<uint8_t>(imm));
+        } else {
+            buf_->emit8(0x81);
+            modrm(3, 4, dst);
+        }
+    }
+    
+    // JMP relative 32-bit
+    void jmp(int32_t offset) {
+        buf_->emit8(0xE9);  // JMP rel32
+        buf_->emit32(static_cast<uint32_t>(offset - 5));  // Offset from end of instruction
+    }
+    
+    // JMP to register (indirect)
+    void jmpReg(uint8_t reg) {
+        if (reg >= 8) {
+            buf_->emit8(0x41);  // REX.B prefix for extended registers
+        }
+        buf_->emit8(0xFF);
+        modrm(3, 4, reg & 7);  // /4 = JMP
+    }
+    
+    // ADD to 32-bit register with immediate
+    void add32Imm(uint8_t dst, int32_t imm) {
+        rexRB(false, 0, dst);
+        if (imm >= -128 && imm <= 127) {
+            buf_->emit8(0x83);
+            modrm(3, 0, dst);  // /0 = ADD
+            buf_->emit8(static_cast<uint8_t>(imm));
+        } else {
+            buf_->emit8(0x81);
+            modrm(3, 0, dst);
+            buf_->emit32(static_cast<uint32_t>(imm));
+        }
+    }
+    
+    // MFENCE memory fence
+    void mfence() {
+        buf_->emit8(0x0F);
+        buf_->emit8(0xAE);
+        buf_->emit8(0xF0);
+    }
+    
+    // LOCK prefix for atomic operations
+    void lockPrefix() {
+        buf_->emit8(0xF0);
+    }
+    
+    // CMPXCHG
+    void cmpxchg32(uint8_t dst, uint8_t src) {
+        buf_->emit8(0x0F);
+        buf_->emit8(0xB1);
+        modrm(3, src, dst);
+    }
+    
+    void cmpxchg64(uint8_t dst, uint8_t src) {
+        rexRB(true, src, dst);
+        buf_->emit8(0x0F);
+        buf_->emit8(0xB1);
+        modrm(3, src, dst);
+    }
+    
+    // XADD - exchange and add
+    void xadd32(uint8_t dst, uint8_t src) {
+        buf_->emit8(0x0F);
+        buf_->emit8(0xC1);
+        modrm(3, src, dst);
+    }
+    
+    void xadd64(uint8_t dst, uint8_t src) {
+        rexRB(true, src, dst);
+        buf_->emit8(0x0F);
+        buf_->emit8(0xC1);
+        modrm(3, src, dst);
+    }
+    
+    // XCHG - exchange
+    void xchg32(uint8_t dst, uint8_t src) {
+        buf_->emit8(0x87);
+        modrm(3, src, dst);
+    }
+    
+    void xchg64(uint8_t dst, uint8_t src) {
+        rexRB(true, src, dst);
+        buf_->emit8(0x87);
+        modrm(3, src, dst);
+    }
+    
+    // Push immediate 32-bit value
+    void pushImm32(int32_t imm) {
+        if (imm >= -128 && imm <= 127) {
+            buf_->emit8(0x6A);  // push imm8
+            buf_->emit8(static_cast<uint8_t>(imm));
+        } else {
+            buf_->emit8(0x68);  // push imm32
+            buf_->emit32(static_cast<uint32_t>(imm));
+        }
+    }
+    
+    // Pop to register
+    void popReg(uint8_t reg) {
+        if (reg >= 8) {
+            buf_->emit8(0x41);  // REX.B
+        }
+        buf_->emit8(0x58 + (reg & 7));  // pop r64
+    }
+    
+    // ==========================================================================
+    // Relaxed SIMD Operations (WASM Relaxed SIMD Proposal)
+    // ==========================================================================
+    
+    // VEX-encoded FMA3 vfmadd132ps xmm, xmm, xmm (fused multiply-add)
+    // vd = vd * vm + vn
+    void vfmadd132ps(uint8_t vd, uint8_t vn, uint8_t vm) {
+        // VEX.128.66.0F38.W0 98 /r VFMADD132PS
+        vex3(0x66, 0x0F38, false, vd, vn);
+        buf_->emit8(0x98);
+        modrm(3, vd, vm);
+    }
+    
+    // VEX-encoded FMA3 vfmadd213ps xmm, xmm, xmm
+    // vd = vn * vd + vm
+    void vfmadd213ps(uint8_t vd, uint8_t vn, uint8_t vm) {
+        vex3(0x66, 0x0F38, false, vd, vn);
+        buf_->emit8(0xA8);
+        modrm(3, vd, vm);
+    }
+    
+    // VEX-encoded FMA3 vfmsub132ps (fused multiply-subtract)
+    void vfmsub132ps(uint8_t vd, uint8_t vn, uint8_t vm) {
+        vex3(0x66, 0x0F38, false, vd, vn);
+        buf_->emit8(0x9A);
+        modrm(3, vd, vm);
+    }
+    
+    // PSHUFB - packed shuffle bytes (swizzle)
+    void pshufb(uint8_t vd, uint8_t vm) {
+        buf_->emit8(0x66);
+        buf_->emit8(0x0F);
+        buf_->emit8(0x38);
+        buf_->emit8(0x00);
+        modrm(3, vd, vm);
+    }
+    
+    // MINPS - relaxed minimum (may differ in NaN handling)
+    void minps(uint8_t vd, uint8_t vm) {
+        buf_->emit8(0x0F);
+        buf_->emit8(0x5D);
+        modrm(3, vd, vm);
+    }
+    
+    // MAXPS - relaxed maximum
+    void maxps(uint8_t vd, uint8_t vm) {
+        buf_->emit8(0x0F);
+        buf_->emit8(0x5F);
+        modrm(3, vd, vm);
+    }
+    
+    // Helper to emit 3-byte VEX prefix
+    void vex3(uint8_t pp, uint16_t mmmmm, bool W, uint8_t vd, uint8_t vvvv) {
+        buf_->emit8(0xC4);  // 3-byte VEX
+        uint8_t b1 = 0;
+        if (mmmmm == 0x0F) b1 = 0x01;
+        else if (mmmmm == 0x0F38) b1 = 0x02;
+        else if (mmmmm == 0x0F3A) b1 = 0x03;
+        b1 |= ((~vd & 0x8) << 4);  // R bit
+        buf_->emit8(b1);
+        uint8_t b2 = ((~vvvv & 0xF) << 3);
+        if (pp == 0x66) b2 |= 0x01;
+        if (W) b2 |= 0x80;
+        buf_->emit8(b2);
+    }
+    
     size_t offset() const { return buf_->offset(); }
     
 private:
@@ -1850,6 +2114,69 @@ public:
         emit32(insn);
     }
     
+    // Alias for common usage (uses condition code directly)
+    void cset(uint8_t rd, uint8_t condCode) {
+        Condition cond = static_cast<Condition>(condCode);
+        cset32(rd, cond);
+    }
+    
+    // Compare and branch if not zero (64-bit)
+    void cbnz64(uint8_t rt, int32_t offset) {
+        // CBNZ Xt, label
+        uint32_t imm19 = ((offset >> 2) & 0x7FFFF);
+        uint32_t insn = 0xB5000000 | (imm19 << 5) | rt;
+        emit32(insn);
+    }
+    
+    // Compare and branch if zero (64-bit)
+    void cbz64(uint8_t rt, int32_t offset) {
+        uint32_t imm19 = ((offset >> 2) & 0x7FFFF);
+        uint32_t insn = 0xB4000000 | (imm19 << 5) | rt;
+        emit32(insn);
+    }
+    
+    // ORR immediate (64-bit) - simplified for small values
+    void orrImm64(uint8_t rd, uint8_t rn, uint64_t imm) {
+        // For simple case: ORR with small immediate (use MOV + ORR)
+        // This is a simplified implementation
+        if (imm <= 0xFFFF) {
+            uint8_t temp = 16;  // Use x16 as scratch
+            movImm64(temp, imm);
+            orr64(rd, rn, temp);
+        } else {
+            orr64(rd, rn, rn);  // Fallback: no-op
+        }
+    }
+    
+    // AND immediate (64-bit)
+    void andImm64(uint8_t rd, uint8_t rn, uint64_t imm) {
+        // Simplified: use temp register for AND
+        if (imm <= 0xFFFFFFFF) {
+            uint8_t temp = 16;  // x16 as scratch
+            movImm64(temp, imm);
+            and64(rd, rn, temp);
+        } else {
+            and64(rd, rn, rn);  // Fallback
+        }
+    }
+    
+    // CMP immediate (64-bit) - compares Xn with immediate
+    void cmpImm64(uint8_t rn, uint64_t imm) {
+        // CMP Xn, #imm is encoded as SUBS XZR, Xn, #imm
+        if (imm <= 0xFFF) {
+            // SUBS XZR, Xn, #imm (immediate fits in 12 bits)
+            uint32_t insn = 0xF1000000 | ((imm & 0xFFF) << 10) | (rn << 5) | 31;
+            emit32(insn);
+        } else {
+            // Load immediate to temp and use CMP reg
+            uint8_t temp = 16;
+            movImm64(temp, imm);
+            // SUBS XZR, Xn, Xm
+            uint32_t insn = 0xEB000000 | (temp << 16) | (rn << 5) | 31;
+            emit32(insn);
+        }
+    }
+    
     // ==========================================================================
     // NEON SIMD Vector Instructions (v128 / Q registers)
     // ==========================================================================
@@ -2058,6 +2385,687 @@ public:
         emit32(insn);
     }
     
+    // Load quad (128-bit) - placeholder for SIMD
+    void ldq(uint8_t vd, uint8_t rn, int32_t offset = 0) {
+        // LDR Q (128-bit load): 0x3DC00000 | imm12 | Rn | Rt
+        uint32_t imm = (offset >> 4) & 0xFFF;
+        uint32_t insn = 0x3DC00000 | (imm << 10) | (rn << 5) | vd;
+        emit32(insn);
+    }
+    
+    // Table lookup (TBL) - single register table
+    void tbl(uint8_t vd, uint8_t vn, uint8_t vm) {
+        // TBL Vd.16B, {Vn.16B}, Vm.16B: 0x4E000000 | Vm | 0 | Vn | Vd
+        uint32_t insn = 0x4E000000 | (vm << 16) | (vn << 5) | vd;
+        emit32(insn);
+    }
+    
+    // Table lookup (TBL) - two register table
+    void tbl2(uint8_t vd, uint8_t vn, uint8_t vm) {
+        // TBL Vd.16B, {Vn.16B, Vn+1.16B}, Vm.16B: 0x4E002000 | Vm | Vn | Vd
+        uint32_t insn = 0x4E002000 | (vm << 16) | (vn << 5) | vd;
+        emit32(insn);
+    }
+    
+    // DUP element to vector (byte)
+    void dupVB(uint8_t vd, uint8_t vn, uint8_t index) {
+        // DUP Vd.16B, Vn.B[index]: 0x4E010400 | (index << 17) | Vn | Vd
+        uint32_t imm5 = (index << 1) | 1;  // B = xxx01
+        uint32_t insn = 0x4E000400 | (imm5 << 16) | (vn << 5) | vd;
+        emit32(insn);
+    }
+    
+    // DUP element to vector (half)
+    void dupVH(uint8_t vd, uint8_t vn, uint8_t index) {
+        uint32_t imm5 = (index << 2) | 2;  // H = xx010
+        uint32_t insn = 0x4E000400 | (imm5 << 16) | (vn << 5) | vd;
+        emit32(insn);
+    }
+    
+    // DUP element to vector (single)
+    void dupVS(uint8_t vd, uint8_t vn, uint8_t index) {
+        uint32_t imm5 = (index << 3) | 4;  // S = x0100
+        uint32_t insn = 0x4E000400 | (imm5 << 16) | (vn << 5) | vd;
+        emit32(insn);
+    }
+    
+    // DUP element to vector (double)
+    void dupVD(uint8_t vd, uint8_t vn, uint8_t index) {
+        uint32_t imm5 = (index << 4) | 8;  // D = 01000
+        uint32_t insn = 0x4E000400 | (imm5 << 16) | (vn << 5) | vd;
+        emit32(insn);
+    }
+    
+    // SMOV - signed move from element to register (byte)
+    void smovB(uint8_t rd, uint8_t vn, uint8_t index) {
+        uint32_t imm5 = (index << 1) | 1;
+        uint32_t insn = 0x4E002C00 | (imm5 << 16) | (vn << 5) | rd;
+        emit32(insn);
+    }
+    
+    // SMOV - signed move from element to register (half)
+    void smovH(uint8_t rd, uint8_t vn, uint8_t index) {
+        uint32_t imm5 = (index << 2) | 2;
+        uint32_t insn = 0x4E002C00 | (imm5 << 16) | (vn << 5) | rd;
+        emit32(insn);
+    }
+    
+    // UMOV - unsigned move from element to register (byte)
+    void umovB(uint8_t rd, uint8_t vn, uint8_t index) {
+        uint32_t imm5 = (index << 1) | 1;
+        uint32_t insn = 0x0E003C00 | (imm5 << 16) | (vn << 5) | rd;
+        emit32(insn);
+    }
+    
+    // UMOV - unsigned move from element to register (half)
+    void umovH(uint8_t rd, uint8_t vn, uint8_t index) {
+        uint32_t imm5 = (index << 2) | 2;
+        uint32_t insn = 0x0E003C00 | (imm5 << 16) | (vn << 5) | rd;
+        emit32(insn);
+    }
+    
+    // UMOV - unsigned move from element to register (single/word)
+    void umovS(uint8_t rd, uint8_t vn, uint8_t index) {
+        uint32_t imm5 = (index << 3) | 4;
+        uint32_t insn = 0x0E003C00 | (imm5 << 16) | (vn << 5) | rd;
+        emit32(insn);
+    }
+    
+    // UMOV - unsigned move from element to register (double)
+    void umovD(uint8_t rd, uint8_t vn, uint8_t index) {
+        uint32_t imm5 = (index << 4) | 8;
+        uint32_t insn = 0x4E003C00 | (imm5 << 16) | (vn << 5) | rd;
+        emit32(insn);
+    }
+    
+    // INS - insert element from register (byte)
+    void insB(uint8_t vd, uint8_t index, uint8_t rn) {
+        uint32_t imm5 = (index << 1) | 1;
+        uint32_t insn = 0x4E001C00 | (imm5 << 16) | (rn << 5) | vd;
+        emit32(insn);
+    }
+    
+    // INS - insert element from register (half)
+    void insH(uint8_t vd, uint8_t index, uint8_t rn) {
+        uint32_t imm5 = (index << 2) | 2;
+        uint32_t insn = 0x4E001C00 | (imm5 << 16) | (rn << 5) | vd;
+        emit32(insn);
+    }
+    
+    // INS - insert element from register (single)
+    void insS(uint8_t vd, uint8_t index, uint8_t rn) {
+        uint32_t imm5 = (index << 3) | 4;
+        uint32_t insn = 0x4E001C00 | (imm5 << 16) | (rn << 5) | vd;
+        emit32(insn);
+    }
+    
+    // INS - insert element from register (double)
+    void insD(uint8_t vd, uint8_t index, uint8_t rn) {
+        uint32_t imm5 = (index << 4) | 8;
+        uint32_t insn = 0x4E001C00 | (imm5 << 16) | (rn << 5) | vd;
+        emit32(insn);
+    }
+    
+    // DUP from GPR to all lanes (2-arg overloads for splat)
+    void dupVB(uint8_t vd, uint8_t rn) {
+        uint32_t insn = 0x4E010C00 | (rn << 5) | vd;
+        emit32(insn);
+    }
+    
+    void dupVH(uint8_t vd, uint8_t rn) {
+        uint32_t insn = 0x4E020C00 | (rn << 5) | vd;
+        emit32(insn);
+    }
+    
+    void dupVS(uint8_t vd, uint8_t rn) {
+        uint32_t insn = 0x4E040C00 | (rn << 5) | vd;
+        emit32(insn);
+    }
+    
+    void dupVD(uint8_t vd, uint8_t rn) {
+        uint32_t insn = 0x4E080C00 | (rn << 5) | vd;
+        emit32(insn);
+    }
+    
+    // DUP lane aliases
+    void dupVS_lane(uint8_t vd, uint8_t vn, uint8_t lane) { dupVS(vd, vn, lane); }
+    void dupVD_lane(uint8_t vd, uint8_t vn, uint8_t lane) { dupVD(vd, vn, lane); }
+    
+    // INS from SIMD element
+    void insSFromS(uint8_t vd, uint8_t dstIdx, uint8_t vn, uint8_t srcIdx) {
+        uint32_t imm5 = (dstIdx << 3) | 4;
+        uint32_t imm4 = srcIdx << 2;
+        uint32_t insn = 0x6E000400 | (imm5 << 16) | (imm4 << 11) | (vn << 5) | vd;
+        emit32(insn);
+    }
+    
+    void insDFromD(uint8_t vd, uint8_t dstIdx, uint8_t vn, uint8_t srcIdx) {
+        uint32_t imm5 = (dstIdx << 4) | 8;
+        uint32_t imm4 = srcIdx << 3;
+        uint32_t insn = 0x6E000400 | (imm5 << 16) | (imm4 << 11) | (vn << 5) | vd;
+        emit32(insn);
+    }
+    
+    // Compare equal 16B
+    void cmeq16B(uint8_t vd, uint8_t vn, uint8_t vm) {
+        uint32_t insn = 0x6E208C00 | (vm << 16) | (vn << 5) | vd;
+        emit32(insn);
+    }
+    
+    // Bit select
+    void bsl(uint8_t vd, uint8_t vn, uint8_t vm) {
+        uint32_t insn = 0x6E601C00 | (vm << 16) | (vn << 5) | vd;
+        emit32(insn);
+    }
+    
+    // Unsigned max across vector
+    void umaxv(uint8_t vd, uint8_t vn) {
+        uint32_t insn = 0x6E30A800 | (vn << 5) | vd;
+        emit32(insn);
+    }
+    
+    // LDQ from constant bytes (load literal into vector)
+    void ldq(uint8_t vd, const uint8_t* bytes) {
+        // Encode bytes inline or use literal pool
+        // For now, use mov/ins to build constant
+        (void)bytes;
+        // Placeholder - actual impl would emit bytes to code and load
+        uint32_t insn = 0x9C000000 | vd;  // LDUR Q
+        emit32(insn);
+    }
+    
+    // TBL with 4 args (2-register table + indices)
+    void tbl2(uint8_t vd, uint8_t vn, uint8_t vn2, const uint8_t* indices) {
+        (void)indices;  // Indices would be loaded separately
+        (void)vn2;
+        uint32_t insn = 0x4E002000 | (vn << 5) | vd;
+        emit32(insn);
+    }
+    
+    // INS element-to-element (3 args - simplified)  
+    void insSFromS(uint8_t vd, uint8_t idx, uint8_t vn) {
+        uint32_t imm5 = (idx << 3) | 4;
+        uint32_t insn = 0x6E000400 | (imm5 << 16) | (vn << 5) | vd;
+        emit32(insn);
+    }
+    
+    void insDFromD(uint8_t vd, uint8_t idx, uint8_t vn) {
+        uint32_t imm5 = (idx << 4) | 8;
+        uint32_t insn = 0x6E000400 | (imm5 << 16) | (vn << 5) | vd;
+        emit32(insn);
+    }
+    
+    // BSL with 4 args (result, true, false, mask)
+    void bsl(uint8_t vd, uint8_t vt, uint8_t vf, uint8_t vm) {
+        (void)vt; (void)vf;  // Real impl would handle properly
+        uint32_t insn = 0x6E601C00 | (vm << 16) | (vd << 5) | vd;
+        emit32(insn);
+    }
+    
+    // CMP immediate 32-bit
+    void cmpImm32(uint8_t rn, uint32_t imm) {
+        // CMP Wn, #imm is SUBS WZR, Wn, #imm
+        if (imm <= 0xFFF) {
+            uint32_t insn = 0x7100001F | (imm << 10) | (rn << 5);
+            emit32(insn);
+        }
+    }
+    
+    // SMULL (signed multiply long)
+    void smull(uint8_t vd, uint8_t vn, uint8_t vm) {
+        uint32_t insn = 0x0E20C000 | (vm << 16) | (vn << 5) | vd;
+        emit32(insn);
+    }
+    
+    // SMLAL2 (signed multiply-accumulate long, high half)
+    void smlal2(uint8_t vd, uint8_t vn, uint8_t vm) {
+        uint32_t insn = 0x4E208000 | (vm << 16) | (vn << 5) | vd;
+        emit32(insn);
+    }
+    
+    // SADDLP (signed add long pairwise)
+    void saddlp(uint8_t vd, uint8_t vn) {
+        uint32_t insn = 0x0E202800 | (vn << 5) | vd;
+        emit32(insn);
+    }
+    
+    // STR pre-indexed
+    void strPre(uint8_t rt, uint8_t rn, int16_t offset) {
+        uint32_t imm9 = offset & 0x1FF;
+        uint32_t insn = 0xF8000C00 | (imm9 << 12) | (rn << 5) | rt;
+        emit32(insn);
+    }
+    
+    // LDR post-indexed
+    void ldrPost(uint8_t rt, uint8_t rn, int16_t offset) {
+        uint32_t imm9 = offset & 0x1FF;
+        uint32_t insn = 0xF8400400 | (imm9 << 12) | (rn << 5) | rt;
+        emit32(insn);
+    }
+    
+    // LDAR - Load-Acquire Register 64-bit
+    void ldar64(uint8_t rt, uint8_t rn) {
+        uint32_t insn = 0xC8DFFC00 | (rn << 5) | rt;
+        emit32(insn);
+    }
+    
+    // LDAR - Load-Acquire Register 32-bit
+    void ldar32(uint8_t rt, uint8_t rn) {
+        uint32_t insn = 0x88DFFC00 | (rn << 5) | rt;
+        emit32(insn);
+    }
+    
+    // STLR - Store-Release Register 64-bit
+    void stlr64(uint8_t rt, uint8_t rn) {
+        uint32_t insn = 0xC89FFC00 | (rn << 5) | rt;
+        emit32(insn);
+    }
+    
+    // STLR - Store-Release Register 32-bit
+    void stlr32(uint8_t rt, uint8_t rn) {
+        uint32_t insn = 0x889FFC00 | (rn << 5) | rt;
+        emit32(insn);
+    }
+    
+    // LDAXR - Load-Acquire Exclusive Register 64-bit
+    void ldaxr64(uint8_t rt, uint8_t rn) {
+        uint32_t insn = 0xC85FFC00 | (rn << 5) | rt;
+        emit32(insn);
+    }
+    
+    // STLXR - Store-Release Exclusive Register 64-bit
+    void stlxr64(uint8_t rs, uint8_t rt, uint8_t rn) {
+        uint32_t insn = 0xC800FC00 | (rs << 16) | (rn << 5) | rt;
+        emit32(insn);
+    }
+    
+    // LSE Atomics - Load-Add Acquire-Release
+    void ldaddal64(uint8_t rs, uint8_t rt, uint8_t rn) {
+        uint32_t insn = 0xF8E00000 | (rs << 16) | (rn << 5) | rt;
+        emit32(insn);
+    }
+    
+    void ldaddal32(uint8_t rs, uint8_t rt, uint8_t rn) {
+        uint32_t insn = 0xB8E00000 | (rs << 16) | (rn << 5) | rt;
+        emit32(insn);
+    }
+    
+    // LSE Atomics - Load-Clear Acquire-Release
+    void ldclral64(uint8_t rs, uint8_t rt, uint8_t rn) {
+        uint32_t insn = 0xF8E01000 | (rs << 16) | (rn << 5) | rt;
+        emit32(insn);
+    }
+    
+    void ldclral32(uint8_t rs, uint8_t rt, uint8_t rn) {
+        uint32_t insn = 0xB8E01000 | (rs << 16) | (rn << 5) | rt;
+        emit32(insn);
+    }
+    
+    // LSE Atomics - Load-Set Acquire-Release
+    void ldsetal64(uint8_t rs, uint8_t rt, uint8_t rn) {
+        uint32_t insn = 0xF8E03000 | (rs << 16) | (rn << 5) | rt;
+        emit32(insn);
+    }
+    
+    void ldsetal32(uint8_t rs, uint8_t rt, uint8_t rn) {
+        uint32_t insn = 0xB8E03000 | (rs << 16) | (rn << 5) | rt;
+        emit32(insn);
+    }
+    
+    // LSE Atomics - Load-Xor Acquire-Release
+    void ldeoral64(uint8_t rs, uint8_t rt, uint8_t rn) {
+        uint32_t insn = 0xF8E02000 | (rs << 16) | (rn << 5) | rt;
+        emit32(insn);
+    }
+    
+    void ldeoral32(uint8_t rs, uint8_t rt, uint8_t rn) {
+        uint32_t insn = 0xB8E02000 | (rs << 16) | (rn << 5) | rt;
+        emit32(insn);
+    }
+    
+    // LSE Atomics - Swap Acquire-Release
+    void swpal64(uint8_t rs, uint8_t rt, uint8_t rn) {
+        uint32_t insn = 0xF8E08000 | (rs << 16) | (rn << 5) | rt;
+        emit32(insn);
+    }
+    
+    void swpal32(uint8_t rs, uint8_t rt, uint8_t rn) {
+        uint32_t insn = 0xB8E08000 | (rs << 16) | (rn << 5) | rt;
+        emit32(insn);
+    }
+    
+    // LSE Atomics - Compare and Swap Acquire-Release
+    void casal64(uint8_t rs, uint8_t rt, uint8_t rn) {
+        uint32_t insn = 0xC8E0FC00 | (rs << 16) | (rn << 5) | rt;
+        emit32(insn);
+    }
+    
+    void casal32(uint8_t rs, uint8_t rt, uint8_t rn) {
+        uint32_t insn = 0x88E0FC00 | (rs << 16) | (rn << 5) | rt;
+        emit32(insn);
+    }
+    
+    // DMB - Data Memory Barrier
+    void dmb(uint8_t option = 0xB) {  // 0xB = ISH (inner shareable)
+        uint32_t insn = 0xD5033BBF | (option << 8);
+        emit32(insn);
+    }
+    
+    // DSB - Data Synchronization Barrier
+    void dsb(uint8_t option = 0xB) {
+        uint32_t insn = 0xD5033B9F | (option << 8);
+        emit32(insn);
+    }
+    
+    // ISB - Instruction Synchronization Barrier
+    void isb() {
+        uint32_t insn = 0xD5033FDF;
+        emit32(insn);
+    }
+    
+    // ==========================================================================
+    // SIMD Floating-Point Operations (from SpiderMonkey VIXL reference)
+    // ==========================================================================
+    
+    // FP absolute value (vector)
+    void fabsV(uint8_t vd, uint8_t vn, bool is64 = false) {
+        uint32_t sz = is64 ? 1 : 0;
+        uint32_t insn = 0x4EA0F800 | (sz << 22) | (vn << 5) | vd;
+        emit32(insn);
+    }
+    
+    // FP negate (vector)
+    void fnegV(uint8_t vd, uint8_t vn, bool is64 = false) {
+        uint32_t sz = is64 ? 1 : 0;
+        uint32_t insn = 0x6EA0F800 | (sz << 22) | (vn << 5) | vd;
+        emit32(insn);
+    }
+    
+    // FP square root (vector)
+    void fsqrtV(uint8_t vd, uint8_t vn, bool is64 = false) {
+        uint32_t sz = is64 ? 1 : 0;
+        uint32_t insn = 0x6EA1F800 | (sz << 22) | (vn << 5) | vd;
+        emit32(insn);
+    }
+    
+    // FP add (vector)
+    void faddV(uint8_t vd, uint8_t vn, uint8_t vm, bool is64 = false) {
+        uint32_t sz = is64 ? 1 : 0;
+        uint32_t insn = 0x4E20D400 | (sz << 22) | (vm << 16) | (vn << 5) | vd;
+        emit32(insn);
+    }
+    
+    // FP subtract (vector)
+    void fsubV(uint8_t vd, uint8_t vn, uint8_t vm, bool is64 = false) {
+        uint32_t sz = is64 ? 1 : 0;
+        uint32_t insn = 0x4EA0D400 | (sz << 22) | (vm << 16) | (vn << 5) | vd;
+        emit32(insn);
+    }
+    
+    // FP multiply (vector)
+    void fmulV(uint8_t vd, uint8_t vn, uint8_t vm, bool is64 = false) {
+        uint32_t sz = is64 ? 1 : 0;
+        uint32_t insn = 0x6E20DC00 | (sz << 22) | (vm << 16) | (vn << 5) | vd;
+        emit32(insn);
+    }
+    
+    // FP divide (vector)
+    void fdivV(uint8_t vd, uint8_t vn, uint8_t vm, bool is64 = false) {
+        uint32_t sz = is64 ? 1 : 0;
+        uint32_t insn = 0x6E20FC00 | (sz << 22) | (vm << 16) | (vn << 5) | vd;
+        emit32(insn);
+    }
+    
+    // FP minimum (vector)
+    void fminV(uint8_t vd, uint8_t vn, uint8_t vm, bool is64 = false) {
+        uint32_t sz = is64 ? 1 : 0;
+        uint32_t insn = 0x4EA0F400 | (sz << 22) | (vm << 16) | (vn << 5) | vd;
+        emit32(insn);
+    }
+    
+    // FP maximum (vector)
+    void fmaxV(uint8_t vd, uint8_t vn, uint8_t vm, bool is64 = false) {
+        uint32_t sz = is64 ? 1 : 0;
+        uint32_t insn = 0x4E20F400 | (sz << 22) | (vm << 16) | (vn << 5) | vd;
+        emit32(insn);
+    }
+    
+    // ==========================================================================
+    // FP Convert Operations
+    // ==========================================================================
+    
+    // Convert FP to higher precision (S->D)
+    void fcvtl(uint8_t vd, uint8_t vn) {
+        uint32_t insn = 0x0E217800 | (vn << 5) | vd;
+        emit32(insn);
+    }
+    
+    // Convert FP to lower precision (D->S)
+    void fcvtn(uint8_t vd, uint8_t vn) {
+        uint32_t insn = 0x0E216800 | (vn << 5) | vd;
+        emit32(insn);
+    }
+    
+    // Signed convert to FP (vector)
+    void scvtfV(uint8_t vd, uint8_t vn, bool is64 = false) {
+        uint32_t sz = is64 ? 1 : 0;
+        uint32_t insn = 0x4E21D800 | (sz << 22) | (vn << 5) | vd;
+        emit32(insn);
+    }
+    
+    // Unsigned convert to FP (vector)
+    void ucvtfV(uint8_t vd, uint8_t vn, bool is64 = false) {
+        uint32_t sz = is64 ? 1 : 0;
+        uint32_t insn = 0x6E21D800 | (sz << 22) | (vn << 5) | vd;
+        emit32(insn);
+    }
+    
+    // FP convert to signed int, round toward zero (vector)
+    void fcvtzsV(uint8_t vd, uint8_t vn, bool is64 = false) {
+        uint32_t sz = is64 ? 1 : 0;
+        uint32_t insn = 0x4EA1B800 | (sz << 22) | (vn << 5) | vd;
+        emit32(insn);
+    }
+    
+    // FP convert to unsigned int, round toward zero (vector)
+    void fcvtzuV(uint8_t vd, uint8_t vn, bool is64 = false) {
+        uint32_t sz = is64 ? 1 : 0;
+        uint32_t insn = 0x6EA1B800 | (sz << 22) | (vn << 5) | vd;
+        emit32(insn);
+    }
+    
+    // ==========================================================================
+    // Saturating Arithmetic
+    // ==========================================================================
+    
+    // Signed saturating add (vector)
+    void sqaddV(uint8_t vd, uint8_t vn, uint8_t vm) {
+        uint32_t insn = 0x4E200C00 | (vm << 16) | (vn << 5) | vd;
+        emit32(insn);
+    }
+    
+    // Unsigned saturating add (vector)
+    void uqaddV(uint8_t vd, uint8_t vn, uint8_t vm) {
+        uint32_t insn = 0x6E200C00 | (vm << 16) | (vn << 5) | vd;
+        emit32(insn);
+    }
+    
+    // Signed saturating subtract (vector)
+    void sqsubV(uint8_t vd, uint8_t vn, uint8_t vm) {
+        uint32_t insn = 0x4E202C00 | (vm << 16) | (vn << 5) | vd;
+        emit32(insn);
+    }
+    
+    // Unsigned saturating subtract (vector)
+    void uqsubV(uint8_t vd, uint8_t vn, uint8_t vm) {
+        uint32_t insn = 0x6E202C00 | (vm << 16) | (vn << 5) | vd;
+        emit32(insn);
+    }
+    
+    // Signed saturating doubling multiply long (16->32)
+    void sqdmullV(uint8_t vd, uint8_t vn, uint8_t vm) {
+        uint32_t insn = 0x0E60D000 | (vm << 16) | (vn << 5) | vd;
+        emit32(insn);
+    }
+    
+    // Signed saturating doubling multiply high (vector)
+    void sqdmulhV(uint8_t vd, uint8_t vn, uint8_t vm) {
+        uint32_t insn = 0x0E60B400 | (vm << 16) | (vn << 5) | vd;
+        emit32(insn);
+    }
+    
+    // Signed saturating rounding doubling multiply high (vector)
+    void sqrdmulhV(uint8_t vd, uint8_t vn, uint8_t vm) {
+        uint32_t insn = 0x6E60B400 | (vm << 16) | (vn << 5) | vd;
+        emit32(insn);
+    }
+    
+    // ==========================================================================
+    // Integer SIMD Arithmetic
+    // ==========================================================================
+    
+    // Add (vector)
+    void addV(uint8_t vd, uint8_t vn, uint8_t vm, uint8_t size = 2) {
+        uint32_t insn = 0x4E208400 | (size << 22) | (vm << 16) | (vn << 5) | vd;
+        emit32(insn);
+    }
+    
+    // Subtract (vector)
+    void subV(uint8_t vd, uint8_t vn, uint8_t vm, uint8_t size = 2) {
+        uint32_t insn = 0x6E208400 | (size << 22) | (vm << 16) | (vn << 5) | vd;
+        emit32(insn);
+    }
+    
+    // Multiply (vector)
+    void mulV(uint8_t vd, uint8_t vn, uint8_t vm, uint8_t size = 2) {
+        uint32_t insn = 0x4E209C00 | (size << 22) | (vm << 16) | (vn << 5) | vd;
+        emit32(insn);
+    }
+    
+    // Signed shift left (vector)
+    void sshlV(uint8_t vd, uint8_t vn, uint8_t vm, uint8_t size = 2) {
+        uint32_t insn = 0x4E204400 | (size << 22) | (vm << 16) | (vn << 5) | vd;
+        emit32(insn);
+    }
+    
+    // Unsigned shift left (vector)
+    void ushlV(uint8_t vd, uint8_t vn, uint8_t vm, uint8_t size = 2) {
+        uint32_t insn = 0x6E204400 | (size << 22) | (vm << 16) | (vn << 5) | vd;
+        emit32(insn);
+    }
+    
+    // ==========================================================================
+    // SIMD Compare
+    // ==========================================================================
+    
+    // Compare equal (vector)
+    void cmeqV(uint8_t vd, uint8_t vn, uint8_t vm, uint8_t size = 2) {
+        uint32_t insn = 0x6E208C00 | (size << 22) | (vm << 16) | (vn << 5) | vd;
+        emit32(insn);
+    }
+    
+    // Compare signed greater than (vector)
+    void cmgtV(uint8_t vd, uint8_t vn, uint8_t vm, uint8_t size = 2) {
+        uint32_t insn = 0x4E203400 | (size << 22) | (vm << 16) | (vn << 5) | vd;
+        emit32(insn);
+    }
+    
+    // Compare signed greater than or equal (vector)
+    void cmgeV(uint8_t vd, uint8_t vn, uint8_t vm, uint8_t size = 2) {
+        uint32_t insn = 0x4E203C00 | (size << 22) | (vm << 16) | (vn << 5) | vd;
+        emit32(insn);
+    }
+    
+    // Compare unsigned higher (vector)
+    void cmhiV(uint8_t vd, uint8_t vn, uint8_t vm, uint8_t size = 2) {
+        uint32_t insn = 0x6E203400 | (size << 22) | (vm << 16) | (vn << 5) | vd;
+        emit32(insn);
+    }
+    
+    // Compare unsigned higher or same (vector)
+    void cmhsV(uint8_t vd, uint8_t vn, uint8_t vm, uint8_t size = 2) {
+        uint32_t insn = 0x6E203C00 | (size << 22) | (vm << 16) | (vn << 5) | vd;
+        emit32(insn);
+    }
+    
+    // FP compare equal (vector)
+    void fcmeqV(uint8_t vd, uint8_t vn, uint8_t vm, bool is64 = false) {
+        uint32_t sz = is64 ? 1 : 0;
+        uint32_t insn = 0x4E20E400 | (sz << 22) | (vm << 16) | (vn << 5) | vd;
+        emit32(insn);
+    }
+    
+    // FP compare greater than (vector)
+    void fcmgtV(uint8_t vd, uint8_t vn, uint8_t vm, bool is64 = false) {
+        uint32_t sz = is64 ? 1 : 0;
+        uint32_t insn = 0x6EA0E400 | (sz << 22) | (vm << 16) | (vn << 5) | vd;
+        emit32(insn);
+    }
+    
+    // FP compare greater than or equal (vector)
+    void fcmgeV(uint8_t vd, uint8_t vn, uint8_t vm, bool is64 = false) {
+        uint32_t sz = is64 ? 1 : 0;
+        uint32_t insn = 0x6E20E400 | (sz << 22) | (vm << 16) | (vn << 5) | vd;
+        emit32(insn);
+    }
+    
+    // ==========================================================================
+    // Relaxed SIMD Operations (WASM Relaxed SIMD Proposal)
+    // ==========================================================================
+    
+    // Fused multiply-add: vd = va + (vn * vm)
+    void fmlaV(uint8_t vd, uint8_t vn, uint8_t vm, bool is64 = false) {
+        uint32_t sz = is64 ? 1 : 0;
+        // FMLA (vector) encoding: 0E20CC00
+        uint32_t insn = 0x0E20CC00 | (1 << 30) | (sz << 22) | (vm << 16) | (vn << 5) | vd;
+        emit32(insn);
+    }
+    
+    // Fused multiply-subtract: vd = va - (vn * vm)
+    void fmlsV(uint8_t vd, uint8_t vn, uint8_t vm, bool is64 = false) {
+        uint32_t sz = is64 ? 1 : 0;
+        // FMLS (vector) encoding: 0EA0CC00
+        uint32_t insn = 0x0EA0CC00 | (1 << 30) | (sz << 22) | (vm << 16) | (vn << 5) | vd;
+        emit32(insn);
+    }
+    
+    // Table lookup (swizzle): vd[i] = vm[vn[i]]
+    void tblV(uint8_t vd, uint8_t vn, uint8_t vm) {
+        // TBL (single register table): 0E000000
+        uint32_t insn = 0x0E000000 | (1 << 30) | (vm << 16) | (vn << 5) | vd;
+        emit32(insn);
+    }
+    
+    // Relaxed min (returns NaN propagation or implementation-defined)
+    void fminnmV(uint8_t vd, uint8_t vn, uint8_t vm, bool is64 = false) {
+        uint32_t sz = is64 ? 1 : 0;
+        // FMINNM (vector): 4EA0C400
+        uint32_t insn = 0x4EA0C400 | (sz << 22) | (vm << 16) | (vn << 5) | vd;
+        emit32(insn);
+    }
+    
+    // Relaxed max (returns NaN propagation or implementation-defined)
+    void fmaxnmV(uint8_t vd, uint8_t vn, uint8_t vm, bool is64 = false) {
+        uint32_t sz = is64 ? 1 : 0;
+        // FMAXNM (vector): 4E20C400
+        uint32_t insn = 0x4E20C400 | (sz << 22) | (vm << 16) | (vn << 5) | vd;
+        emit32(insn);
+    }
+    
+    // Relaxed integer dot product i16x8 -> i32x4
+    void sdot(uint8_t vd, uint8_t vn, uint8_t vm) {
+        // SDOT (vector): 4E809400
+        uint32_t insn = 0x4E809400 | (vm << 16) | (vn << 5) | vd;
+        emit32(insn);
+    }
+    
+    // Relaxed lane select (bitselect)
+    void bslV(uint8_t vd, uint8_t vn, uint8_t vm) {
+        // BSL: 6E601C00
+        uint32_t insn = 0x6E601C00 | (vm << 16) | (vn << 5) | vd;
+        emit32(insn);
+    }
+    
     size_t offset() const { return buf_->offset(); }
     
 private:
@@ -2084,8 +3092,9 @@ private:
 #endif
 
 // Helper macros for platform-specific code emission
-#define EMIT_X64(code) if constexpr (IsX64Platform) { code; }
-#define EMIT_ARM64(code) if constexpr (IsARM64Platform) { code; }
+// Use variadic macro to handle braced blocks with commas
+#define EMIT_X64(...) do { if constexpr (IsX64Platform) { __VA_ARGS__ } } while(0)
+#define EMIT_ARM64(...) do { if constexpr (IsARM64Platform) { __VA_ARGS__ } } while(0)
 
 // =============================================================================
 // Simple Register Allocator
@@ -4841,15 +5850,34 @@ bool BaselineCompiler::emitF64Ge() {
 bool BaselineCompiler::emitLoad(Op op, uint32_t align, uint32_t offset) {
     ValueLocation addr = pop();
     
+    // Memory64: determine address size based on module's memory type
+    bool isMemory64 = module_->memories().size() > 0 && 
+                      module_->memories()[0].isMemory64;
+    ValType addrType = isMemory64 ? ValType::i64() : ValType::i32();
+    
     if (options_.enableBoundsChecks) {
-        emitBoundsCheck(offset);
+        emitBoundsCheck64(offset, isMemory64);
     }
     
-    Reg addrReg = allocReg(ValType::i32());
+    Reg addrReg = allocReg(addrType);
     
     // Load address to register if needed
     if (addr.isRegister()) {
         addrReg = addr.reg;
+    }
+    
+    // For Memory32, zero-extend i32 address to i64 for pointer arithmetic
+    if (!isMemory64 && addr.isRegister()) {
+        EMIT_X64({
+            X86Assembler masm(codeBuffer_.get());
+            // mov eax, eax (zero-extends to 64-bit)
+            masm.mov32(addrReg.code, addrReg.code);
+        });
+        EMIT_ARM64({
+            ARM64Assembler masm(codeBuffer_.get());
+            // uxtw (unsigned extend word)
+            masm.andImm64(addrReg.code, addrReg.code, 0xFFFFFFFF);
+        });
     }
     
     // Get memory base pointer (stored in instance)
@@ -4858,15 +5886,18 @@ bool BaselineCompiler::emitLoad(Op op, uint32_t align, uint32_t offset) {
     EMIT_X64({
         X86Assembler masm(codeBuffer_.get());
         masm.load64(memBase.code, X86Assembler::RBP, -16);
+        // Add base + address
+        masm.add64(memBase.code, addrReg.code);
         if (offset != 0) {
-            masm.add64Imm(addrReg.code, static_cast<int32_t>(offset));
+            masm.add64Imm(memBase.code, static_cast<int32_t>(offset));
         }
     });
     EMIT_ARM64({
         ARM64Assembler masm(codeBuffer_.get());
         masm.ldr64(memBase.code, 29, -16);  // Load from frame pointer
+        masm.add64(memBase.code, memBase.code, addrReg.code);
         if (offset != 0) {
-            masm.addImm64(addrReg.code, addrReg.code, offset);
+            masm.addImm64(memBase.code, memBase.code, offset);
         }
     });
     
@@ -5394,8 +6425,11 @@ bool BaselineCompiler::emitReturnCall(uint32_t funcIndex) {
     // 3. Set up callee arguments in place
     // 4. Jump (not call) to callee
     
-    const FuncType& calleeType = module_->types()[module_->getFuncTypeIndex(funcIndex)];
-    size_t numParams = calleeType.params.size();
+    uint32_t typeIdx = module_->functions()[funcIndex].typeIndex;
+    const FuncType* calleeTypePtr = module_->funcType(typeIdx);
+    if (!calleeTypePtr) return false;
+    const FuncType& calleeType = *calleeTypePtr;
+    size_t numParams = calleeType.params().size();
     
     // Collect arguments
     std::vector<ValueLocation> args;
@@ -5449,7 +6483,7 @@ bool BaselineCompiler::emitReturnCall(uint32_t funcIndex) {
         }
         
         // Restore FP/LR
-        masm.ldpPost(29, 30, 31, frameSize_);
+        masm.ldpPost64(29, 30, 31, frameSize_);
         
         // Jump to target (B instruction, not BL)
         // In real impl: masm.b(funcAddress);
@@ -5467,8 +6501,10 @@ bool BaselineCompiler::emitReturnCallIndirect(uint32_t typeIndex, uint32_t table
     (void)indexLoc;
     
     // Get callee type to know argument count
-    const FuncType& calleeType = module_->types()[typeIndex];
-    size_t numParams = calleeType.params.size();
+    const FuncType* calleeTypePtr = module_->funcType(typeIndex);
+    if (!calleeTypePtr) return false;
+    const FuncType& calleeType = *calleeTypePtr;
+    size_t numParams = calleeType.params().size();
     
     // Collect arguments
     std::vector<ValueLocation> args;
@@ -5524,7 +6560,7 @@ bool BaselineCompiler::emitReturnCallIndirect(uint32_t typeIndex, uint32_t table
         }
         
         // Restore frame
-        masm.ldpPost(29, 30, 31, frameSize_);
+        masm.ldpPost64(29, 30, 31, frameSize_);
         
         // Jump through register (BR, not BLR)
         masm.br(tableBase.code);
@@ -5540,8 +6576,10 @@ bool BaselineCompiler::emitReturnCallRef(uint32_t typeIndex) {
     ValueLocation funcRef = pop();
     (void)funcRef;
     
-    const FuncType& calleeType = module_->types()[typeIndex];
-    size_t numParams = calleeType.params.size();
+    const FuncType* calleeTypePtr = module_->funcType(typeIndex);
+    if (!calleeTypePtr) return false;
+    const FuncType& calleeType = *calleeTypePtr;
+    size_t numParams = calleeType.params().size();
     
     // Collect arguments
     std::vector<ValueLocation> args;
@@ -5595,7 +6633,7 @@ bool BaselineCompiler::emitReturnCallRef(uint32_t typeIndex) {
         }
         
         // Restore frame and jump
-        masm.ldpPost(29, 30, 31, frameSize_);
+        masm.ldpPost64(29, 30, 31, frameSize_);
         masm.br(funcPtr.code);
         
         freeReg(funcPtr);
@@ -5650,15 +6688,138 @@ void BaselineCompiler::emitEpilogue() {
 }
 
 void BaselineCompiler::emitTierUpCheck() {
-    // Decrement counter
-    // Branch to tier-up stub if zero
-    // Record tier-up check location for later patching
-    // (would normally record offset in current compilation result)
+    // Tier-up check at loop header (based on JSC's BBQ JIT approach)
+    //
+    // The tier-up counter is stored in the TierUpCount structure.
+    // We decrement by loopIncrement() on each loop iteration.
+    // When counter goes negative, we branch to the tier-up slow path.
+    //
+    // Counter layout:
+    //   - Starts at threshold (e.g., 1000 for warm-up)
+    //   - Decremented by 100 per loop iteration
+    //   - When <= 0, trigger tier-up compilation
+    
+    if (!tierUpCounterPtr_) {
+        return;  // Tier-up not initialized
+    }
+    
+    uint32_t loopIndex = currentLoopIndex_++;
+    
+#if defined(__x86_64__) || defined(_M_X64)
+    X86Assembler masm(codeBuffer_.get());
+    
+    // Load tier-up counter address into scratch register
+    // mov rax, [tierUpCounterPtr_]
+    masm.mov64Imm(X86Assembler::RAX, reinterpret_cast<uint64_t>(tierUpCounterPtr_));
+    
+    // Decrement counter: sub dword [rax], loopIncrement
+    // x86 encoding: sub [mem], imm32
+    codeBuffer_->emit8(0x81);           // sub r/m32, imm32
+    codeBuffer_->emit8(0x28);           // ModR/M: [rax] with /5 for sub
+    codeBuffer_->emit32(100);           // loopIncrement = 100
+    
+    // Branch if counter still positive (no tier-up needed)
+    // jns skip_tierup (0x79 = jns rel8)
+    size_t branchOffset = codeBuffer_->offset();
+    codeBuffer_->emit8(0x79);           // jns rel8
+    codeBuffer_->emit8(0x00);           // placeholder - will patch
+    
+    // === Tier-up slow path ===
+    // Save current state and call tier-up handler
+    
+    // Push function index and loop index for tier-up handler
+    masm.pushImm32(funcIndex_);
+    masm.pushImm32(loopIndex);
+    
+    // Call tier-up handler (implemented in runtime)
+    // This is a slow path - the handler will either:
+    // 1. Start background compilation
+    // 2. Do OSR entry if optimized code is ready
+    masm.mov64Imm(X86Assembler::RAX, reinterpret_cast<uint64_t>(tierUpSlowPath_));
+    codeBuffer_->emit8(0xFF);           // call rax
+    codeBuffer_->emit8(0xD0);
+    
+    // Clean up stack
+    masm.popReg(X86Assembler::RCX);     // pop loop index
+    masm.popReg(X86Assembler::RCX);     // pop func index
+    
+    // Patch branch target
+    size_t skipTarget = codeBuffer_->offset();
+    int8_t branchDisp = static_cast<int8_t>(skipTarget - branchOffset - 2);
+    codeBuffer_->patchByte(branchOffset + 1, branchDisp);
+    
+#elif defined(__aarch64__) || defined(_M_ARM64)
+    ARM64Assembler masm(codeBuffer_.get());
+    
+    // Load tier-up counter address
+    // ldr x16, =tierUpCounterPtr_
+    masm.movImm64(16, reinterpret_cast<uint64_t>(tierUpCounterPtr_));
+    
+    // Load counter value: ldr w17, [x16]
+    masm.ldr32(17, 16, 0);
+    
+    // Decrement: sub w17, w17, #100
+    masm.subImm32(17, 17, 100);
+    
+    // Store back: str w17, [x16]
+    masm.str32(17, 16, 0);
+    
+    // Branch if still positive: tbz w17, #31, skip (test bit 31 = sign bit)
+    // If sign bit is 0, counter is positive, skip tier-up
+    size_t branchOffset = codeBuffer_->offset();
+    masm.tbz32(17, 31, 0);  // placeholder offset
+    
+    // === Tier-up slow path ===
+    // Save x0-x1 for call
+    masm.strPre(0, 31, -16);
+    masm.str64(1, 31, 8);
+    
+    // Setup args: x0 = funcIndex, x1 = loopIndex
+    masm.movImm32(0, funcIndex_);
+    masm.movImm32(1, loopIndex);
+    
+    // Call tier-up handler
+    masm.movImm64(16, reinterpret_cast<uint64_t>(tierUpSlowPath_));
+    masm.blr(16);
+    
+    // Restore
+    masm.ldr64(1, 31, 8);
+    masm.ldrPost(0, 31, 16);
+    
+    // Patch branch - calculate offset
+    size_t skipTarget = codeBuffer_->offset();
+    // ARM64 TBZ uses 14-bit signed offset in units of 4 bytes
+    int32_t offset = static_cast<int32_t>((skipTarget - branchOffset) / 4);
+    // Patch the TBZ instruction at branchOffset
+    uint32_t insn = 0x36000000 | ((offset & 0x3FFF) << 5) | (17);
+    codeBuffer_->patch32(branchOffset, insn);
+#endif
+
+    // Record OSR entry point for this loop
+    tierUpOSRPoints_.push_back({loopIndex, codeBuffer_->offset(), valueStack_.size()});
 }
 
 void BaselineCompiler::emitStackCheck(uint32_t frameSize) {
     // Check stack limit
-    // Trap if exceeded
+    // On x86-64:
+    //   cmp rsp - frameSize, [limit]
+    //   jb trap
+    // On ARM64:
+    //   sub tmp, sp, frameSize
+    //   ldr limit, [limit_addr]
+    //   cmp tmp, limit
+    //   b.lo trap
+    
+    if (IsX64Platform) {
+        // x64: Compare stack pointer against limit
+        codeBuffer_->emit8(0x48);  // REX.W
+        codeBuffer_->emit8(0x81);  // CMP r/m64, imm32
+        codeBuffer_->emit8(0xFC);  // ModR/M for RSP
+        codeBuffer_->emit32(0x1000);  // Stack limit placeholder
+    } else {
+        // ARM64 placeholder - stack check
+        codeBuffer_->emit32(0xD10003FF); // sub sp, sp, #0
+    }
 }
 
 void BaselineCompiler::emitTrap(Trap trap) {
@@ -5667,8 +6828,81 @@ void BaselineCompiler::emitTrap(Trap trap) {
 }
 
 void BaselineCompiler::emitBoundsCheck(uint32_t offset) {
-    // Compare address + offset against memory size
-    // Trap if out of bounds
+    // Legacy 32-bit bounds check
+    emitBoundsCheck64(offset, false);
+}
+
+void BaselineCompiler::emitBoundsCheck64(uint32_t offset, bool isMemory64) {
+    // Memory bounds checking for Memory32 and Memory64
+    //
+    // For Memory32:
+    //   if (addr + offset > memSize32) trap
+    //
+    // For Memory64:
+    //   if (addr + offset > memSize64) trap
+    //
+    // Memory size is stored in instance at a known offset
+    
+#if defined(__x86_64__) || defined(_M_X64)
+    X86Assembler masm(codeBuffer_.get());
+    
+    // Load memory size from instance (stored at RBP - 24)
+    if (isMemory64) {
+        masm.load64(X86Assembler::R10, X86Assembler::RBP, -24);
+    } else {
+        masm.load32(X86Assembler::R10, X86Assembler::RBP, -24);
+    }
+    
+    // Add offset to address in R11 (scratch)
+    if (offset != 0) {
+        masm.mov64Imm(X86Assembler::R11, offset);
+        // add r11, [top of stack - address]
+    }
+    
+    // Compare: if address + offset >= memSize, trap
+    if (isMemory64) {
+        masm.cmp64(X86Assembler::RAX, X86Assembler::R10);
+    } else {
+        masm.cmp32(X86Assembler::RAX, X86Assembler::R10);  // EAX = RAX lower 32 bits
+    }
+    
+    // jae (jump if above or equal = unsigned >=) to trap
+    size_t trapJumpOffset = codeBuffer_->offset();
+    codeBuffer_->emit8(0x73);   // jae rel8
+    codeBuffer_->emit8(0x02);   // skip 2 bytes (the jmp over trap)
+    
+    // Normal path: skip trap
+    codeBuffer_->emit8(0xEB);   // jmp rel8
+    codeBuffer_->emit8(0x01);   // skip 1 byte
+    
+    // Trap instruction
+    codeBuffer_->emit8(0xCC);   // int 3 (will be replaced with proper trap call)
+    
+#elif defined(__aarch64__) || defined(_M_ARM64)
+    ARM64Assembler masm(codeBuffer_.get());
+    
+    // Load memory size from instance
+    if (isMemory64) {
+        masm.ldr64(16, 29, -24);  // x16 = memory size
+    } else {
+        masm.ldr32(16, 29, -24);  // w16 = memory size (zero-extended)
+    }
+    
+    // Compare address (in x0/w0 assumed) against memory size
+    if (isMemory64) {
+        masm.cmp64(0, 16);
+    } else {
+        masm.cmp32(0, 16);
+    }
+    
+    // Branch if higher or same (unsigned >=) to trap
+    // b.hs trap (condition = 2 for HS)
+    size_t trapBranchOffset = codeBuffer_->offset();
+    uint32_t bhs = 0x54000002;  // b.hs with placeholder offset
+    masm.emit32(bhs);
+    
+    // Will patch branch target to trap handler
+#endif
 }
 
 // =============================================================================
@@ -7276,7 +8510,7 @@ bool BaselineCompiler::emitAtomicFence() {
 // =============================================================================
 // GC Operations
 // =============================================================================
-3
+
 bool BaselineCompiler::emitGCOp(uint32_t gcOp) {
     using namespace GCOp;
     

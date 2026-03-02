@@ -302,7 +302,84 @@ Value DateBuiltin::toISOString(Runtime::Context*, const std::vector<Value>& args
 }
 
 Object* DateBuiltin::createDatePrototype() {
-    return new Object();
+    Object* proto = new Object();
+
+    // Helper macro equivalent — each method extracts `this` as DateObject
+    auto dateGetter = [](const char* name, auto getter) {
+        return Value::object(new Runtime::Function(name,
+            [getter](const Runtime::FunctionCallInfo& info) -> Value {
+                if (!info.thisValue().isObject()) return Value::undefined();
+                DateObject* d = dynamic_cast<DateObject*>(info.thisValue().asObject());
+                if (!d) return Value::undefined();
+                return Value::number(static_cast<double>(getter(d)));
+            }, 0));
+    };
+
+    proto->set("getTime",         dateGetter("getTime",         [](DateObject* d) { return d->getTime(); }));
+    proto->set("getFullYear",     dateGetter("getFullYear",     [](DateObject* d) { return d->getFullYear(); }));
+    proto->set("getMonth",        dateGetter("getMonth",        [](DateObject* d) { return d->getMonth(); }));
+    proto->set("getDate",         dateGetter("getDate",         [](DateObject* d) { return d->getDate(); }));
+    proto->set("getDay",          dateGetter("getDay",          [](DateObject* d) { return d->getDay(); }));
+    proto->set("getHours",        dateGetter("getHours",        [](DateObject* d) { return d->getHours(); }));
+    proto->set("getMinutes",      dateGetter("getMinutes",      [](DateObject* d) { return d->getMinutes(); }));
+    proto->set("getSeconds",      dateGetter("getSeconds",      [](DateObject* d) { return d->getSeconds(); }));
+    proto->set("getMilliseconds", dateGetter("getMilliseconds", [](DateObject* d) { return d->getMilliseconds(); }));
+    proto->set("getTimezoneOffset", dateGetter("getTimezoneOffset", [](DateObject* d) { return d->getTimezoneOffset(); }));
+
+    // UTC getters
+    proto->set("getUTCFullYear",     dateGetter("getUTCFullYear",     [](DateObject* d) { return d->getUTCFullYear(); }));
+    proto->set("getUTCMonth",        dateGetter("getUTCMonth",        [](DateObject* d) { return d->getUTCMonth(); }));
+    proto->set("getUTCDate",         dateGetter("getUTCDate",         [](DateObject* d) { return d->getUTCDate(); }));
+    proto->set("getUTCDay",          dateGetter("getUTCDay",          [](DateObject* d) { return d->getUTCDay(); }));
+    proto->set("getUTCHours",        dateGetter("getUTCHours",        [](DateObject* d) { return d->getUTCHours(); }));
+    proto->set("getUTCMinutes",      dateGetter("getUTCMinutes",      [](DateObject* d) { return d->getUTCMinutes(); }));
+    proto->set("getUTCSeconds",      dateGetter("getUTCSeconds",      [](DateObject* d) { return d->getUTCSeconds(); }));
+
+    // String methods
+    proto->set("toString", Value::object(new Runtime::Function("toString",
+        [](const Runtime::FunctionCallInfo& info) -> Value {
+            if (!info.thisValue().isObject()) return Value::undefined();
+            DateObject* d = dynamic_cast<DateObject*>(info.thisValue().asObject());
+            return d ? Value::string(new Runtime::String(d->toString())) : Value::undefined();
+        }, 0)));
+
+    proto->set("toISOString", Value::object(new Runtime::Function("toISOString",
+        [](const Runtime::FunctionCallInfo& info) -> Value {
+            if (!info.thisValue().isObject()) return Value::undefined();
+            DateObject* d = dynamic_cast<DateObject*>(info.thisValue().asObject());
+            return d ? Value::string(new Runtime::String(d->toISOString())) : Value::undefined();
+        }, 0)));
+
+    proto->set("toUTCString", Value::object(new Runtime::Function("toUTCString",
+        [](const Runtime::FunctionCallInfo& info) -> Value {
+            if (!info.thisValue().isObject()) return Value::undefined();
+            DateObject* d = dynamic_cast<DateObject*>(info.thisValue().asObject());
+            return d ? Value::string(new Runtime::String(d->toUTCString())) : Value::undefined();
+        }, 0)));
+
+    proto->set("toDateString", Value::object(new Runtime::Function("toDateString",
+        [](const Runtime::FunctionCallInfo& info) -> Value {
+            if (!info.thisValue().isObject()) return Value::undefined();
+            DateObject* d = dynamic_cast<DateObject*>(info.thisValue().asObject());
+            return d ? Value::string(new Runtime::String(d->toDateString())) : Value::undefined();
+        }, 0)));
+
+    proto->set("toTimeString", Value::object(new Runtime::Function("toTimeString",
+        [](const Runtime::FunctionCallInfo& info) -> Value {
+            if (!info.thisValue().isObject()) return Value::undefined();
+            DateObject* d = dynamic_cast<DateObject*>(info.thisValue().asObject());
+            return d ? Value::string(new Runtime::String(d->toTimeString())) : Value::undefined();
+        }, 0)));
+
+    // valueOf returns timestamp (for numeric coercion)
+    proto->set("valueOf", Value::object(new Runtime::Function("valueOf",
+        [](const Runtime::FunctionCallInfo& info) -> Value {
+            if (!info.thisValue().isObject()) return Value::undefined();
+            DateObject* d = dynamic_cast<DateObject*>(info.thisValue().asObject());
+            return d ? Value::number(d->getTime()) : Value::undefined();
+        }, 0)));
+
+    return proto;
 }
 
 } // namespace Zepra::Builtins

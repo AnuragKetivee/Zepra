@@ -6,12 +6,14 @@
 #include <functional>
 #include <SDL2/SDL.h>
 #include "../engine/webkit_engine.h"
+#include "../network/network_monitor.h"  // Per-tab network isolation
 
 namespace zepra {
 
 // Forward declarations
 class Tab;
 class Window;
+
 
 // Tab event types
 enum class TabEventType {
@@ -128,14 +130,48 @@ private:
     bool incognito;
     bool hasChanges;
     
+    // TabSuspender integration
+    bool isSuspended_ = false;
+    int inactiveTimeSeconds_ = 0;
+    
+    // Per-tab network monitor (Tab A/B isolation)
+    std::unique_ptr<NetworkMonitor> networkMonitor_;
+    
     // Navigation history
     std::vector<String> backHistory;
     std::vector<String> forwardHistory;
     int currentHistoryIndex;
     
-    // Content and scroll
-    String content;
-    int scrollX, scrollY;
+    // Content and scroll (public access for TabSuspender)
+public:
+    String pageContent;  // HTML content cache for suspension/restoration
+    float scrollY = 0.0f;  // Per-tab scroll position (TabSuspender needs direct access)
+    
+    // TabSuspender-compatible methods
+    void setSuspended(bool s) { isSuspended_ = s; }
+    bool isActive() const { return !isSuspended_; }
+    bool isSuspended() const { return isSuspended_; }
+    int getInactiveTime() const { return inactiveTimeSeconds_; }
+    void setInactiveTime(int seconds) { inactiveTimeSeconds_ = seconds; }
+    String getCurrentUrl() const { return url; }
+    
+    // Per-tab network monitor (for DevTools Network tab)
+    NetworkMonitor& getNetworkMonitor() { 
+        if (!networkMonitor_) {
+            networkMonitor_ = std::make_unique<NetworkMonitor>();
+        }
+        return *networkMonitor_; 
+    }
+    
+    // Clear network log (on navigation or tab clear)
+    void clearNetworkLog() {
+        if (networkMonitor_) {
+            networkMonitor_->clear();
+        }
+    }
+    
+private:
+    int scrollX;
     
     // Event callback
     TabEventCallback eventCallback;
@@ -145,6 +181,8 @@ private:
     void clearForwardHistory();
     void updateHistoryIndex();
 };
+
+
 
 // Tab Manager class
 class TabManager {

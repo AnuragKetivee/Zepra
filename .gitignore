@@ -91,3 +91,6 @@ tmp/
 
 # Package files
 *.pc
+
+#references
+.ref/

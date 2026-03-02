@@ -7,7 +7,7 @@ set(CMAKE_DEPENDS_GENERATOR "Unix Makefiles")
 # The top level Makefile was generated from the following files:
 set(CMAKE_MAKEFILE_DEPENDS
   "CMakeCache.txt"
-  "/home/swana/Documents/zeprabrowser/source/networking/CMakeLists.txt"
+  "/home/swana/Documents/NEOLYXOS/neolyx-os/apps/zeprabrowser/source/networking/CMakeLists.txt"
   "CMakeFiles/4.1.2/CMakeCXXCompiler.cmake"
   "CMakeFiles/4.1.2/CMakeSystem.cmake"
   "/usr/local/share/cmake-4.1/Modules/CMakeCXXCompiler.cmake.in"
@@ -34,6 +34,9 @@ set(CMAKE_MAKEFILE_DEPENDS
   "/usr/local/share/cmake-4.1/Modules/CMakeTestCXXCompiler.cmake"
   "/usr/local/share/cmake-4.1/Modules/CMakeTestCompilerCommon.cmake"
   "/usr/local/share/cmake-4.1/Modules/CMakeUnixFindMake.cmake"
+  "/usr/local/share/cmake-4.1/Modules/CheckCXXSourceCompiles.cmake"
+  "/usr/local/share/cmake-4.1/Modules/CheckIncludeFileCXX.cmake"
+  "/usr/local/share/cmake-4.1/Modules/CheckLibraryExists.cmake"
   "/usr/local/share/cmake-4.1/Modules/Compiler/ADSP-DetermineCompiler.cmake"
   "/usr/local/share/cmake-4.1/Modules/Compiler/ARMCC-DetermineCompiler.cmake"
   "/usr/local/share/cmake-4.1/Modules/Compiler/ARMClang-DetermineCompiler.cmake"
@@ -79,15 +82,16 @@ set(CMAKE_MAKEFILE_DEPENDS
   "/usr/local/share/cmake-4.1/Modules/Compiler/XL-CXX-DetermineCompiler.cmake"
   "/usr/local/share/cmake-4.1/Modules/Compiler/XLClang-CXX-DetermineCompiler.cmake"
   "/usr/local/share/cmake-4.1/Modules/Compiler/zOS-CXX-DetermineCompiler.cmake"
-  "/usr/local/share/cmake-4.1/Modules/FindCURL.cmake"
   "/usr/local/share/cmake-4.1/Modules/FindOpenSSL.cmake"
   "/usr/local/share/cmake-4.1/Modules/FindPackageHandleStandardArgs.cmake"
   "/usr/local/share/cmake-4.1/Modules/FindPackageMessage.cmake"
   "/usr/local/share/cmake-4.1/Modules/FindPkgConfig.cmake"
+  "/usr/local/share/cmake-4.1/Modules/FindThreads.cmake"
   "/usr/local/share/cmake-4.1/Modules/Internal/CMakeCXXLinkerInformation.cmake"
   "/usr/local/share/cmake-4.1/Modules/Internal/CMakeCommonLinkerInformation.cmake"
   "/usr/local/share/cmake-4.1/Modules/Internal/CMakeDetermineLinkerId.cmake"
   "/usr/local/share/cmake-4.1/Modules/Internal/CMakeInspectCXXLinker.cmake"
+  "/usr/local/share/cmake-4.1/Modules/Internal/CheckSourceCompiles.cmake"
   "/usr/local/share/cmake-4.1/Modules/Internal/FeatureTesting.cmake"
   "/usr/local/share/cmake-4.1/Modules/Linker/GNU-CXX.cmake"
   "/usr/local/share/cmake-4.1/Modules/Linker/GNU.cmake"
@@ -100,7 +104,6 @@ set(CMAKE_MAKEFILE_DEPENDS
   "/usr/local/share/cmake-4.1/Modules/Platform/Linux-Initialize.cmake"
   "/usr/local/share/cmake-4.1/Modules/Platform/Linux.cmake"
   "/usr/local/share/cmake-4.1/Modules/Platform/UnixPaths.cmake"
-  "/usr/local/share/cmake-4.1/Modules/SelectLibraryConfigurations.cmake"
   )
 
 # The corresponding makefile is:

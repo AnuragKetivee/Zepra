@@ -6,7 +6,6 @@
  */
 
 #include "../config.hpp"
-#include "value.hpp"
 #include <string>
 #include <unordered_map>
 #include <vector>
@@ -14,6 +13,8 @@
 #include <cstdint>
 #include <limits>
 #include <functional>
+
+#include "value.hpp"
 
 namespace Zepra::Runtime {
 
@@ -114,6 +115,7 @@ enum class ObjectType : uint8 {
     // Internal types
     Environment,
     Scope,
+    BigInt,
 };
 
 /**
@@ -163,6 +165,12 @@ public:
     bool isExtensible() const { return extensible_; }
     void preventExtensions() { extensible_ = false; }
     
+    // Shape/hidden class for inline caching
+    uint32_t shapeId() const { return shapeId_; }
+    
+    // Alias for getOwnPropertyNames for convenience
+    std::vector<std::string> ownPropertyNames() const { return getOwnPropertyNames(); }
+    
     // Array-like behavior
     virtual size_t length() const;
     virtual void setLength(size_t len);
@@ -171,6 +179,38 @@ public:
     void markGC();
     bool isMarked() const { return gcMarked_; }
     void clearMark() { gcMarked_ = false; }
+    
+    /**
+     * @brief Visit all object references for GC traversal
+     * @param visitor Callback that receives each referenced Object*
+     */
+    template<typename Visitor>
+    void visitRefs(Visitor&& visitor) {
+        // Prototype reference
+        if (prototype_) visitor(prototype_);
+        
+        // Property values that are objects
+        for (auto& [key, val] : properties_) {
+            if (val.isObject()) visitor(val.asObject());
+        }
+        
+        // Descriptor getters/setters
+        for (auto& [key, desc] : descriptors_) {
+            if (desc.value.isObject()) visitor(desc.value.asObject());
+            if (desc.getter.isObject()) visitor(desc.getter.asObject());
+            if (desc.setter.isObject()) visitor(desc.setter.asObject());
+        }
+        
+        // Array elements
+        for (auto& elem : elements_) {
+            if (elem.isObject()) visitor(elem.asObject());
+        }
+        
+        // Internal slots
+        for (auto& [key, val] : internalSlots_) {
+            if (val.isObject()) visitor(val.asObject());
+        }
+    }
     
     // Internal slots
     Value internalSlot(const std::string& name) const;
@@ -181,6 +221,8 @@ protected:
     Object* prototype_ = nullptr;
     bool extensible_ = true;
     bool gcMarked_ = false;
+    uint32_t shapeId_ = 0;          // Shape identifier for IC
+    static uint32_t nextShapeId_;   // Global shape counter
     
     // Property storage
     std::unordered_map<std::string, Value> properties_;

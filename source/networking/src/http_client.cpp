@@ -23,6 +23,7 @@
 #include <fstream>
 #include <mutex>
 #include <algorithm>
+#include <iostream>
 
 namespace Zepra::Networking {
 
@@ -195,19 +196,28 @@ public:
         // SSL handshake if HTTPS
         std::unique_ptr<SSLContext::SSLSocket> sslSocket;
         if (secure) {
-            if (config_.verifySsl) {
-                sslSocket = getSSLContext().createSocket(sock);
-                if (!sslSocket->connect(host)) {
-                    close(sock);
-                    response.setError("SSL handshake failed");
-                    return response;
-                }
+            // Always create SSL socket for HTTPS - verifySsl only affects cert verification
+            SSLContext& ctx = getSSLContext();
+            ctx.setVerifyCertificate(config_.verifySsl);
+            
+            sslSocket = ctx.createSocket(sock);
+            if (!sslSocket) {
+                close(sock);
+                response.setError("Failed to create SSL socket");
+                return response;
+            }
+            
+            if (!sslSocket->connect(host)) {
+                close(sock);
+                response.setError("SSL handshake failed");
+                return response;
             }
         }
         
         // Build HTTP request
         std::ostringstream reqStream;
         std::string pathAndQuery = request.path();
+        if (pathAndQuery.empty()) pathAndQuery = "/";  // Use / for empty path
         if (!request.query().empty()) {
             pathAndQuery += "?" + request.query();
         }
@@ -229,10 +239,16 @@ public:
             reqStream << "User-Agent: " << config_.userAgent << "\r\n";
         }
         if (!request.hasHeader("Accept")) {
-            reqStream << "Accept: */*\r\n";
+            reqStream << "Accept: text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8\r\n";
+        }
+        if (!request.hasHeader("Accept-Language")) {
+            reqStream << "Accept-Language: en-US,en;q=0.5\r\n";
+        }
+        if (!request.hasHeader("Accept-Encoding")) {
+            reqStream << "Accept-Encoding: identity\r\n";  // No compression for now
         }
         if (!request.hasHeader("Connection")) {
-            reqStream << "Connection: close\r\n";
+            reqStream << "Connection: keep-alive\r\n";
         }
         
         // Add cookies
@@ -264,6 +280,7 @@ public:
         }
         
         if (sent < 0) {
+            std::cerr << "[HTTPClient] Send failed!" << std::endl;
             if (sslSocket) sslSocket->close();
             close(sock);
             response.setError("Failed to send request");
@@ -279,11 +296,42 @@ public:
             }
         }
         
-        // Read response
+        // Read response with proper waiting
         std::vector<char> buffer(8192);
         std::string rawResponse;
+        int readTimeoutMs = config_.readTimeoutMs > 0 ? config_.readTimeoutMs : 30000;
+        auto startRead = std::chrono::steady_clock::now();
         
         while (true) {
+            // Check if we've exceeded timeout
+            auto elapsed = std::chrono::duration_cast<std::chrono::milliseconds>(
+                std::chrono::steady_clock::now() - startRead).count();
+            if (elapsed > readTimeoutMs) {
+                std::cerr << "[HTTPClient] Read timeout after " << elapsed << "ms" << std::endl;
+                break;
+            }
+            
+            // Use poll to wait for data (with timeout)
+            struct pollfd pfd;
+            pfd.fd = sock;
+            pfd.events = POLLIN;
+            
+            int pollResult = poll(&pfd, 1, 1000);  // Wait up to 1 second
+            if (pollResult < 0) {
+                std::cerr << "[HTTPClient] Poll error" << std::endl;
+                break;
+            }
+            
+            if (pollResult == 0) {
+                // Timeout - check if we have data already
+                if (!rawResponse.empty()) {
+                    std::cout << "[HTTPClient] Read complete: " << rawResponse.size() << " bytes" << std::endl;
+                    break;
+                }
+                continue;  // Keep waiting
+            }
+            
+            // Data available
             ssize_t received;
             if (sslSocket) {
                 received = sslSocket->read(buffer.data(), buffer.size());
@@ -291,7 +339,9 @@ public:
                 received = ::recv(sock, buffer.data(), buffer.size(), 0);
             }
             
-            if (received <= 0) break;
+            if (received < 0) break;
+            if (received == 0) break;  // Connection closed
+            
             rawResponse.append(buffer.data(), received);
         }
         

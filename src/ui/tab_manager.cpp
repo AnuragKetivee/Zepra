@@ -110,11 +110,11 @@ void Tab::navigate(const String& targetUrl) {
 }
 
 void Tab::setContent(const String& html) {
-    content = html;
+    pageContent = html;
 }
 
 String Tab::getContent() const {
-    return content;
+    return pageContent;
 }
 
 void Tab::setScrollPosition(int xPos, int yPos) {

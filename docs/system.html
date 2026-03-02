@@ -1,0 +1,405 @@
+<!DOCTYPE html>
+<html lang="en" class="scroll-smooth">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>System.md</title>
+    
+    <!-- Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+    
+    <!-- Tailwind CSS with Typography Plugin -->
+    <script src="https://cdn.tailwindcss.com?plugins=typography"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        bg: {
+                            primary: '#0a0a0f',
+                            secondary: '#12121a',
+                            tertiary: '#1a1a24'
+                        },
+                        accent: {
+                            DEFAULT: '#10b981',
+                            light: '#34d399',
+                            dark: '#059669',
+                            glow: 'rgba(16, 185, 129, 0.3)'
+                        }
+                    },
+                    fontFamily: {
+                        sans: ['Inter', 'sans-serif'],
+                        mono: ['JetBrains Mono', 'monospace'],
+                    },
+                    typography: (theme) => ({
+                        DEFAULT: {
+                            css: {
+                                color: theme('colors.gray.300'),
+                                a: {
+                                    color: theme('colors.emerald.400'),
+                                    '&:hover': {
+                                        color: theme('colors.emerald.300'),
+                                    },
+                                },
+                                h1: { color: theme('colors.white') },
+                                h2: { color: theme('colors.white') },
+                                h3: { color: theme('colors.white') },
+                                h4: { color: theme('colors.gray.100') },
+                                code: { color: theme('colors.pink.400') },
+                                'code::before': { content: '""' },
+                                'code::after': { content: '""' },
+                                pre: {
+                                    backgroundColor: theme('colors.bg.tertiary'),
+                                    color: theme('colors.gray.200'),
+                                },
+                                blockquote: {
+                                    color: theme('colors.gray.400'),
+                                    borderLeftColor: theme('colors.emerald.500'),
+                                },
+                            },
+                        },
+                    }),
+                }
+            }
+        }
+    </script>
+
+    <!-- Custom CSS -->
+    <link rel="stylesheet" href="assets/css/docs.css">
+</head>
+<body class="antialiased min-h-screen relative selection:bg-emerald-500/30 selection:text-emerald-200">
+
+    <!-- Background Elements -->
+    <div class="bg-grid"></div>
+    <div class="glow-orb orb-1"></div>
+    <div class="glow-orb orb-2"></div>
+
+    <!-- Navigation -->
+    
+    
+    <!-- Navigation Sidebar -->
+    <aside class="fixed left-0 top-0 w-72 h-screen bg-dark-800/90 backdrop-blur-xl border-r border-white/5 z-50 overflow-y-auto">
+        <div class="p-6 border-b border-white/5">
+            <div class="flex items-center gap-3">
+                <a href="index.html" class="flex items-center gap-3 w-full">
+                    <div class="w-10 h-10 rounded-xl bg-gradient-to-br from-emerald-500 to-blue-500 flex items-center justify-center glow">
+                        <img src="../resources/zepraicon/logo.svg" alt="Zepra Logo" class="w-8 h-8 object-contain">
+                    </div>
+                    <div>
+                        <h1 class="font-bold text-lg text-white">ZepraBrowser</h1>
+                        <span class="text-xs text-gray-500">Documentation Hub</span>
+                    </div>
+                </a>
+            </div>
+        </div>
+        <nav class="p-4">
+            <div class="mb-6">
+                <span class="text-[10px] font-semibold uppercase tracking-wider text-gray-500 px-3">Quick Navigation</span>
+                <div class="mt-2 space-y-1">
+                    <a href="index.html" class="nav-link flex items-center gap-3 px-3 py-2 text-sm text-gray-400 hover:text-white rounded-lg hover:bg-white/5 transition-all border-l-2 border-transparent">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"/></svg>
+                        Hub Home
+                    </a>
+                    <a href="zeprascript/index.html" class="nav-link flex items-center gap-3 px-3 py-2 text-sm text-gray-400 hover:text-white rounded-lg hover:bg-white/5 transition-all border-l-2 border-transparent">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>
+                        ZepraScript Engine
+                    </a>
+                </div>
+            </div>
+            <div class="mb-6">
+                <span class="text-[10px] font-semibold uppercase tracking-wider text-gray-500 px-3">Overview</span>
+                <div class="mt-2 space-y-1">
+                    <a href="architecture.html" class="nav-link flex items-center gap-3 px-3 py-2 text-sm text-gray-400 hover:text-white rounded-lg hover:bg-white/5 transition-all border-l-2 border-transparent pl-6">Architecture</a>
+                    <a href="advanced-developer-tools.html" class="nav-link flex items-center gap-3 px-3 py-2 text-sm text-gray-400 hover:text-white rounded-lg hover:bg-white/5 transition-all border-l-2 border-transparent pl-6">Developer Tools</a>
+                    <a href="security-model.html" class="nav-link flex items-center gap-3 px-3 py-2 text-sm text-gray-400 hover:text-white rounded-lg hover:bg-white/5 transition-all border-l-2 border-transparent pl-6">Security Model</a>
+                    <a href="NXRENDER/architecture.html" class="nav-link flex items-center gap-3 px-3 py-2 text-sm text-gray-400 hover:text-white rounded-lg hover:bg-white/5 transition-all border-l-2 border-transparent pl-6">NXRender</a>
+                </div>
+            </div>
+        </nav>
+    </aside>
+
+
+<main class="ml-72 flex-1 min-w-0 min-h-screen py-12 px-8 max-w-5xl mx-auto">
+<!-- Page Header with Icon -->
+                <div class="flex items-center gap-4 mb-8 border-b border-white/10 pb-8 animate-fade-in">
+                    <div class="w-16 h-16 rounded-2xl bg-bg-secondary border border-white/5 flex items-center justify-center shrink-0">
+                        <svg class="w-8 h-8 opacity-80 text-emerald-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>
+                    </div>
+                    <div>
+                        <h1 class="text-3xl sm:text-4xl font-bold text-white tracking-tight">System.md</h1>
+                        <p class="text-gray-400 mt-1 text-sm font-mono">System.html</p>
+                    </div>
+                </div>
+
+                <div class="prose prose-invert prose-emerald max-w-none animate-fade-up">
+
+
+
+
+<h3><em>ZepraBrowser – AI Coding &amp; Codebase Governance Standards</em></h3>
+<p><strong>Version:</strong> 1.0
+<strong>Audience:</strong> AI Models Contributing to Codebase (RipkaAI, ParthAI, AAdi, etc.)
+<strong>Maintainer:</strong> Swanaya Gupta (Project Owner / OS Researcher)</p>
+<hr />
+<h1>🎯 <strong>1. Purpose of This Guide</strong></h1>
+<p>This document defines strict rules and workflows for <strong>AI models modifying, generating, or maintaining ZepraBrowser’s source code</strong>.</p>
+<p>It ensures that:</p>
+<ul>
+<li>AI-generated code <strong>never breaks architecture</strong></li>
+<li>AI patches remain <strong>consistent with project design</strong></li>
+<li>AI models keep the browser <strong>stable, modular, and performant</strong></li>
+<li>No accidental rewrite, duplication, or structural corruption occurs</li>
+<li>Code contributions stay <strong>professional, minimal, and industry-standard</strong></li>
+</ul>
+<p>This guide is required for all automated agents in the Ketivee ecosystem.</p>
+<hr />
+<h1>🧩 <strong>2. ZepraBrowser Core Principles (AI MUST Follow)</strong></h1>
+<h3>✔️ <strong>Modularity</strong></h3>
+<p>Every feature must be inside its correct subsystem:</p>
+<ul>
+<li><strong>ZebraScript</strong> → JavaScript Engine</li>
+<li><strong>WebCore</strong> → Rendering, DOM, CSS, Layout</li>
+<li><strong>ZepraEngine</strong> → Window/Tab/UI integration</li>
+<li><strong>Networking</strong> → HTTP, WebSockets</li>
+<li><strong>Storage</strong> → LocalStorage, IDB, Cache</li>
+<li><strong>Platform</strong> → OS-specific wrappers</li>
+<li><strong>Sandbox</strong> → Process isolation</li>
+<li><strong>AI Engine</strong> → AI integrations only</li>
+<li><strong>Search Engine</strong> → Query routing logic</li>
+</ul>
+<p><strong>AI must NOT mix responsibilities.</strong></p>
+<hr />
+<h3>✔️ <strong>Backward Compatibility</strong></h3>
+<p>AI-generated changes must never:</p>
+<ul>
+<li>Break existing public headers</li>
+<li>Rename core classes without explicit instruction</li>
+<li>Remove or alter subsystem boundaries</li>
+<li>Change CMake targets unless approved</li>
+</ul>
+<hr />
+<h3>✔️ <strong>Minimalism</strong></h3>
+<p>AI code must be:</p>
+<ul>
+<li>Short</li>
+<li>Clean</li>
+<li>No unnecessary comments</li>
+<li>No repeating logic</li>
+<li>No unused variables</li>
+<li>No dead code</li>
+</ul>
+<p>This keeps file size and readability high.</p>
+<hr />
+<h1>🚫 <strong>3. Actions AI is NOT allowed to perform</strong></h1>
+<p>AI <strong>must NOT</strong>:</p>
+<ul>
+<li>Modify <code>source/zepraScript/</code> without explicit instruction</li>
+<li>Change folder structure</li>
+<li>Edit LICENSE</li>
+<li>Remove or rewrite WebCore foundational components</li>
+<li>Auto-format large parts of the codebase</li>
+<li>Mix UI code with engine code</li>
+<li>Generate non-standard naming conventions</li>
+<li>Introduce external dependencies not listed by the user</li>
+</ul>
+<p>If unsure → AI must ask.</p>
+<hr />
+<h1>🔄 <strong>4. Allowed AI Operations</strong></h1>
+<p>AI is allowed to:</p>
+<h3>✔️ Add new files inside correct module</h3>
+<p>e.g.,</p>
+<pre><code>source/webCore/layout/flow_layout.cpp
+</code></pre>
+<h3>✔️ Fix bugs with minimal code changes</h3>
+<p>Only modify the exact lines needed.</p>
+<h3>✔️ Implement missing functions using existing architecture</h3>
+<h3>✔️ Generate new modules when instructed</h3>
+<p>AI must follow directory structure perfectly.</p>
+<h3>✔️ Refactor code only in <strong>small, isolated units</strong></h3>
+<hr />
+<h1>🧠 <strong>5. AI Understanding of File Responsibilities</strong></h1>
+<h3>📌 <code>src/</code></h3>
+<p>Browser application logic (UI, search bar, panels, etc.)</p>
+<h3>📌 <code>source/webCore/</code></h3>
+<p>HTML → DOM → CSS → Layout → Rendering pipeline</p>
+<h3>📌 <code>source/zepraScript/</code></h3>
+<p>Full JavaScript VM
+<em>(AI should not touch unless Swanaya explicitly tells)</em></p>
+<h3>📌 <code>source/networking/</code></h3>
+<p>HTTP, DNS, TLS, caching</p>
+<h3>📌 <code>source/platform/</code></h3>
+<p>Windowing, OS events, clipboard, notifications</p>
+<h3>📌 <code>source/aiEngine/</code></h3>
+<p>AI logic, page analysis, smart actions, Gemini, Parth, Ripka integrations</p>
+<h3>📌 <code>source/devtools/</code></h3>
+<p>Inspector UI and mechanics</p>
+<hr />
+<h1>🚀 <strong>6. AI Change Workflow (AI MUST Follow)</strong></h1>
+<p>Here is the procedural flow an AI must follow before modifying code:</p>
+<hr />
+<h3><strong>Step 1 — Understand Developer Intent</strong></h3>
+<p>AI must not assume requirements.
+If user message is unclear → AI asks clarifying questions.</p>
+<hr />
+<h3><strong>Step 2 — Identify Correct Module</strong></h3>
+<p>AI must locate the appropriate subsystem.</p>
+<p>Example:
+If user asks to modify request headers → go to <code>source/networking/http_request.cpp</code>.</p>
+<p>If user asks to add flexbox stretching → go to <code>source/webCore/layout/flex_layout.cpp</code>.</p>
+<hr />
+<h3><strong>Step 3 — Verify No Architectural Violations</strong></h3>
+<p>AI must cross-check changes with:</p>
+<ul>
+<li>modularity rules</li>
+<li>privacy rules</li>
+<li>platform separation</li>
+<li>dependencies</li>
+</ul>
+<p>If a change violates these, AI must warn and ask for approval.</p>
+<hr />
+<h3><strong>Step 4 — Generate Minimal Patch</strong></h3>
+<p>AI produces:</p>
+<ul>
+<li>only the changed code blocks</li>
+<li>not the entire file</li>
+<li>no comments like “add this”</li>
+<li>no explanations inside code</li>
+<li>no unrelated modifications</li>
+</ul>
+<p>Example output:</p>
+<pre><code class="language-cpp">// Correct minimal patch
+node-&gt;setDirty(true);
+layout_tree-&gt;update(node);
+</code></pre>
+<hr />
+<h3><strong>Step 5 — Reconfirm Compatibility</strong></h3>
+<p>AI must ensure:</p>
+<ul>
+<li>no breakage of existing APIs</li>
+<li>code builds under C++20</li>
+<li>no undefined symbols</li>
+<li>correct CMake target remains valid</li>
+</ul>
+<hr />
+<h3><strong>Step 6 — Provide Test Instructions</strong></h3>
+<p>AI must generate tests or usage notes if needed, e.g.:</p>
+<pre><code>Run: ./build/bin/ZepraBrowser --test-layout
+</code></pre>
+<hr />
+<h1>🧪 <strong>7. AI Testing Requirements</strong></h1>
+<p>AI-generated code must pass:</p>
+<h3>✔️ Unit tests</h3>
+<p>Located in <code>tests/unit/</code></p>
+<h3>✔️ Integration tests</h3>
+<p>Located in <code>tests/integration/</code></p>
+<h3>✔️ Web Platform Tests</h3>
+<p>Located in <code>tests/web_platform/</code></p>
+<h3>✔️ Static Analysis</h3>
+<p>AI must ensure:</p>
+<ul>
+<li>no uninitialized values</li>
+<li>no memory leaks</li>
+<li>no undefined behavior</li>
+</ul>
+<hr />
+<h1>🔐 <strong>8. AI Safety &amp; Privacy Rules (Mandatory)</strong></h1>
+<h3>AI must not:</h3>
+<ul>
+<li>Log user data</li>
+<li>Send browser content to external servers</li>
+<li>Introduce analytics/tracking</li>
+<li>Store personal information</li>
+</ul>
+<p>Any external AI usage (Gemini, OpenAI) must pass through:</p>
+<pre><code>source/privacy/
+</code></pre>
+<hr />
+<h1>🌐 <strong>9. Multi-Model AI Interaction Rules</strong></h1>
+<p>AI engines must cooperate, not conflict:</p>
+<ul>
+<li>Parth AI handles real-time tasks</li>
+<li>RipkaAI handles heavy computation, coding, architecture</li>
+<li>AAdi handles image-gen and multimodal assets</li>
+<li>Browser AI Engine coordinates all of them</li>
+<li>External models are <em>optional</em> and must be sandboxed</li>
+</ul>
+<hr />
+<h1>🏗️ <strong>10. Code Style (AI MUST Follow)</strong></h1>
+<h3>✔️ Indentation: 4 spaces</h3>
+<h3>✔️ No trailing spaces</h3>
+<h3>✔️ Naming: <code>CamelCase</code> for classes, <code>snake_case</code> for functions</h3>
+<h3>✔️ Headers: no unnecessary includes</h3>
+<h3>✔️ No comments unless defining architecture (rare)</h3>
+<h3>✔️ No logging unless user instructs to add diagnostics</h3>
+<hr />
+<h1>🛑 <strong>11. What To Do If AI Encounters Conflicts</strong></h1>
+<p>If AI cannot validate a safe patch:</p>
+<p>AI must say:</p>
+<pre><code>This change may break the architecture.  
+Please confirm or provide additional context.
+</code></pre>
+<hr />
+<h1>⭐ <strong>12. Golden Rule for AI in ZepraBrowser</strong></h1>
+<blockquote>
+<p><strong>Never rewrite. Always extend.
+Never assume. Always confirm.
+Never break architecture. Always respect modularity.</strong></p>
+</blockquote>
+<p>This rule alone keeps ZepraBrowser maintainable for decades.</p>
+<hr />
+<h1>📘 <strong>13. Suggested AI Behavior Examples</strong></h1>
+<h3>When user says:</h3>
+<p><em>“Add CSS variable support.”</em></p>
+<p>AI must respond:</p>
+<ul>
+<li>Confirm scope</li>
+<li>Only modify CSS parser, computed style, DOM style</li>
+</ul>
+<h3>When user says:</h3>
+<p><em>“Fix JS event bubbling.”</em></p>
+<p>AI must:</p>
+<ul>
+<li>Patch WebCore DOM event system</li>
+<li>NOT touch JavaScript engine</li>
+</ul>
+<h3>When user says:</h3>
+<p><em>“Add new search engine provider.”</em></p>
+<p>AI must:</p>
+<ul>
+<li>Update searchEngine module</li>
+<li>Update JSON configs</li>
+<li>Not touch UI unless instructed</li>
+</ul>
+<hr />
+<h1>🧬 <strong>14. Final AI Self-Test Checklist</strong></h1>
+<p>Before ANY AI outputs code, it must ask itself:</p>
+<p>✔ Am I modifying the correct subsystem?
+✔ Am I respecting existing architecture?
+✔ Is this the minimal patch?
+✔ Did user explicitly request this?
+✔ Will this break backward compatibility?
+✔ Am I following Swanaya’s coding rules?</p>
+<p>If all answers = <strong>yes</strong>, the AI may proceed.</p>
+<hr />
+<h1>🎉 <strong>End of Guide</strong></h1>
+<p>Use this document as the <strong>constitution for all AI modifications</strong> in ZepraBrowser.</p>
+
+        
+                </div>
+            </main>
+
+    <!-- Footer -->
+    <footer class="bg-bg-secondary border-t border-white/5 py-12 mt-12">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
+            <p class="text-gray-500 text-sm">© 2026 ZepraBrowser · Part of the NeolyxOS Project</p>
+        </div>
+    </footer>
+
+    <!-- Scripts -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/gsap.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/ScrollTrigger.min.js"></script>
+    <script src="assets/js/docs.js" defer></script>
+</body>
+</html>

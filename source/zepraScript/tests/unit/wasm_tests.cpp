@@ -18,12 +18,11 @@ static const uint8_t MINIMAL_MODULE[] = {
 };
 
 TEST(WasmParsingTests, ParseMinimalModule) {
-    auto* module = WasmModule::parse(MINIMAL_MODULE, sizeof(MINIMAL_MODULE));
+    auto module = WasmModule::parse(MINIMAL_MODULE, sizeof(MINIMAL_MODULE));
     ASSERT_NE(module, nullptr);
     EXPECT_EQ(module->types().size(), 0);
     EXPECT_EQ(module->imports().size(), 0);
     EXPECT_EQ(module->exports().size(), 0);
-    delete module;
 }
 
 TEST(WasmParsingTests, RejectInvalidMagic) {
@@ -49,14 +48,13 @@ static const uint8_t MODULE_WITH_TYPE[] = {
 };
 
 TEST(WasmParsingTests, ParseTypeSection) {
-    auto* module = WasmModule::parse(MODULE_WITH_TYPE, sizeof(MODULE_WITH_TYPE));
+    auto module = WasmModule::parse(MODULE_WITH_TYPE, sizeof(MODULE_WITH_TYPE));
     ASSERT_NE(module, nullptr);
     EXPECT_EQ(module->types().size(), 1);
     
     const auto& funcType = module->types()[0];
     EXPECT_EQ(funcType.params.size(), 1);
     EXPECT_EQ(funcType.results.size(), 1);
-    delete module;
 }
 
 // =============================================================================

@@ -3,7 +3,7 @@
 #include <algorithm>
 #include <sstream>
 #include <iomanip>
-#include <curl/curl.h>
+#include <nxhttp.h>
 #include <nlohmann/json.hpp>
 
 using json = nlohmann::json;
@@ -63,19 +63,19 @@ void DeveloperTools::setConsoleCallback(std::function<void(const ConsoleMessage&
 // Network Monitoring
 void DeveloperTools::logNetworkRequest(const NetworkRequest& request) {
     NetworkRequest req = request;
-    req.requestId = nextRequestId++;
-    req.timestamp = std::chrono::system_clock::now();
+    req.id = nextRequestId++;
+    req.start_time = std::chrono::system_clock::now();
     addNetworkRequest(req);
     
-    std::cout << "🌐 Network Request: " << req.method << " " << req.url << std::endl;
+    std::cout << "Network Request: " << req.method << " " << req.url << std::endl;
 }
 
 void DeveloperTools::logNetworkResponse(const NetworkResponse& response) {
     NetworkResponse resp = response;
-    resp.timestamp = std::chrono::system_clock::now();
+    resp.end_time = std::chrono::system_clock::now();
     addNetworkResponse(resp);
     
-    std::cout << "🌐 Network Response: " << resp.statusCode << " " << resp.url << std::endl;
+    std::cout << "Network Response: " << resp.status_code << " (request " << resp.request_id << ")" << std::endl;
 }
 
 std::vector<NetworkRequest> DeveloperTools::getNetworkRequests() const {
@@ -188,7 +188,7 @@ String DeveloperTools::executeNodeScript(const String& script) {
     
     std::cout << "🟢 Executing Node.js script: " << script.substr(0, 50) << "..." << std::endl;
     
-    // Execute Node.js script via HTTP API
+    // Execute Node.js script via HTTP API using nxhttp
     try {
         String nodeUrl = "http://localhost:6329/api/node/execute";
         
@@ -198,39 +198,23 @@ String DeveloperTools::executeNodeScript(const String& script) {
         
         String jsonRequest = requestData.dump();
         
-        CURL* curl = curl_easy_init();
-        if (curl) {
-            struct curl_slist* headers = nullptr;
-            headers = curl_slist_append(headers, "Content-Type: application/json");
-            
-            std::string response;
-            
-            curl_easy_setopt(curl, CURLOPT_URL, nodeUrl.c_str());
-            curl_easy_setopt(curl, CURLOPT_POSTFIELDS, jsonRequest.c_str());
-            curl_easy_setopt(curl, CURLOPT_HTTPHEADER, headers);
-            curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, [](void* contents, size_t size, size_t nmemb, std::string* userp) {
-                userp->append((char*)contents, size * nmemb);
-                return size * nmemb;
-            });
-            curl_easy_setopt(curl, CURLOPT_WRITEDATA, &response);
-            curl_easy_setopt(curl, CURLOPT_TIMEOUT, 30L);
-            
-            CURLcode res = curl_easy_perform(curl);
-            
-            if (res == CURLE_OK) {
-                try {
-                    json responseData = json::parse(response);
-                    if (responseData.contains("result")) {
-                        return responseData["result"].get<String>();
-                    }
-                } catch (const json::exception& e) {
-                    std::cerr << "Failed to parse Node.js response: " << e.what() << std::endl;
+        nx::HttpClient client;
+        auto response = client.post(nodeUrl, jsonRequest, "application/json");
+        
+        if (response.ok()) {
+            try {
+                json responseData = json::parse(response.body());
+                if (responseData.contains("result")) {
+                    return responseData["result"].get<String>();
                 }
+            } catch (const json::exception& e) {
+                std::cerr << "Failed to parse Node.js response: " << e.what() << std::endl;
             }
-            
-            curl_slist_free_all(headers);
-            curl_easy_cleanup(curl);
+        } else {
+            std::cerr << "Node.js request failed: " << response.status() << std::endl;
         }
+    } catch (const nx::HttpException& e) {
+        std::cerr << "Node.js HTTP error: " << e.what() << std::endl;
     } catch (const std::exception& e) {
         std::cerr << "Node.js execution error: " << e.what() << std::endl;
     }

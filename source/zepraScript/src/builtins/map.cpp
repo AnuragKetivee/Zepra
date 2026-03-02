@@ -143,7 +143,64 @@ Value MapBuiltin::size(Runtime::Context*, const std::vector<Value>& args) {
 
 Object* MapBuiltin::createMapPrototype() {
     Object* proto = new Object();
-    // Methods would be registered here via native functions
+
+    proto->set("get", Value::object(
+        new Runtime::Function("get", [](const Runtime::FunctionCallInfo& info) -> Value {
+            if (!info.thisValue().isObject()) return Value::undefined();
+            MapObject* map = dynamic_cast<MapObject*>(info.thisValue().asObject());
+            if (!map || info.argumentCount() < 1) return Value::undefined();
+            return map->get(info.argument(0));
+        }, 1)));
+
+    proto->set("set", Value::object(
+        new Runtime::Function("set", [](const Runtime::FunctionCallInfo& info) -> Value {
+            if (!info.thisValue().isObject()) return Value::undefined();
+            MapObject* map = dynamic_cast<MapObject*>(info.thisValue().asObject());
+            if (!map || info.argumentCount() < 2) return info.thisValue();
+            map->set(info.argument(0), info.argument(1));
+            return info.thisValue();
+        }, 2)));
+
+    proto->set("has", Value::object(
+        new Runtime::Function("has", [](const Runtime::FunctionCallInfo& info) -> Value {
+            if (!info.thisValue().isObject()) return Value::boolean(false);
+            MapObject* map = dynamic_cast<MapObject*>(info.thisValue().asObject());
+            if (!map || info.argumentCount() < 1) return Value::boolean(false);
+            return Value::boolean(map->has(info.argument(0)));
+        }, 1)));
+
+    proto->set("delete", Value::object(
+        new Runtime::Function("delete", [](const Runtime::FunctionCallInfo& info) -> Value {
+            if (!info.thisValue().isObject()) return Value::boolean(false);
+            MapObject* map = dynamic_cast<MapObject*>(info.thisValue().asObject());
+            if (!map || info.argumentCount() < 1) return Value::boolean(false);
+            return Value::boolean(map->deleteKey(info.argument(0)));
+        }, 1)));
+
+    proto->set("clear", Value::object(
+        new Runtime::Function("clear", [](const Runtime::FunctionCallInfo& info) -> Value {
+            if (!info.thisValue().isObject()) return Value::undefined();
+            MapObject* map = dynamic_cast<MapObject*>(info.thisValue().asObject());
+            if (map) map->clear();
+            return Value::undefined();
+        }, 0)));
+
+    proto->set("forEach", Value::object(
+        new Runtime::Function("forEach", [](const Runtime::FunctionCallInfo& info) -> Value {
+            if (!info.thisValue().isObject() || info.argumentCount() < 1) return Value::undefined();
+            MapObject* map = dynamic_cast<MapObject*>(info.thisValue().asObject());
+            if (!map || !info.argument(0).isObject()) return Value::undefined();
+            Runtime::Function* callback = dynamic_cast<Runtime::Function*>(info.argument(0).asObject());
+            if (!callback) return Value::undefined();
+
+            Value thisArg = info.argumentCount() > 1 ? info.argument(1) : Value::undefined();
+            for (const auto& entry : map->entries()) {
+                std::vector<Value> args = {entry.second, entry.first, info.thisValue()};
+                callback->call(nullptr, thisArg, args);
+            }
+            return Value::undefined();
+        }, 1)));
+
     return proto;
 }
 

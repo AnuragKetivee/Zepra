@@ -679,6 +679,36 @@ private:
     std::unique_ptr<BlockStmt> finalizer_;
 };
 
+/**
+ * @brief Switch case clause (case expr: ... or default: ...)
+ */
+struct SwitchCase {
+    ExprPtr test;                    // nullptr for default case
+    std::vector<StmtPtr> consequent; // Statements in this case
+    SourceLocation location;
+    
+    bool isDefault() const { return test == nullptr; }
+};
+
+/**
+ * @brief Switch statement
+ */
+class SwitchStmt : public Statement {
+public:
+    SwitchStmt(ExprPtr discriminant, std::vector<SwitchCase> cases,
+               SourceLocation loc = {})
+        : Statement(NodeType::SwitchStatement, loc)
+        , discriminant_(std::move(discriminant))
+        , cases_(std::move(cases)) {}
+    
+    Expression* discriminant() const { return discriminant_.get(); }
+    const std::vector<SwitchCase>& cases() const { return cases_; }
+    
+private:
+    ExprPtr discriminant_;
+    std::vector<SwitchCase> cases_;
+};
+
 // =============================================================================
 // Declarations
 // =============================================================================

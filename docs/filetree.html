@@ -1,0 +1,306 @@
+<!DOCTYPE html>
+<html lang="en" class="scroll-smooth">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>FILETREE.md</title>
+    
+    <!-- Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+    
+    <!-- Tailwind CSS with Typography Plugin -->
+    <script src="https://cdn.tailwindcss.com?plugins=typography"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        bg: {
+                            primary: '#0a0a0f',
+                            secondary: '#12121a',
+                            tertiary: '#1a1a24'
+                        },
+                        accent: {
+                            DEFAULT: '#10b981',
+                            light: '#34d399',
+                            dark: '#059669',
+                            glow: 'rgba(16, 185, 129, 0.3)'
+                        }
+                    },
+                    fontFamily: {
+                        sans: ['Inter', 'sans-serif'],
+                        mono: ['JetBrains Mono', 'monospace'],
+                    },
+                    typography: (theme) => ({
+                        DEFAULT: {
+                            css: {
+                                color: theme('colors.gray.300'),
+                                a: {
+                                    color: theme('colors.emerald.400'),
+                                    '&:hover': {
+                                        color: theme('colors.emerald.300'),
+                                    },
+                                },
+                                h1: { color: theme('colors.white') },
+                                h2: { color: theme('colors.white') },
+                                h3: { color: theme('colors.white') },
+                                h4: { color: theme('colors.gray.100') },
+                                code: { color: theme('colors.pink.400') },
+                                'code::before': { content: '""' },
+                                'code::after': { content: '""' },
+                                pre: {
+                                    backgroundColor: theme('colors.bg.tertiary'),
+                                    color: theme('colors.gray.200'),
+                                },
+                                blockquote: {
+                                    color: theme('colors.gray.400'),
+                                    borderLeftColor: theme('colors.emerald.500'),
+                                },
+                            },
+                        },
+                    }),
+                }
+            }
+        }
+    </script>
+
+    <!-- Custom CSS -->
+    <link rel="stylesheet" href="assets/css/docs.css">
+</head>
+<body class="antialiased min-h-screen relative selection:bg-emerald-500/30 selection:text-emerald-200">
+
+    <!-- Background Elements -->
+    <div class="bg-grid"></div>
+    <div class="glow-orb orb-1"></div>
+    <div class="glow-orb orb-2"></div>
+
+    <!-- Navigation -->
+    
+    
+    <!-- Navigation Sidebar -->
+    <aside class="fixed left-0 top-0 w-72 h-screen bg-dark-800/90 backdrop-blur-xl border-r border-white/5 z-50 overflow-y-auto">
+        <div class="p-6 border-b border-white/5">
+            <div class="flex items-center gap-3">
+                <a href="index.html" class="flex items-center gap-3 w-full">
+                    <div class="w-10 h-10 rounded-xl bg-gradient-to-br from-emerald-500 to-blue-500 flex items-center justify-center glow">
+                        <img src="../resources/zepraicon/logo.svg" alt="Zepra Logo" class="w-8 h-8 object-contain">
+                    </div>
+                    <div>
+                        <h1 class="font-bold text-lg text-white">ZepraBrowser</h1>
+                        <span class="text-xs text-gray-500">Documentation Hub</span>
+                    </div>
+                </a>
+            </div>
+        </div>
+        <nav class="p-4">
+            <div class="mb-6">
+                <span class="text-[10px] font-semibold uppercase tracking-wider text-gray-500 px-3">Quick Navigation</span>
+                <div class="mt-2 space-y-1">
+                    <a href="index.html" class="nav-link flex items-center gap-3 px-3 py-2 text-sm text-gray-400 hover:text-white rounded-lg hover:bg-white/5 transition-all border-l-2 border-transparent">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"/></svg>
+                        Hub Home
+                    </a>
+                    <a href="zeprascript/index.html" class="nav-link flex items-center gap-3 px-3 py-2 text-sm text-gray-400 hover:text-white rounded-lg hover:bg-white/5 transition-all border-l-2 border-transparent">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>
+                        ZepraScript Engine
+                    </a>
+                </div>
+            </div>
+            <div class="mb-6">
+                <span class="text-[10px] font-semibold uppercase tracking-wider text-gray-500 px-3">Overview</span>
+                <div class="mt-2 space-y-1">
+                    <a href="architecture.html" class="nav-link flex items-center gap-3 px-3 py-2 text-sm text-gray-400 hover:text-white rounded-lg hover:bg-white/5 transition-all border-l-2 border-transparent pl-6">Architecture</a>
+                    <a href="advanced-developer-tools.html" class="nav-link flex items-center gap-3 px-3 py-2 text-sm text-gray-400 hover:text-white rounded-lg hover:bg-white/5 transition-all border-l-2 border-transparent pl-6">Developer Tools</a>
+                    <a href="security-model.html" class="nav-link flex items-center gap-3 px-3 py-2 text-sm text-gray-400 hover:text-white rounded-lg hover:bg-white/5 transition-all border-l-2 border-transparent pl-6">Security Model</a>
+                    <a href="NXRENDER/architecture.html" class="nav-link flex items-center gap-3 px-3 py-2 text-sm text-gray-400 hover:text-white rounded-lg hover:bg-white/5 transition-all border-l-2 border-transparent pl-6">NXRender</a>
+                </div>
+            </div>
+        </nav>
+    </aside>
+
+
+<main class="ml-72 flex-1 min-w-0 min-h-screen py-12 px-8 max-w-5xl mx-auto">
+<!-- Page Header with Icon -->
+                <div class="flex items-center gap-4 mb-8 border-b border-white/10 pb-8 animate-fade-in">
+                    <div class="w-16 h-16 rounded-2xl bg-bg-secondary border border-white/5 flex items-center justify-center shrink-0">
+                        <svg class="w-8 h-8 opacity-80 text-emerald-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>
+                    </div>
+                    <div>
+                        <h1 class="text-3xl sm:text-4xl font-bold text-white tracking-tight">FILETREE.md</h1>
+                        <p class="text-gray-400 mt-1 text-sm font-mono">FILETREE.html</p>
+                    </div>
+                </div>
+
+                <div class="prose prose-invert prose-emerald max-w-none animate-fade-up">
+
+
+
+
+<h1>ZepraBrowser - Complete File Tree</h1>
+<h1>Generated: 2025-12-08</h1>
+<h1>DO NOT TOUCH: source/zepraScript/</h1>
+<pre><code class="language-text">zeprabrowser/
+├── CMakeLists.txt                              # ROOT BUILD (TODO)
+├── Architecture.md                             # This architecture doc
+├── README.md
+│
+├── source/                                     # === NEW ARCHITECTURE ===
+│   │
+│   ├── zepraScript/                            # ⚠️ DO NOT MODIFY
+│   │   ├── include/zeprascript/               # 70+ headers
+│   │   │   ├── frontend/ (lexer, parser, ast)
+│   │   │   ├── bytecode/ (compiler, opcodes)
+│   │   │   ├── runtime/ (vm, value, object)
+│   │   │   ├── gc/ (heap, garbage collector)
+│   │   │   ├── jit/ (baseline, osr)
+│   │   │   ├── builtins/ (Date, Math, Number)
+│   │   │   ├── browser/ (Window, DOM bindings)
+│   │   │   ├── memory/ (allocators)
+│   │   │   ├── debug/ (devtools, inspector)
+│   │   │   └── api/ (context, handles)
+│   │   ├── src/                               # 50+ implementations
+│   │   └── tests/                             # Unit + integration
+│   │
+│   ├── webCore/                               # Rendering Engine
+│   │   ├── include/webcore/
+│   │   │   ├── dom.hpp                        # DOM implementation
+│   │   │   ├── html_parser.hpp
+│   │   │   ├── css_parser.hpp
+│   │   │   ├── render_tree.hpp
+│   │   │   ├── paint_context.hpp
+│   │   │   └── layout_engine.hpp
+│   │   ├── src/
+│   │   │   ├── dom.cpp
+│   │   │   ├── render_tree.cpp
+│   │   │   └── paint_context.cpp
+│   │   └── CMakeLists.txt
+│   │
+│   ├── zepraEngine/                           # Browser Window/Shell
+│   │   ├── include/engine/
+│   │   │   └── browser_window.hpp
+│   │   ├── src/
+│   │   │   └── zepra_window_demo.cpp          # SDL2 browser UI
+│   │   └── CMakeLists.txt
+│   │
+│   ├── webGpu/                                # GPU Acceleration (TODO)
+│   │
+│   └── bin/                                   # Built executables
+│       └── zepra-browser
+│
+├── include/                                   # === BROWSER HEADERS ===
+│   ├── auth/
+│   │   └── zepra_auth.h                       # Ketivee SSO
+│   ├── common/
+│   │   ├── constants.h
+│   │   └── types.h
+│   ├── config/
+│   │   └── dual_config.h
+│   ├── core/
+│   │   └── zepra_core.h
+│   ├── engine/
+│   │   ├── webkit_engine.h                    # WebKit wrapper
+│   │   ├── dev_tools.h
+│   │   ├── gpu_manager.h
+│   │   ├── html_parser.h
+│   │   ├── video_player.h
+│   │   ├── download_manager.h
+│   │   ├── extension.h
+│   │   ├── ai_engine.h
+│   │   └── ... (15 files)
+│   ├── net/
+│   │   ├── cookie_manager.h
+│   │   └── http.h
+│   ├── sandbox/
+│   │   └── sandbox_manager.h
+│   ├── search/
+│   │   └── ketivee_search.h
+│   └── ui/
+│       ├── window.h
+│       ├── tab_manager.h
+│       ├── settings_ui.h
+│       ├── dev_tools_ui.h
+│       ├── auth_ui.h
+│       └── extension_manager_ui.h
+│
+├── src/                                       # === BROWSER SOURCES ===
+│   ├── main.cpp                               # Entry point (819 lines)
+│   ├── main_unified.cpp
+│   │
+│   ├── auth/
+│   │   └── zepra_auth.cpp                     # 644 lines - CURL/OpenSSL
+│   │
+│   ├── config/
+│   │   ├── config_manager.cpp
+│   │   ├── config_manager.h
+│   │   └── config_test.cpp
+│   │
+│   ├── core/
+│   │   ├── zepra_core.cpp
+│   │   └── ui_elements.cpp
+│   │
+│   ├── engine/
+│   │   ├── webkit_engine.cpp                  # 771 lines
+│   │   ├── browser_connector.cpp
+│   │   ├── dev_tools.cpp
+│   │   ├── download_manager.cpp
+│   │   ├── extension_registry.cpp
+│   │   ├── gpu_manager.cpp
+│   │   ├── html_parser.cpp
+│   │   ├── json_bridge.cpp
+│   │   ├── video_player.cpp
+│   │   └── CMakeLists.txt
+│   │
+│   ├── net/
+│   │   └── cookie_manager.cpp
+│   │
+│   ├── platform/
+│   │   └── platform_infrastructure.cpp
+│   │
+│   ├── sandbox/
+│   │   └── sandbox_manager.cpp
+│   │
+│   ├── search/
+│   │   └── ketivee_search.cpp
+│   │
+│   └── ui/
+│       ├── window.cpp                         # 878 lines - SDL2/OpenGL
+│       ├── tab_manager.cpp
+│       ├── settings_ui.cpp
+│       ├── dev_tools_ui.cpp
+│       └── extension_manager_ui.cpp
+│
+├── config/                                    # Configuration files
+├── docs/                                      # Documentation
+├── tools/                                     # Dev tools
+└── zepra.ketivee.com/                         # Branding assets</code></pre>
+<h1>============================================</h1>
+<h1>FILE COUNT SUMMARY</h1>
+<h1>============================================</h1>
+<h1>source/zepraScript/  : 392 files (JS Engine)</h1>
+<h1>source/webCore/      : 10 files  (Rendering)</h1>
+<h1>source/zepraEngine/  : 31 files  (Window)</h1>
+<h1>include/             : 30 files  (Headers)</h1>
+<h1>src/                 : 25 files  (Browser)</h1>
+<h1>-------------------------------------------</h1>
+<h1>TOTAL                : ~490 files</h1>
+<h1>============================================</h1>
+
+        
+                </div>
+            </main>
+
+    <!-- Footer -->
+    <footer class="bg-bg-secondary border-t border-white/5 py-12 mt-12">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
+            <p class="text-gray-500 text-sm">© 2026 ZepraBrowser · Part of the NeolyxOS Project</p>
+        </div>
+    </footer>
+
+    <!-- Scripts -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/gsap.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/ScrollTrigger.min.js"></script>
+    <script src="assets/js/docs.js" defer></script>
+</body>
+</html>

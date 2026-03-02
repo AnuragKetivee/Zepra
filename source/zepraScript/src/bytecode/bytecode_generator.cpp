@@ -187,16 +187,22 @@ void BytecodeGenerator::emitLoop(size_t loopStart) {
 
 size_t BytecodeGenerator::makeConstant(Runtime::Value value) {
     size_t constant = currentChunk()->addConstant(value);
-    if (constant > 255) {
-        error("Too many constants in one chunk");
+    if (constant > 65535) {
+        error("Too many constants in one chunk (max 65536)");
         return 0;
     }
     return constant;
 }
 
 void BytecodeGenerator::emitConstant(Runtime::Value value) {
-    emit(Opcode::OP_CONSTANT);
-    emit(static_cast<uint8_t>(makeConstant(value)));
+    size_t index = makeConstant(value);
+    if (index <= 255) {
+        emit(Opcode::OP_CONSTANT);
+        emit(static_cast<uint8_t>(index));
+    } else {
+        emit(Opcode::OP_CONSTANT_LONG);
+        emitShort(static_cast<uint16_t>(index));
+    }
 }
 
 // Scope management
@@ -367,6 +373,9 @@ void BytecodeGenerator::compileStatement(const Frontend::Statement* stmt) {
         case Frontend::NodeType::ForOfStatement:
             compileForOfStatement(static_cast<const Frontend::ForOfStmt*>(stmt));
             break;
+        case Frontend::NodeType::SwitchStatement:
+            compileSwitchStatement(static_cast<const Frontend::SwitchStmt*>(stmt));
+            break;
         default:
             error("Unknown statement type");
             break;
@@ -485,6 +494,13 @@ void BytecodeGenerator::compileFunctionDeclaration(const Frontend::FunctionDecl*
     size_t funcIndex = makeConstant(Runtime::Value::object(function));
     emit(Opcode::OP_CLOSURE);
     emit(static_cast<uint8_t>(funcIndex));
+    
+    // Emit upvalue metadata: count followed by (isLocal, index) pairs
+    emit(static_cast<uint8_t>(fnState.upvalues.size()));
+    for (const auto& upval : fnState.upvalues) {
+        emit(upval.isLocal ? 1 : 0);
+        emit(upval.index);
+    }
     
     defineVariable(decl->name());
 }
@@ -688,6 +704,91 @@ void BytecodeGenerator::compileTryStatement(const Frontend::TryStmt* stmt) {
         emit(Opcode::OP_FINALLY);
         compileBlockStatement(stmt->finalizer());
     }
+}
+
+void BytecodeGenerator::compileSwitchStatement(const Frontend::SwitchStmt* stmt) {
+    // Compile discriminant once
+    compileExpression(stmt->discriminant());
+    
+    std::vector<size_t> caseEndJumps;
+    std::vector<size_t> caseBodyStarts;
+    size_t defaultJump = 0;
+    bool hasDefault = false;
+    
+    // Phase 1: Generate case tests and jumps
+    for (const auto& switchCase : stmt->cases()) {
+        if (switchCase.isDefault()) {
+            // Default case - we'll jump here if no case matches
+            hasDefault = true;
+            caseBodyStarts.push_back(SIZE_MAX); // Placeholder for default
+        } else {
+            // Duplicate discriminant for comparison
+            emit(Opcode::OP_DUP);
+            // Compile case test expression
+            compileExpression(switchCase.test.get());
+            // Compare with strict equality
+            emit(Opcode::OP_STRICT_EQUAL);
+            // Jump to case body if match
+            size_t jumpToBody = emitJump(Opcode::OP_JUMP_IF_FALSE);
+            emit(Opcode::OP_POP);  // Pop comparison result
+            // Record that we need to jump to this case's body
+            caseBodyStarts.push_back(currentChunk()->currentOffset());
+            // Jump over case body for now (we're still testing)
+            size_t skipBody = emitJump(Opcode::OP_JUMP);
+            patchJump(jumpToBody);
+            emit(Opcode::OP_POP);  // Pop comparison result (false path)
+            caseEndJumps.push_back(skipBody);
+        }
+    }
+    
+    // Jump to default or end if no case matched
+    if (hasDefault) {
+        defaultJump = emitJump(Opcode::OP_JUMP);
+    } else {
+        defaultJump = emitJump(Opcode::OP_JUMP);
+    }
+    
+    // Pop discriminant before cases (it's been used)
+    emit(Opcode::OP_POP);
+    
+    // Phase 2: Generate case bodies
+    breakJumps_.push_back({});
+    
+    size_t caseIndex = 0;
+    for (const auto& switchCase : stmt->cases()) {
+        // Patch jumps that should come to this case body
+        if (!caseEndJumps.empty() && caseIndex < caseEndJumps.size()) {
+            patchJump(caseEndJumps[caseIndex]);
+        }
+        
+        if (switchCase.isDefault()) {
+            patchJump(defaultJump);
+        }
+        
+        // Pop discriminant at start of each case
+        if (caseIndex == 0) {
+            emit(Opcode::OP_POP);
+        }
+        
+        // Compile case body statements (fall-through is natural)
+        for (const auto& bodyStmt : switchCase.consequent) {
+            compileStatement(bodyStmt.get());
+        }
+        
+        caseIndex++;
+    }
+    
+    // If no default, patch the default jump to skip all cases
+    if (!hasDefault) {
+        patchJump(defaultJump);
+        emit(Opcode::OP_POP);  // Pop discriminant
+    }
+    
+    // Patch all break jumps
+    for (size_t breakJump : breakJumps_.back()) {
+        patchJump(breakJump);
+    }
+    breakJumps_.pop_back();
 }
 
 // Expression compilation
@@ -1045,9 +1146,49 @@ void BytecodeGenerator::compileThisExpression(const Frontend::ThisExpr*) {
     emit(Opcode::OP_NIL);
 }
 
-void BytecodeGenerator::compileFunctionExpression(const Frontend::FunctionExpr*) {
-    // TODO: Implement function expression compilation
+void BytecodeGenerator::compileFunctionExpression(const Frontend::FunctionExpr* expr) {
+    // Create new compiler state for function
+    CompilerState fnState;
+    fnState.enclosing = current_;
+    fnState.functionName = expr->name().empty() ? "<anonymous>" : expr->name();
+    current_ = &fnState;
+    
+    // Add parameters as locals
+    for (const auto& param : expr->params()) {
+        const auto* id = static_cast<const Frontend::IdentifierExpr*>(param.pattern.get());
+        Local local;
+        local.name = id->name();
+        local.depth = 0;  // Function scope
+        local.isCaptured = false;
+        local.isConst = false;
+        current_->locals.push_back(local);
+    }
+    
+    // Compile function body
+    for (const auto& stmt : expr->body()->body()) {
+        compileStatement(stmt.get());
+    }
+    
+    // Default return undefined if no explicit return
     emit(Opcode::OP_NIL);
+    emit(Opcode::OP_RETURN);
+    
+    // Create function chunk
+    auto functionChunk = std::make_unique<BytecodeChunk>(std::move(fnState.chunk));
+    current_ = fnState.enclosing;
+    
+    // Create function object with bytecode
+    auto* func = new Runtime::Function(expr, nullptr);
+    func->setBytecodeChunk(functionChunk.get());
+    
+    // Store chunk (transfer ownership)
+    static std::vector<std::unique_ptr<BytecodeChunk>> compiledFunctionChunks;
+    compiledFunctionChunks.push_back(std::move(functionChunk));
+    
+    // Emit closure
+    size_t funcIndex = makeConstant(Runtime::Value::object(func));
+    emit(Opcode::OP_CLOSURE);
+    emit(static_cast<uint8_t>(funcIndex));
 }
 
 void BytecodeGenerator::compileArrowFunction(const Frontend::ArrowFunctionExpr* expr) {

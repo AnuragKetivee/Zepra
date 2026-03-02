@@ -69,7 +69,7 @@ private:
     StmtPtr parseStatement();
     StmtPtr parseDeclaration();
     StmtPtr parseVariableDeclaration();
-    StmtPtr parseFunctionDeclaration();
+    StmtPtr parseFunctionDeclaration(bool isAsync = false, bool isGenerator = false);
     StmtPtr parseClassDeclaration();
     StmtPtr parseBlockStatement();
     StmtPtr parseIfStatement();

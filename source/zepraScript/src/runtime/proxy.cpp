@@ -198,14 +198,49 @@ Value Reflect::construct(Object* target, const std::vector<Value>& args) {
     return fn->construct(nullptr, args);
 }
 
-Value Reflect::getOwnPropertyDescriptor(Object*, const std::string&) {
-    // TODO: Return property descriptor
-    return Value::undefined();
+Value Reflect::getOwnPropertyDescriptor(Object* target, const std::string& key) {
+    if (!target) return Value::undefined();
+    
+    auto desc = target->getOwnPropertyDescriptor(key);
+    if (!desc) return Value::undefined();
+    
+    Object* result = new Object();
+    result->set("value", desc->value);
+    result->set("writable", Value::boolean(desc->isWritable()));
+    result->set("enumerable", Value::boolean(desc->isEnumerable()));
+    result->set("configurable", Value::boolean(desc->isConfigurable()));
+    
+    if (!desc->getter.isUndefined()) {
+        result->set("get", desc->getter);
+    }
+    if (!desc->setter.isUndefined()) {
+        result->set("set", desc->setter);
+    }
+    
+    return Value::object(result);
 }
 
-bool Reflect::defineProperty(Object*, const std::string&, Object*) {
-    // TODO: Define property
-    return true;
+bool Reflect::defineProperty(Object* target, const std::string& key, Object* descriptor) {
+    if (!target || !descriptor) return false;
+    
+    PropertyDescriptor desc;
+    Value val = descriptor->get("value");
+    if (!val.isUndefined()) desc.value = val;
+    
+    Value writable = descriptor->get("writable");
+    Value enumerable = descriptor->get("enumerable");
+    Value configurable = descriptor->get("configurable");
+    
+    PropertyAttribute attrs = PropertyAttribute::None;
+    if (writable.isUndefined() || writable.toBoolean()) attrs = attrs | PropertyAttribute::Writable;
+    if (enumerable.isUndefined() || enumerable.toBoolean()) attrs = attrs | PropertyAttribute::Enumerable;
+    if (configurable.isUndefined() || configurable.toBoolean()) attrs = attrs | PropertyAttribute::Configurable;
+    desc.attributes = attrs;
+    
+    desc.getter = descriptor->get("get");
+    desc.setter = descriptor->get("set");
+    
+    return target->defineProperty(key, desc);
 }
 
 Object* Reflect::getPrototypeOf(Object* target) {
@@ -224,8 +259,10 @@ bool Reflect::isExtensible(Object*) {
     return true; // Default
 }
 
-bool Reflect::preventExtensions(Object*) {
-    return true; // TODO: Mark object as non-extensible
+bool Reflect::preventExtensions(Object* target) {
+    if (!target) return false;
+    target->preventExtensions();
+    return true;
 }
 
 // =============================================================================
@@ -287,7 +324,15 @@ Value ReflectBuiltin::apply(Context*, const std::vector<Value>& args) {
     }
     
     std::vector<Value> fnArgs;
-    // TODO: Extract args from args[2] array
+    if (args[2].isObject()) {
+        Array* argsArray = dynamic_cast<Array*>(args[2].asObject());
+        if (argsArray) {
+            size_t len = argsArray->length();
+            for (size_t i = 0; i < len; i++) {
+                fnArgs.push_back(argsArray->get(i));
+            }
+        }
+    }
     return Reflect::apply(args[0].asObject(), args[1], fnArgs);
 }
 
@@ -297,7 +342,15 @@ Value ReflectBuiltin::construct(Context*, const std::vector<Value>& args) {
     }
     
     std::vector<Value> ctorArgs;
-    // TODO: Extract args from args[1] array
+    if (args[1].isObject()) {
+        Array* argsArray = dynamic_cast<Array*>(args[1].asObject());
+        if (argsArray) {
+            size_t len = argsArray->length();
+            for (size_t i = 0; i < len; i++) {
+                ctorArgs.push_back(argsArray->get(i));
+            }
+        }
+    }
     return Reflect::construct(args[0].asObject(), ctorArgs);
 }
 

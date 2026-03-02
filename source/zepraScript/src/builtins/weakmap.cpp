@@ -88,7 +88,42 @@ Value WeakMapBuiltin::deleteMethod(Runtime::Context*, const std::vector<Value>& 
 }
 
 Object* WeakMapBuiltin::createWeakMapPrototype() {
-    return new Object();
+    Object* proto = new Object();
+
+    proto->set("get", Value::object(
+        new Runtime::Function("get", [](const Runtime::FunctionCallInfo& info) -> Value {
+            if (!info.thisValue().isObject()) return Value::undefined();
+            WeakMapObject* wm = dynamic_cast<WeakMapObject*>(info.thisValue().asObject());
+            if (!wm || info.argumentCount() < 1 || !info.argument(0).isObject()) return Value::undefined();
+            return wm->get(info.argument(0).asObject());
+        }, 1)));
+
+    proto->set("set", Value::object(
+        new Runtime::Function("set", [](const Runtime::FunctionCallInfo& info) -> Value {
+            if (!info.thisValue().isObject()) return Value::undefined();
+            WeakMapObject* wm = dynamic_cast<WeakMapObject*>(info.thisValue().asObject());
+            if (!wm || info.argumentCount() < 2 || !info.argument(0).isObject()) return info.thisValue();
+            wm->set(info.argument(0).asObject(), info.argument(1));
+            return info.thisValue();
+        }, 2)));
+
+    proto->set("has", Value::object(
+        new Runtime::Function("has", [](const Runtime::FunctionCallInfo& info) -> Value {
+            if (!info.thisValue().isObject()) return Value::boolean(false);
+            WeakMapObject* wm = dynamic_cast<WeakMapObject*>(info.thisValue().asObject());
+            if (!wm || info.argumentCount() < 1 || !info.argument(0).isObject()) return Value::boolean(false);
+            return Value::boolean(wm->has(info.argument(0).asObject()));
+        }, 1)));
+
+    proto->set("delete", Value::object(
+        new Runtime::Function("delete", [](const Runtime::FunctionCallInfo& info) -> Value {
+            if (!info.thisValue().isObject()) return Value::boolean(false);
+            WeakMapObject* wm = dynamic_cast<WeakMapObject*>(info.thisValue().asObject());
+            if (!wm || info.argumentCount() < 1 || !info.argument(0).isObject()) return Value::boolean(false);
+            return Value::boolean(wm->deleteKey(info.argument(0).asObject()));
+        }, 1)));
+
+    return proto;
 }
 
 } // namespace Zepra::Builtins

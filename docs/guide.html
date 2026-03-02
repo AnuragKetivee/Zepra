@@ -1,0 +1,387 @@
+<!DOCTYPE html>
+<html lang="en" class="scroll-smooth">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>GUIDE.md</title>
+    
+    <!-- Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+    
+    <!-- Tailwind CSS with Typography Plugin -->
+    <script src="https://cdn.tailwindcss.com?plugins=typography"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        bg: {
+                            primary: '#0a0a0f',
+                            secondary: '#12121a',
+                            tertiary: '#1a1a24'
+                        },
+                        accent: {
+                            DEFAULT: '#10b981',
+                            light: '#34d399',
+                            dark: '#059669',
+                            glow: 'rgba(16, 185, 129, 0.3)'
+                        }
+                    },
+                    fontFamily: {
+                        sans: ['Inter', 'sans-serif'],
+                        mono: ['JetBrains Mono', 'monospace'],
+                    },
+                    typography: (theme) => ({
+                        DEFAULT: {
+                            css: {
+                                color: theme('colors.gray.300'),
+                                a: {
+                                    color: theme('colors.emerald.400'),
+                                    '&:hover': {
+                                        color: theme('colors.emerald.300'),
+                                    },
+                                },
+                                h1: { color: theme('colors.white') },
+                                h2: { color: theme('colors.white') },
+                                h3: { color: theme('colors.white') },
+                                h4: { color: theme('colors.gray.100') },
+                                code: { color: theme('colors.pink.400') },
+                                'code::before': { content: '""' },
+                                'code::after': { content: '""' },
+                                pre: {
+                                    backgroundColor: theme('colors.bg.tertiary'),
+                                    color: theme('colors.gray.200'),
+                                },
+                                blockquote: {
+                                    color: theme('colors.gray.400'),
+                                    borderLeftColor: theme('colors.emerald.500'),
+                                },
+                            },
+                        },
+                    }),
+                }
+            }
+        }
+    </script>
+
+    <!-- Custom CSS -->
+    <link rel="stylesheet" href="assets/css/docs.css">
+</head>
+<body class="antialiased min-h-screen relative selection:bg-emerald-500/30 selection:text-emerald-200">
+
+    <!-- Background Elements -->
+    <div class="bg-grid"></div>
+    <div class="glow-orb orb-1"></div>
+    <div class="glow-orb orb-2"></div>
+
+    <!-- Navigation -->
+    
+    
+    <!-- Navigation Sidebar -->
+    <aside class="fixed left-0 top-0 w-72 h-screen bg-dark-800/90 backdrop-blur-xl border-r border-white/5 z-50 overflow-y-auto">
+        <div class="p-6 border-b border-white/5">
+            <div class="flex items-center gap-3">
+                <a href="index.html" class="flex items-center gap-3 w-full">
+                    <div class="w-10 h-10 rounded-xl bg-gradient-to-br from-emerald-500 to-blue-500 flex items-center justify-center glow">
+                        <img src="../resources/zepraicon/logo.svg" alt="Zepra Logo" class="w-8 h-8 object-contain">
+                    </div>
+                    <div>
+                        <h1 class="font-bold text-lg text-white">ZepraBrowser</h1>
+                        <span class="text-xs text-gray-500">Documentation Hub</span>
+                    </div>
+                </a>
+            </div>
+        </div>
+        <nav class="p-4">
+            <div class="mb-6">
+                <span class="text-[10px] font-semibold uppercase tracking-wider text-gray-500 px-3">Quick Navigation</span>
+                <div class="mt-2 space-y-1">
+                    <a href="index.html" class="nav-link flex items-center gap-3 px-3 py-2 text-sm text-gray-400 hover:text-white rounded-lg hover:bg-white/5 transition-all border-l-2 border-transparent">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"/></svg>
+                        Hub Home
+                    </a>
+                    <a href="zeprascript/index.html" class="nav-link flex items-center gap-3 px-3 py-2 text-sm text-gray-400 hover:text-white rounded-lg hover:bg-white/5 transition-all border-l-2 border-transparent">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>
+                        ZepraScript Engine
+                    </a>
+                </div>
+            </div>
+            <div class="mb-6">
+                <span class="text-[10px] font-semibold uppercase tracking-wider text-gray-500 px-3">Overview</span>
+                <div class="mt-2 space-y-1">
+                    <a href="architecture.html" class="nav-link flex items-center gap-3 px-3 py-2 text-sm text-gray-400 hover:text-white rounded-lg hover:bg-white/5 transition-all border-l-2 border-transparent pl-6">Architecture</a>
+                    <a href="advanced-developer-tools.html" class="nav-link flex items-center gap-3 px-3 py-2 text-sm text-gray-400 hover:text-white rounded-lg hover:bg-white/5 transition-all border-l-2 border-transparent pl-6">Developer Tools</a>
+                    <a href="security-model.html" class="nav-link flex items-center gap-3 px-3 py-2 text-sm text-gray-400 hover:text-white rounded-lg hover:bg-white/5 transition-all border-l-2 border-transparent pl-6">Security Model</a>
+                    <a href="NXRENDER/architecture.html" class="nav-link flex items-center gap-3 px-3 py-2 text-sm text-gray-400 hover:text-white rounded-lg hover:bg-white/5 transition-all border-l-2 border-transparent pl-6">NXRender</a>
+                </div>
+            </div>
+        </nav>
+    </aside>
+
+
+<main class="ml-72 flex-1 min-w-0 min-h-screen py-12 px-8 max-w-5xl mx-auto">
+<!-- Page Header with Icon -->
+                <div class="flex items-center gap-4 mb-8 border-b border-white/10 pb-8 animate-fade-in">
+                    <div class="w-16 h-16 rounded-2xl bg-bg-secondary border border-white/5 flex items-center justify-center shrink-0">
+                        <svg class="w-8 h-8 opacity-80 text-emerald-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>
+                    </div>
+                    <div>
+                        <h1 class="text-3xl sm:text-4xl font-bold text-white tracking-tight">GUIDE.md</h1>
+                        <p class="text-gray-400 mt-1 text-sm font-mono">GUIDE.html</p>
+                    </div>
+                </div>
+
+                <div class="prose prose-invert prose-emerald max-w-none animate-fade-up">
+
+
+
+
+<h1>ZepraBrowser Development Guide</h1>
+<p><strong>Project:</strong> ZepraBrowser - Independent Web Browser<br />
+<strong>Engine:</strong> ZepraScript (JavaScript) + WebCore (HTML/CSS) + NXRender (Graphics)<br />
+<strong>Trademark:</strong> ZepraScript is a trademark of KetiveeAI<br />
+<strong>Last Updated:</strong> 2025-12-13</p>
+<hr />
+<h2>Architecture Overview</h2>
+<pre><code>+----------------------------------------------------------+
+|                    ZepraBrowser                          |
++----------------------------------------------------------+
+|  UI Layer (NXRENDER)                                     |
+|  - Tab Bar, Address Bar, DevTools                        |
+|  - Native X11/Wayland + OpenGL rendering                 |
++----------------------------------------------------------+
+|  Browser Core                                            |
+|  - Tab Management, History, Bookmarks                    |
+|  - Downloads, Settings, Extensions                       |
++----------------------------------------------------------+
+|  WebCore Engine                                          |
+|  - HTML Parser (Tokenizer + Tree Builder)                |
+|  - CSS Engine (Parser + Selector Matching)               |
+|  - Layout Engine (Box Model + Flow)                      |
+|  - Paint/Composite (GPU accelerated)                     |
++----------------------------------------------------------+
+|  ZepraScript Engine                                      |
+|  - Lexer, Parser, AST                                    |
+|  - Bytecode Compiler                                     |
+|  - Multi-tier JIT (Baseline, DFG, FTL)                   |
+|  - Garbage Collector                                     |
++----------------------------------------------------------+
+|  Networking                                              |
+|  - HTTP/HTTPS Client (curl/OpenSSL)                      |
+|  - WebSocket, Fetch API                                  |
++----------------------------------------------------------+
+|  Platform Layer                                          |
+|  - X11/Wayland Window                                    |
+|  - File System, Process Sandbox                          |
++----------------------------------------------------------+
+</code></pre>
+<hr />
+<h2>Directory Structure</h2>
+<pre><code>zeprabrowser/
+├── source/
+│   ├── zepraScript/        # JavaScript engine (trademark of KetiveeAI)
+│   │   ├── src/
+│   │   │   ├── frontend/   # Lexer, Parser, AST
+│   │   │   ├── compiler/   # Bytecode generation
+│   │   │   ├── runtime/    # VM, GC, Objects
+│   │   │   ├── builtins/   # Array, String, Math, etc.
+│   │   │   ├── jit/        # JIT compilers
+│   │   │   └── browser/    # DOM, Fetch, Events APIs
+│   │   └── include/
+│   │
+│   ├── webCore/            # HTML/CSS engine
+│   │   ├── src/
+│   │   │   ├── html/       # HTML tokenizer, tree builder
+│   │   │   ├── css/        # CSS parser, CSSOM
+│   │   │   ├── dom/        # DOM implementation
+│   │   │   ├── layout/     # Box model, flow layout
+│   │   │   └── paint/      # Rendering, compositing
+│   │   └── include/
+│   │
+│   ├── nxrender/           # Native rendering (Rust)
+│   │   ├── nxgfx/          # GPU graphics backend
+│   │   ├── nxrender-core/  # Compositor, surfaces
+│   │   ├── nxrender-widgets/# UI widgets
+│   │   ├── nxrender-input/ # Mouse, keyboard, touch
+│   │   └── nxrender-ffi/   # C bindings
+│   │
+│   ├── networking/         # HTTP client
+│   │   ├── http_client.cpp
+│   │   ├── websocket.cpp
+│   │   └── tls.cpp
+│   │
+│   └── integration/        # ZepraScript &lt;-&gt; DOM bridge
+│
+├── src/                    # Browser application
+│   ├── main_nxrender.cpp   # Main entry (NXRENDER)
+│   ├── ui/                 # Tab manager, windows
+│   ├── engine/             # WebKit engine wrapper
+│   └── auth/               # Authentication
+│
+├── include/                # Public headers
+├── resources/              # Icons, themes, images
+└── docs/                   # Documentation
+</code></pre>
+<hr />
+<h2>Key Components</h2>
+<h3>1. ZepraScript Engine</h3>
+<p><strong>Location:</strong> <code>source/zepraScript/</code></p>
+<p>The JavaScript engine implementing ECMAScript 2024. Features:
+- Multi-tier JIT compilation
+- Generational garbage collection
+- ES modules support
+- Web API bindings</p>
+<p><strong>Key Files:</strong>
+- <code>src/frontend/lexer.cpp</code> - Tokenization
+- <code>src/frontend/parser.cpp</code> - AST generation
+- <code>src/compiler/bytecode_generator.cpp</code> - Bytecode
+- <code>src/runtime/vm.cpp</code> - Virtual machine
+- <code>src/jit/baseline_jit.cpp</code> - First-tier JIT</p>
+<h3>2. WebCore Engine</h3>
+<p><strong>Location:</strong> <code>source/webCore/</code></p>
+<p>HTML/CSS parsing and layout engine.</p>
+<p><strong>Key Files:</strong>
+- <code>src/html/tokenizer.cpp</code> - HTML5 tokenizer
+- <code>src/html/tree_builder.cpp</code> - DOM construction
+- <code>src/css/parser.cpp</code> - CSS parsing
+- <code>src/css/selector.cpp</code> - Selector matching
+- <code>src/layout/box.cpp</code> - Box model
+- <code>src/layout/block.cpp</code> - Block layout
+- <code>src/paint/painter.cpp</code> - Rendering</p>
+<h3>3. NXRENDER Graphics</h3>
+<p><strong>Location:</strong> <code>source/nxrender/</code></p>
+<p>Rust-based rendering system with C FFI.</p>
+<p><strong>Key Crates:</strong>
+- <code>nxgfx</code> - GPU context, primitives, text
+- <code>nxrender-core</code> - Compositor, surfaces
+- <code>nxrender-widgets</code> - Button, TextField, etc.
+- <code>nxrender-input</code> - Mouse, keyboard, gestures
+- <code>nxrender-ffi</code> - C bindings for C++ integration</p>
+<h3>4. Networking</h3>
+<p><strong>Location:</strong> <code>source/networking/</code></p>
+<p>HTTP client using libcurl and OpenSSL.</p>
+<p><strong>Key Files:</strong>
+- <code>http_client.cpp</code> - Request/response handling
+- <code>cookie_jar.cpp</code> - Cookie management
+- <code>tls.cpp</code> - HTTPS support</p>
+<hr />
+<h2>Building</h2>
+<h3>Prerequisites</h3>
+<pre><code class="language-bash"># Ubuntu/Debian
+sudo apt install build-essential cmake libcurl4-openssl-dev \
+    libssl-dev libx11-dev libgl1-mesa-dev libfreetype6-dev \
+    libharfbuzz-dev rustc cargo
+
+# Build NXRENDER
+cd source/nxrender
+cargo build --release
+
+# Build Browser
+mkdir build &amp;&amp; cd build
+cmake .. -DUSE_NXRENDER=ON
+make -j$(nproc)
+</code></pre>
+<h3>Running</h3>
+<pre><code class="language-bash">cd build/bin
+LD_LIBRARY_PATH=../../source/nxrender/target/release ./zepra_nxrender
+</code></pre>
+<hr />
+<h2>Development Workflow</h2>
+<h3>Adding a Web API</h3>
+<ol>
+<li>Define interface in <code>source/zepraScript/include/zeprascript/browser/</code></li>
+<li>Implement in <code>source/zepraScript/src/browser/</code></li>
+<li>Register in global object</li>
+<li>Add tests</li>
+</ol>
+<h3>Adding HTML Element Support</h3>
+<ol>
+<li>Add element handling in <code>source/webCore/src/html/tree_builder.cpp</code></li>
+<li>Implement DOM interface in <code>source/webCore/src/dom/</code></li>
+<li>Add layout behavior in <code>source/webCore/src/layout/</code></li>
+<li>Add rendering in <code>source/webCore/src/paint/</code></li>
+</ol>
+<h3>Adding CSS Property</h3>
+<ol>
+<li>Add property to enum in <code>source/webCore/include/webcore/css/properties.h</code></li>
+<li>Add parsing in <code>source/webCore/src/css/parser.cpp</code></li>
+<li>Add computation in <code>source/webCore/src/css/computed_style.cpp</code></li>
+<li>Use in layout/paint</li>
+</ol>
+<hr />
+<h2>References</h2>
+<h3>Specifications</h3>
+<ul>
+<li><a href="https://html.spec.whatwg.org/">HTML Living Standard</a></li>
+<li><a href="https://www.w3.org/Style/CSS/">CSS Specifications</a></li>
+<li><a href="https://tc39.es/ecma262/">ECMAScript 2024</a></li>
+<li><a href="https://dom.spec.whatwg.org/">DOM Living Standard</a></li>
+<li><a href="https://fetch.spec.whatwg.org/">Fetch Standard</a></li>
+</ul>
+<h3>MDN Documentation</h3>
+<ul>
+<li><a href="https://developer.mozilla.org/en-US/docs/Web/API">Web APIs</a></li>
+<li><a href="https://developer.mozilla.org/en-US/docs/Web/HTML/Element">HTML Elements</a></li>
+<li><a href="https://developer.mozilla.org/en-US/docs/Web/CSS/Reference">CSS Reference</a></li>
+<li><a href="https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference">JavaScript Reference</a></li>
+</ul>
+<h3>Browser Engine References</h3>
+<ul>
+<li><a href="https://github.com/WebKit/WebKit">WebKit Source</a></li>
+<li><a href="https://github.com/servo/servo">Servo (Rust)</a></li>
+<li><a href="https://github.com/LadybirdBrowser/ladybird">Ladybird</a></li>
+</ul>
+<hr />
+<h2>Code Style</h2>
+<h3>C++ (ZepraScript, WebCore)</h3>
+<ul>
+<li>C++17 standard</li>
+<li>PascalCase for classes</li>
+<li>camelCase for methods</li>
+<li>snake_case for variables</li>
+<li>Trailing underscore for members</li>
+</ul>
+<h3>Rust (NXRENDER)</h3>
+<ul>
+<li>Rust 2021 edition</li>
+<li>snake_case everywhere</li>
+<li>Document public APIs</li>
+<li>Use Result for errors</li>
+</ul>
+<hr />
+<h2>Testing</h2>
+<pre><code class="language-bash"># ZepraScript tests
+cd source/zepraScript/build
+ctest
+
+# WebCore tests
+cd source/webCore/build
+ctest
+
+# NXRENDER tests
+cd source/nxrender
+cargo test
+</code></pre>
+<hr />
+<h2>Trademark Notice</h2>
+<p><strong>ZepraScript</strong> is a registered trademark of <strong>KetiveeAI</strong>. All rights reserved.</p>
+
+        
+                </div>
+            </main>
+
+    <!-- Footer -->
+    <footer class="bg-bg-secondary border-t border-white/5 py-12 mt-12">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
+            <p class="text-gray-500 text-sm">© 2026 ZepraBrowser · Part of the NeolyxOS Project</p>
+        </div>
+    </footer>
+
+    <!-- Scripts -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/gsap.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/ScrollTrigger.min.js"></script>
+    <script src="assets/js/docs.js" defer></script>
+</body>
+</html>

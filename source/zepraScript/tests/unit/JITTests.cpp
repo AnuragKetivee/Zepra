@@ -14,7 +14,7 @@ void testBaselineCompilation() {
 }
 
 void testOptimizedCompilation() {
-    std::cout << "    [PASS] Optimized DFG compilation" << std::endl;
+    std::cout << "    [PASS] Optimized ZOpt compilation" << std::endl;
 }
 
 void testDeoptimization() {

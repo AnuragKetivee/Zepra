@@ -182,4 +182,99 @@ Declarations exist for Temporal, Decorators, Pipeline, WeakRef, FinalizationRegi
 - [x] Implemented proper argument array collection for `RestElement` mapping
 - [x] Fixed `compileFunctionDeclaration`/`compileFunctionExpression`/`compileArrowFunction` for default parameter support using `OP_NIL` and `OP_STRICT_EQUAL` equality condition jump
 
+### Phase 62: VM Opcode Completion & Stub Cleanup ✅
+
+- [x] 11 missing VM opcode handlers: `OP_SWAP`, `OP_INCREMENT`, `OP_DECREMENT`, `OP_JUMP_IF_TRUE`, `OP_IN`, `OP_DELETE_PROPERTY`, `OP_INIT_ELEMENT`, `OP_FOR_OF`, `OP_SWITCH`, `OP_CASE`, `OP_END`
+- [x] Silent `default` replaced with proper unknown-opcode error throw
+- [x] Parser `for...in` detection added alongside `for...of` — produces `ForInStmt` AST nodes
+- [x] `ast.cpp` filled with production `nodeTypeName()` utility (was 9-line stub)
+- [x] `OP_FOR_OF` production handler: Array, String, generic Object iteration
+
+### Phase 63: Directory Renaming & Independence Branding ✅
+
+- [x] `b3/` → `zir/` (Zepra Intermediate Representation), all `B3*` files → `ZIR*`
+- [x] `dfg/` → `zopt/` (Zepra Optimizer), all `DFG*` files → `ZOpt*`
+- [x] `dfg/passes/` → `zopt/passes/`, all `DFG*` passes → `ZOpt*`
+- [x] `jit/dfg/` → `jit/zopt/`
+- [x] `jit/WarpBuilder.h` → `jit/ZepraTierBuilder.h`
+- [x] `tests/unit/b3_tests.cpp` → `tests/unit/zir_tests.cpp`
+- [x] All `#include` paths, namespace refs (`Zepra::DFG` → `Zepra::ZOpt`), and CMakeLists.txt updated
+- [x] Zero WebKit/SpiderMonkey naming remaining in directory structure
+
+### Phase 64: Runtime Stub Hardening ✅
+
+- [x] VM: OP_AWAIT drains microtask queue on pending promises before fallback
+- [x] VM: OP*YIELD yield\* delegate stores iterator in yieldedValue* for generator next()
+- [x] VM: OP_SPREAD iterates strings (characters) and generic objects (own keys), throws TypeError on non-iterables
+- [x] VM: OP_EXPORT stores in globals (correct for current architecture, no dedicated ModuleRecord yet)
+- [x] value.cpp: `toNumber()` uses ToPrimitive valueOf→toString chain, BigInt→TypeError
+- [x] value.cpp: `toObject()` boxes Number/Boolean primitives into wrapper Objects
+- [x] symbol.cpp: `ObjectType::Arguments` → `ObjectType::Symbol` (proper type)
+- [x] object.hpp: Added `ObjectType::Symbol` to enum
+- [x] opcode.cpp: Complete `opcodeName()`, `opcodeOperandCount()`, `opcodeStackEffect()` for all 74 opcodes
+- [x] bytecode_generator.cpp: Rest parameter emits `OP_CREATE_ARRAY`, export declaration emits `OP_EXPORT` for function decls
+
+### Phase 65: Wire Public API to VM Pipeline ✅
+
+- [x] `zepra_api.hpp`: Replaced forward declarations with `using Value = Runtime::Value` type aliases
+- [x] `context_impl.hpp`: `ContextImpl` implements `Context::evaluate()` with full parse→check→compile→VM pipeline
+- [x] `isolate.cpp`: `IsolateImpl::createContext()` returns real `ContextImpl` (was `nullptr`)
+- [x] `script_engine.cpp`: New `ScriptEngineImpl` — `execute()`, `executeFile()`, `registerFunction()`, `setGlobal()`/`getGlobal()`
+- [x] CMakeLists updated: added `script_engine.cpp`, removed `context.cpp` (now header)
+
+### Phase 66: Promise + Complex JS ✅
+
+- [x] Promise constructor registered in `global_object.cpp` — executor(resolve, reject), `.then()`, `.catch()`, `.finally()`
+- [x] `Promise.resolve()`, `Promise.reject()`, `Promise.all()`, `Promise.race()` static methods
+- [x] Verified: `??` (nullish coalescing) already implemented — parser + `OP_DUP`/`OP_JUMP_IF_NIL` bytecode
+- [x] Verified: `?.` (optional chaining) already implemented — parser + MemberExpr/CallExpr optional flag
+
+### Phase 67: Memory & GC Hardening ✅
+
+- [x] Created `docs/zeprascript/health-report.md` — full subsystem maturity audit
+- [x] Created `tools/engine_health.py` — live monitoring tool with `--watch`/`--json` modes
+- [x] Wired `GCHeap` to VM via `ContextImpl` — auto-created on context creation
+- [x] Verified: GC safe-points already in VM dispatch loop (maybeCollect every 1K instructions)
+- [x] Verified: Write barriers already in OP_SET_PROPERTY
+- [x] Verified: Generational collector (young 2MB bump-pointer, old gen malloc, promotion at age 2)
+
+### Phase 68: Security Sandbox ✅
+
+- [x] Verified: `Sandbox.h` (269 lines) already has `ExecutionLimits`, `SecurityPolicy`, `ResourceMonitor`, `SandboxConfig`, `SecurityError`
+- [x] Verified: `SecurityAudit.h` (449 lines) already has `ObjectTracker` (UAF detection), `RefTracker`, `ExceptionStateValidator`
+- [x] Wired `SandboxConfig::browser()` + `ResourceMonitor` into `ContextImpl`
+- [x] VM now receives `ResourceMonitor` via `setSandbox()` — enforces heap/timeout/stack/instruction limits
+- [x] Browser defaults: 512MB heap, 30s timeout, 1B instructions, 10K call stack depth
+
+### Phase 69: Crash Recovery & Process Architecture ✅
+
+- [x] Created `CrashHandler.h` — `CrashContext`, `CrashDumpWriter`, `CrashHandler`, `ExecutionWatchdog`
+- [x] Created `crash_handler.cpp` — POSIX signal handlers (SIGSEGV/SIGBUS/SIGABRT/SIGFPE)
+- [x] Crash dump writer: async-signal-safe (raw fd writes), captures VM IP, stack depth, heap, backtrace
+- [x] `ExecutionWatchdog`: progress-counter-based timeout detection, sets VM termination flag on hang
+- [x] Added to CMakeLists, build verified
+
+### Phase 70: JIT Maturation ✅
+
+- [x] Verified: JIT subsystem has 17 files — baseline_jit, macro_assembler (x86-64), deoptimizer, InlineCache, type_profiler, OSR, GraphColoringRegAlloc, ZepraTierBuilder
+- [x] Verified: `ICManager` already in VM (property access inline caching)
+- [x] Wired `JITProfiler` into VM: `recordCall()` on every `OP_CALL` for hot function detection
+- [x] Hot thresholds: 100 calls → baseline candidate, 1000 calls → optimization candidate
+
+### Phase 71: WASM Completeness ✅
+
+- [x] Deep audit: 50 files, 27K lines, only 18 stubs (mostly in 310K baseline compiler)
+- [x] Verified: GC barriers (ZWasmGCBarriers — card table + SATB), guard pages (2MB), bounds checking
+- [x] Added WASM ObjectType enum values: `Namespace`, `WasmModule`, `WasmInstance`, `WasmMemory`, `WasmTable`, `WasmGlobal`
+- [x] Registered `WebAssembly` global in `global_object.cpp`: `validate()`, `compile()`, `instantiate()`, `Memory`, `Table`, `Global`, `CompileError`, `LinkError`, `RuntimeError`
+- [x] Build verified
+
+### Phase 72: Browser Integration & Background Tasks ✅
+
+- [x] Verified: `console` already registered (Builtins::Console), `queueMicrotask` registered
+- [x] Verified: browser/ has 37 files (11K lines) — fetch (31K), IndexedDB (25K), workers, WebSocket, DOM, events, performance, URL, storage, video bindings
+- [x] Registered `setTimeout`, `setInterval`, `clearTimeout`, `clearInterval`
+- [x] Registered `atob`, `btoa`, `structuredClone`
+- [x] Build verified
+
 ---

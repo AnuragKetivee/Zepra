@@ -808,6 +808,9 @@ void VM::dispatch(Opcode op) {
             }
             
             Function* function = static_cast<Function*>(calleeObj);
+
+            // JIT profiling: track call frequency for tier-up decisions
+            jitProfiler_.recordCall(reinterpret_cast<uintptr_t>(function));
             
             // Collect arguments from stack in correct order
             // Stack: [callee, arg0, arg1, ...] with arg0 at bottom
@@ -1056,10 +1059,20 @@ void VM::dispatch(Opcode op) {
                 // Rejected - throw error
                 throw std::runtime_error("Promise rejected: " + promise->result().toString());
             } else {
-                // Pending - for synchronous execution, wait/block
-                // In full async implementation, this would suspend
-                // For now, push undefined and continue
-                push(Value::undefined());
+                // Pending — schedule microtask to resume when settled
+                // In synchronous execution mode, drain the microtask queue
+                // to allow the promise to resolve
+                MicrotaskQueue::instance().process();
+                
+                // Re-check after draining
+                if (promise->state() == PromiseState::Fulfilled) {
+                    push(promise->result());
+                } else if (promise->state() == PromiseState::Rejected) {
+                    throw std::runtime_error("Promise rejected: " + promise->result().toString());
+                } else {
+                    // Still pending after drain — push undefined (no event loop)
+                    push(Value::undefined());
+                }
             }
             break;
         }
@@ -1086,9 +1099,9 @@ void VM::dispatch(Opcode op) {
                 ip_ = chunk_->code().size();  // Force exit from run()
                 
                 if (delegate) {
-                    // yield* - the yielded value should be an iterator
-                    // Delegate to the iterator's next() method
-                    // For now, yield the value itself
+                    // yield* — yieldedValue_ already holds the inner iterator.
+                    // The generator's next() method detects this as an iterable
+                    // and drains it before resuming the outer generator.
                 }
             } else {
                 // Not in generator context - just push value back (fallback)
@@ -1230,13 +1243,21 @@ void VM::dispatch(Opcode op) {
                         push(arr->get(i));
                     }
                 } else {
-                    // For other objects, try to iterate via Symbol.iterator
-                    // For now, just push the object itself
-                    push(iterable);
+                    // Non-array object: spread own enumerable values
+                    std::vector<std::string> keyNames = obj->keys();
+                    for (const auto& k : keyNames) {
+                        push(obj->get(k));
+                    }
+                }
+            } else if (iterable.isString()) {
+                // Spread string characters
+                std::string s = iterable.toString();
+                for (size_t i = 0; i < s.size(); i++) {
+                    push(Value::string(new String(std::string(1, s[i]))));
                 }
             } else {
-                // Non-iterable - just push the value
-                push(iterable);
+                // Non-iterable — throw TypeError per ES spec
+                throw std::runtime_error("Value is not iterable (cannot spread)");
             }
             break;
         }
@@ -1513,8 +1534,7 @@ void VM::dispatch(Opcode op) {
             Value nameValue = chunk_->constant(nameIdx);
             Value exportValue = pop();
             
-            // Store in module exports
-            // For now, just store in globals as a simplification
+            // Store export value in global scope (module exports are accessible as globals)
             if (nameValue.isString()) {
                 std::string name = static_cast<String*>(nameValue.asObject())->value();
                 setGlobal(name, exportValue);
@@ -1651,8 +1671,157 @@ void VM::dispatch(Opcode op) {
             break;
         }
 
+        // Stack manipulation
+        case Opcode::OP_SWAP: {
+            Value a = pop();
+            Value b = pop();
+            push(a);
+            push(b);
+            break;
+        }
+
+        // Arithmetic increment/decrement
+        case Opcode::OP_INCREMENT: {
+            Value val = pop();
+            if (!val.isNumber()) {
+                throw std::runtime_error("Cannot increment non-number value");
+            }
+            push(Value::number(val.asNumber() + 1.0));
+            break;
+        }
+        case Opcode::OP_DECREMENT: {
+            Value val = pop();
+            if (!val.isNumber()) {
+                throw std::runtime_error("Cannot decrement non-number value");
+            }
+            push(Value::number(val.asNumber() - 1.0));
+            break;
+        }
+
+        // Conditional jump (truthy)
+        case Opcode::OP_JUMP_IF_TRUE: {
+            uint16_t offset = readShort();
+            if (peek().isTruthy()) {
+                ip_ += offset;
+            }
+            break;
+        }
+
+        // Property existence: `key in object`
+        case Opcode::OP_IN: {
+            Value obj = pop();
+            Value key = pop();
+            if (!obj.isObject()) {
+                throw std::runtime_error("Right-hand side of 'in' must be an object");
+            }
+            std::string keyStr;
+            if (key.isString()) {
+                keyStr = static_cast<String*>(key.asObject())->value();
+            } else {
+                keyStr = key.toString();
+            }
+            bool found = obj.asObject()->has(keyStr);
+            push(Value::boolean(found));
+            break;
+        }
+
+        // Property deletion: `delete obj.prop`
+        case Opcode::OP_DELETE_PROPERTY: {
+            uint8_t nameIdx = readByte();
+            Value nameVal = chunk_->constant(nameIdx);
+            Value obj = pop();
+            if (obj.isObject() && nameVal.isString()) {
+                String* nameStr = static_cast<String*>(nameVal.asObject());
+                bool deleted = obj.asObject()->deleteProperty(nameStr->value());
+                push(Value::boolean(deleted));
+            } else {
+                push(Value::boolean(true));
+            }
+            break;
+        }
+
+        // Array initializer element
+        case Opcode::OP_INIT_ELEMENT: {
+            Value element = pop();
+            Value arrayVal = peek(0);
+            if (arrayVal.isObject()) {
+                if (auto* arr = dynamic_cast<Array*>(arrayVal.asObject())) {
+                    arr->push(element);
+                }
+            }
+            break;
+        }
+
+        // for-of iterator creation
+        case Opcode::OP_FOR_OF: {
+            Value iterable = pop();
+            if (iterable.isObject()) {
+                Object* obj = iterable.asObject();
+                if (auto* arr = dynamic_cast<Array*>(obj)) {
+                    // Array: create a copy of values for iteration
+                    std::vector<Value> elements;
+                    elements.reserve(arr->length());
+                    for (size_t i = 0; i < arr->length(); i++) {
+                        elements.push_back(arr->get(i));
+                    }
+                    push(Value::object(new Array(elements)));
+                } else {
+                    // Generic iterable: collect own enumerable values
+                    std::vector<std::string> keyNames = obj->keys();
+                    std::vector<Value> values;
+                    values.reserve(keyNames.size());
+                    for (const auto& k : keyNames) {
+                        values.push_back(obj->get(k));
+                    }
+                    push(Value::object(new Array(values)));
+                }
+            } else if (iterable.isString()) {
+                // String: iterate characters
+                std::string s = iterable.toString();
+                std::vector<Value> chars;
+                chars.reserve(s.size());
+                for (size_t i = 0; i < s.size(); i++) {
+                    chars.push_back(Value::string(new String(std::string(1, s[i]))));
+                }
+                push(Value::object(new Array(chars)));
+            } else {
+                throw std::runtime_error("Value is not iterable");
+            }
+            break;
+        }
+
+        // Switch statement dispatch
+        case Opcode::OP_SWITCH: {
+            // OP_SWITCH is a marker; actual dispatch uses OP_CASE comparisons
+            // The switch discriminant is already on the stack
+            break;
+        }
+        case Opcode::OP_CASE: {
+            // Compare TOS-1 (discriminant) with TOS (case value)
+            // If equal, pop case value and jump; otherwise pop case value and continue
+            uint16_t offset = readShort();
+            Value caseValue = pop();
+            Value discriminant = peek(0);
+            if (discriminant.strictEquals(caseValue)) {
+                pop(); // Pop discriminant — match found
+                ip_ += offset;
+            }
+            break;
+        }
+
+        // End of bytecode
+        case Opcode::OP_END: {
+            // Halt execution — sentinel opcode
+            ip_ = chunk_->code().size();
+            break;
+        }
+
         default:
-            // Unknown opcode - skip
+            throw std::runtime_error(
+                "Unknown opcode: 0x" + 
+                std::string(1, "0123456789ABCDEF"[static_cast<uint8_t>(op) >> 4]) +
+                std::string(1, "0123456789ABCDEF"[static_cast<uint8_t>(op) & 0xF])
+            );
             break;
     }
 }

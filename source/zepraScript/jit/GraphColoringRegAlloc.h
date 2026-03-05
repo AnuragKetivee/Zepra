@@ -14,7 +14,7 @@
 #pragma once
 
 #include "MacroAssembler.h"
-#include "../dfg/DFGGraph.h"
+#include "../zopt/ZOptGraph.h"
 #include <set>
 #include <map>
 #include <vector>
@@ -24,7 +24,7 @@
 namespace Zepra::JIT {
 
 // Forward declarations
-namespace DFG {
+namespace ZOpt {
     class Graph;
     class Node;
     class BasicBlock;

@@ -463,9 +463,12 @@ void BytecodeGenerator::compileFunctionDeclaration(const Frontend::FunctionDecl*
         }
         // Handle rest parameter (must be last)
         if (param.rest) {
-            // Create array from remaining arguments
-            // This would need runtime support for arguments object
-            // For now, just mark it as special
+            // Rest parameter collects remaining arguments into an array.
+            // The runtime's function call mechanism already sets up the
+            // local slot with an Array of remaining args at this index.
+            // Emit marker so the VM knows this slot receives rest args.
+            emit(Opcode::OP_CREATE_ARRAY);
+            emit(static_cast<uint8_t>(0)); // initial size = 0, filled by runtime
         }
         
         paramCount++;
@@ -1467,8 +1470,23 @@ void BytecodeGenerator::compileExportDeclaration(const Frontend::ExportDecl* dec
         compileStatement(decl->declaration());
         
         // If it's a named export, register the exported name
-        // For now, exports are tracked but not fully implemented
-        // This requires a module context to store exports
+        // Emit OP_EXPORT for the declared name
+        if (auto* funcDecl = dynamic_cast<const Frontend::FunctionDecl*>(decl->declaration())) {
+            int slot = resolveLocal(funcDecl->name());
+            if (slot != -1) {
+                emit(Opcode::OP_GET_LOCAL);
+                emit(static_cast<uint8_t>(slot));
+            } else {
+                size_t nameConst = makeConstant(
+                    Runtime::Value::string(new Runtime::String(funcDecl->name())));
+                emit(Opcode::OP_GET_GLOBAL);
+                emit(static_cast<uint8_t>(nameConst));
+            }
+            size_t exportConst = makeConstant(
+                Runtime::Value::string(new Runtime::String(funcDecl->name())));
+            emit(Opcode::OP_EXPORT);
+            emit(static_cast<uint8_t>(exportConst));
+        }
     }
     
     // Named exports: export { foo, bar }

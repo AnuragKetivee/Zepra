@@ -1,13 +1,13 @@
 ---
-title: KetiveeAI Source Available License
+title: KetiveeAI Public License
 version: 2.0
 effective: 2025
-projects: ZepraBrowser, ZebraScript
+projects: ZepraBrowser, ZepraScript
 copyright: KetiveeAI
 ---
 
-# KetiveeAI Source Available License
-### KSAL Version 2.0 — Effective 2025
+# KetiveeAI Public License
+### KPL Version 2.0 — Effective 2025
 
 ---
 
@@ -17,7 +17,7 @@ copyright: KetiveeAI
 
 ## 1. Preamble
 
-This license governs the use, modification, and distribution of ZepraBrowser, ZebraScript, NXRender, NXSVG, and all associated components authored by KetiveeAI. It is designed to balance open collaboration with the protection of original authorship, trademark identity, and long-term sustainability of the project.
+This license governs the use, modification, and distribution of ZepraBrowser, ZepraScript, NXRender, NXSVG, and all associated components authored by KetiveeAI. It is designed to balance open collaboration with the protection of original authorship, trademark identity, and long-term sustainability of the project.
 
 This is not a restriction on learning. It is a protection of origin.
 
@@ -27,7 +27,7 @@ This is not a restriction on learning. It is a protection of origin.
 
 | Term | Meaning |
 |---|---|
-| **Software** | ZepraBrowser, ZebraScript, NXRender, NXSVG, and all associated source code, binaries, and documentation |
+| **Software** | ZepraBrowser, ZepraScript, NXRender, NXSVG, and all associated source code, binaries, and documentation |
 | **KetiveeAI** | The copyright holder, trademark owner, and original author |
 | **Contributor** | Any person or entity that submits code, documentation, or materials to the Software |
 | **Derivative Work** | Any modification, adaptation, translation, or work based substantially on the Software |
@@ -73,7 +73,7 @@ By submitting any contribution to this project, you agree to the following terms
 The following are registered trademarks of KetiveeAI:
 
 - **ZepraBrowser**
-- **ZebraScript**
+- **ZepraScript**
 - **NXRender**
 - **NXSVG**
 - **KetiveeAI**
@@ -85,9 +85,9 @@ You may not use any of these names as the name or primary identifier of your own
 You may use these names to accurately describe the original Software. For example:
 
 ```
-Permitted:   "Based on ZebraScript by KetiveeAI"
-Permitted:   "Powered by ZebraScript"
-Prohibited:  "ZebraScript Pro" or "ZepraBrowser Lite"
+Permitted:   "Based on ZepraScript by KetiveeAI"
+Permitted:   "Powered by ZepraScript"
+Prohibited:  "ZepraScript Pro" or "ZepraBrowser Lite"
 ```
 
 To request trademark use, contact: licence@ketivee.com
@@ -98,7 +98,7 @@ To request trademark use, contact: licence@ketivee.com
 
 Each Contributor grants You a perpetual, worldwide, non-exclusive, royalty-free patent license to make, use, sell, and distribute their contributions as incorporated into the Software.
 
-This grant does not extend to any use of the Software in a product or service whose primary purpose is to compete directly with KetiveeAI's commercial offerings.
+Does not extend to any use of the Software in a product or service whose primary purpose is to compete directly with KetiveeAI's commercial offerings.
 
 ---
 
@@ -108,7 +108,7 @@ This grant does not extend to any use of the Software in a product or service wh
 |---|---|
 | Open source projects | Free, no license required |
 | Internal tools and non-commercial use | Free, no license required |
-| Commercial products where ZebraScript is a primary scripting component | Commercial license required |
+| Commercial products where ZepraScript is a primary scripting component | Commercial license required |
 
 To obtain a commercial embedding license, contact: licence@ketivee.com
 
@@ -121,9 +121,9 @@ This dual-license model is consistent with established practice in engine licens
 All distributions, Derivative Works, and products that embed the Software must include the following attribution in documentation, about screens, or an equivalent location:
 
 ```
-ZepraBrowser / ZebraScript
+ZepraBrowser / ZepraScript
 Copyright (c) 2025 KetiveeAI
-Licensed under KSAL-2.0
+Licensed under KPL-2.0
 https://about.ketivee.com
 ```
 
@@ -206,6 +206,6 @@ GitHub:              https://github.com/KetiveeAI
 
 ---
 
-*KetiveeAI Source Available License, Version 2.0*
-*ZepraBrowser and ZebraScript — Built in India. Independent by design.*
+*KetiveeAI Public License, Version 2.0*
+*ZepraBrowser and ZepraScript — Built in India. Independent by design.*
 *Copyright (c) 2025 KetiveeAI — https://about.ketivee.com*

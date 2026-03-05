@@ -9,6 +9,9 @@
  */
 
 #include "config.hpp"
+#include "runtime/objects/value.hpp"
+#include "runtime/objects/object.hpp"
+#include "runtime/objects/function.hpp"
 #include <memory>
 #include <string>
 #include <string_view>
@@ -19,14 +22,16 @@
 
 namespace Zepra {
 
-// Forward declarations
+// Type aliases — the public API uses Runtime types directly
+using Value = Runtime::Value;
+using Object = Runtime::Object;
+using Function = Runtime::Function;
+using String = Runtime::String;
+using Array = Runtime::Array;
+
+// Forward declarations for API-only types
 class Isolate;
 class Context;
-class Value;
-class Object;
-class Function;
-class String;
-class Array;
 class Script;
 class Module;
 

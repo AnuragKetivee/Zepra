@@ -22,6 +22,7 @@ set(ZEPRA_CORE_SOURCES
 
     # Runtime — Execution
     runtime/execution/vm.cpp
+    runtime/execution/crash_handler.cpp
     runtime/execution/environment.cpp
     runtime/execution/global_object.cpp
 
@@ -49,6 +50,40 @@ set(ZEPRA_CORE_SOURCES
     heap/compacting.cpp
     heap/generational_gc.cpp
     heap/finalizer.cpp
+    heap/concurrent_sweeper.cpp
+    heap/gc_pipeline.cpp
+    heap/heap_controller.cpp
+    heap/concurrent_marker.cpp
+    heap/gc_allocator.cpp
+    heap/scavenger_impl.cpp
+    heap/incremental_compactor.cpp
+    heap/gc_scheduler_impl.cpp
+    heap/remembered_set_impl.cpp
+    heap/gc_metrics.cpp
+    heap/heap_verifier_impl.cpp
+    heap/gc_integration.cpp
+    heap/thread_manager.cpp
+    heap/gc_handshake.cpp
+    heap/parallel_scanner.cpp
+    heap/generational_barrier.cpp
+    heap/heap_compactor.cpp
+    heap/memory_pressure.cpp
+    heap/gc_debug.cpp
+    heap/gc_unit_tests.cpp
+    heap/gc_stress.cpp
+    heap/gc_benchmark.cpp
+    heap/weak_processing.cpp
+    heap/finalizer_engine.cpp
+    heap/ephemeron_table.cpp
+    heap/jit_gc_bridge.cpp
+    heap/code_space_manager.cpp
+    heap/deoptimization_engine.cpp
+    heap/heap_region.cpp
+    heap/slab_allocator.cpp
+    heap/concurrent_compactor.cpp
+    heap/gc_pipeline_orchestrator.cpp
+    heap/heap_controller_v2.cpp
+    heap/region_allocator.cpp
 
     # Bytecode
     bytecode/bytecode_generator.cpp
@@ -99,11 +134,11 @@ set(ZEPRA_CORE_SOURCES
     jit/macro_assembler.cpp
     jit/deoptimizer.cpp
 
-    # DFG Optimizer
-    dfg/DFGGraph.cpp
-    dfg/DFGBuilder.cpp
-    dfg/DFGLowering.cpp
-    dfg/DFGPipeline.cpp
+    # Zepra Optimizer
+    zopt/ZOptGraph.cpp
+    zopt/ZOptBuilder.cpp
+    zopt/ZOptLowering.cpp
+    zopt/ZOptPipeline.cpp
 
     # Memory
     memory/page_allocator.cpp
@@ -112,10 +147,10 @@ set(ZEPRA_CORE_SOURCES
 
     # API
     api/isolate.cpp
-    api/context.cpp
     api/local_handle.cpp
     api/script.cpp
     api/value_api.cpp
+    api/script_engine.cpp
 
     # Debugger (was debug/)
     debugger/debug_api.cpp

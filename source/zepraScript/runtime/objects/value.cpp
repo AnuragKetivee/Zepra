@@ -87,15 +87,22 @@ double Value::toNumber() const {
                 return std::nan("");
             }
         }
+        case ValueType::BigInt:
+            throw std::runtime_error("TypeError: Cannot convert a BigInt value to a number");
         case ValueType::Object: {
-            // Objects coerce to NaN unless they have valueOf returning a primitive
+            // ToPrimitive → valueOf → toString coercion chain
             Object* obj = asObject();
             if (obj) {
-                // Try valueOf method
                 Value valueOf = obj->get("valueOf");
                 if (valueOf.isObject() && valueOf.asObject()->isFunction()) {
-                    // Would call valueOf here with proper VM context
-                    // For now, return NaN as per spec default
+                    // Call valueOf on the object
+                    Function* fn = static_cast<Function*>(valueOf.asObject());
+                    Value result = fn->call(nullptr, Value::object(obj), {});
+                    if (result.isNumber()) return result.asNumber();
+                    if (result.isString()) {
+                        try { return std::stod(result.toString()); }
+                        catch (...) { return std::nan(""); }
+                    }
                 }
             }
             return std::nan("");
@@ -153,14 +160,16 @@ Object* Value::toObject() const {
         return asObject();
     }
     if (isNumber()) {
-        // Create a Number wrapper object
-        // For now, return nullptr - full implementation needs Number class
-        return nullptr;
+        // Box number into a Number wrapper object
+        Object* wrapper = new Object();
+        wrapper->set("__primitiveValue__", Value::number(asNumber()));
+        return wrapper;
     }
     if (isBoolean()) {
-        // Create a Boolean wrapper object
-        // For now, return nullptr - full implementation needs Boolean class
-        return nullptr;
+        // Box boolean into a Boolean wrapper object
+        Object* wrapper = new Object();
+        wrapper->set("__primitiveValue__", Value::boolean(asBoolean()));
+        return wrapper;
     }
     
     // undefined and null throw TypeError in strict mode

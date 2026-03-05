@@ -429,13 +429,13 @@ StmtPtr Parser::parseForStatement() {
         TokenType declType = previousToken_.type;
         Token varName = consume(TokenType::Identifier, "Expected variable name");
         
-        // Check if this is for...of
-        if (match(TokenType::Of)) {
-            isForOf = true;
+        // Check if this is for...of or for...in
+        if (match(TokenType::Of) || match(TokenType::In)) {
+            bool isIn = (previousToken_.type == TokenType::In);
             
-            // Parse the iterable expression
+            // Parse the iterable/object expression
             ExprPtr iterable = parseAssignmentExpression();
-            consume(TokenType::RightParen, "Expected ')' after for...of");
+            consume(TokenType::RightParen, isIn ? "Expected ')' after for...in" : "Expected ')' after for...of");
             
             bool prevInLoop = inLoop_;
             inLoop_ = true;
@@ -453,6 +453,9 @@ StmtPtr Parser::parseForStatement() {
             declarators.push_back({std::move(id), nullptr});
             auto varDecl = std::make_unique<VariableDecl>(kind, std::move(declarators));
             
+            if (isIn) {
+                return std::make_unique<ForInStmt>(std::move(varDecl), std::move(iterable), std::move(body));
+            }
             return std::make_unique<ForOfStmt>(std::move(varDecl), std::move(iterable), std::move(body));
         }
         
@@ -489,18 +492,21 @@ StmtPtr Parser::parseForStatement() {
         // Expression or identifier that might be for...of
         ExprPtr expr = parseExpression();
         
-        // Check if this is for...of with an existing identifier
-        if (match(TokenType::Of)) {
-            isForOf = true;
+        // Check if this is for...of or for...in with an existing identifier
+        if (match(TokenType::Of) || match(TokenType::In)) {
+            bool isIn = (previousToken_.type == TokenType::In);
             
             ExprPtr iterable = parseAssignmentExpression();
-            consume(TokenType::RightParen, "Expected ')' after for...of");
+            consume(TokenType::RightParen, isIn ? "Expected ')' after for...in" : "Expected ')' after for...of");
             
             bool prevInLoop = inLoop_;
             inLoop_ = true;
             StmtPtr body = parseStatement();
             inLoop_ = prevInLoop;
             
+            if (isIn) {
+                return std::make_unique<ForInStmt>(std::move(expr), std::move(iterable), std::move(body));
+            }
             return std::make_unique<ForOfStmt>(std::move(expr), std::move(iterable), std::move(body));
         }
         

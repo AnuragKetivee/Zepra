@@ -116,6 +116,15 @@ enum class ObjectType : uint8 {
     Environment,
     Scope,
     BigInt,
+    Symbol,
+
+    // WASM types
+    Namespace,
+    WasmModule,
+    WasmInstance,
+    WasmMemory,
+    WasmTable,
+    WasmGlobal,
 };
 
 /**

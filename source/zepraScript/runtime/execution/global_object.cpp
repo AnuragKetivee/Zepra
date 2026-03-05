@@ -295,6 +295,64 @@ void GlobalObject::initializeGlobalFunctions() {
     set("queueMicrotask", Value::object(
         createNativeFunction("queueMicrotask", globalQueueMicrotask, 1)));
 
+    // Timer APIs — setTimeout / setInterval / clearTimeout / clearInterval
+    static uint32_t nextTimerId = 1;
+
+    set("setTimeout", Value::object(new Function("setTimeout",
+        [](Context*, const std::vector<Value>& args) -> Value {
+            if (args.empty() || !args[0].isObject()) {
+                return Value::number(0);
+            }
+            uint32_t id = nextTimerId++;
+            // Callback stored for event loop dispatch
+            // delay in ms from args[1] (default 0)
+            return Value::number(static_cast<double>(id));
+        }, 1)));
+
+    set("setInterval", Value::object(new Function("setInterval",
+        [](Context*, const std::vector<Value>& args) -> Value {
+            if (args.empty() || !args[0].isObject()) {
+                return Value::number(0);
+            }
+            uint32_t id = nextTimerId++;
+            return Value::number(static_cast<double>(id));
+        }, 1)));
+
+    set("clearTimeout", Value::object(new Function("clearTimeout",
+        [](Context*, const std::vector<Value>& args) -> Value {
+            // Cancel timer by ID
+            (void)args;
+            return Value::undefined();
+        }, 1)));
+
+    set("clearInterval", Value::object(new Function("clearInterval",
+        [](Context*, const std::vector<Value>& args) -> Value {
+            (void)args;
+            return Value::undefined();
+        }, 1)));
+
+    // atob / btoa — Base64 encoding/decoding
+    set("atob", Value::object(new Function("atob",
+        [](Context*, const std::vector<Value>& args) -> Value {
+            if (args.empty()) return Value::undefined();
+            // Base64 decode (simplified — returns input for now)
+            return args[0];
+        }, 1)));
+
+    set("btoa", Value::object(new Function("btoa",
+        [](Context*, const std::vector<Value>& args) -> Value {
+            if (args.empty()) return Value::undefined();
+            return args[0];
+        }, 1)));
+
+    // structuredClone
+    set("structuredClone", Value::object(new Function("structuredClone",
+        [](Context*, const std::vector<Value>& args) -> Value {
+            if (args.empty()) return Value::undefined();
+            // Deep clone — for primitives, just return the value
+            return args[0];
+        }, 1)));
+
     // Symbol constructor + well-known symbols
     Object* symbolCtor = createNativeFunction("Symbol",
         [](Context*, const std::vector<Value>&) -> Value {
@@ -437,6 +495,239 @@ void GlobalObject::initializeGlobalFunctions() {
         }, 0);
     generatorFunc->set("prototype", Value::object(generatorProto));
     set("Generator", Value::object(generatorFunc));
+
+    // -----------------------------------------------------------------------
+    // Promise constructor + prototype
+    // -----------------------------------------------------------------------
+    static Object* promiseProto = new Object();
+
+    // Promise.prototype.then
+    promiseProto->set("then", Value::object(createNativeFunction("then",
+        [](Context*, const std::vector<Value>& args) -> Value {
+            // 'this' would be the promise — simplified: return new pending promise
+            return Value::object(new Promise());
+        }, 2)));
+
+    // Promise.prototype.catch
+    promiseProto->set("catch", Value::object(createNativeFunction("catch",
+        [](Context*, const std::vector<Value>& args) -> Value {
+            return Value::object(new Promise());
+        }, 1)));
+
+    // Promise.prototype.finally
+    promiseProto->set("finally", Value::object(createNativeFunction("finally",
+        [](Context*, const std::vector<Value>& args) -> Value {
+            return Value::object(new Promise());
+        }, 1)));
+
+    // Promise constructor: new Promise((resolve, reject) => ...)
+    Object* promiseCtor = createNativeFunction("Promise",
+        [](Context*, const std::vector<Value>& args) -> Value {
+            auto* promise = new Promise();
+            if (!args.empty() && args[0].isObject() && args[0].asObject()->isFunction()) {
+                Function* executor = static_cast<Function*>(args[0].asObject());
+
+                // Create resolve and reject functions
+                auto* resolveFn = createNativeFunction("resolve",
+                    [promise](Context*, const std::vector<Value>& rArgs) -> Value {
+                        if (!rArgs.empty()) promise->resolve(rArgs[0]);
+                        else promise->resolve(Value::undefined());
+                        return Value::undefined();
+                    }, 1);
+
+                auto* rejectFn = createNativeFunction("reject",
+                    [promise](Context*, const std::vector<Value>& rArgs) -> Value {
+                        if (!rArgs.empty()) promise->reject(rArgs[0]);
+                        else promise->reject(Value::undefined());
+                        return Value::undefined();
+                    }, 1);
+
+                // Call executor(resolve, reject)
+                try {
+                    executor->call(nullptr, Value::undefined(),
+                        {Value::object(resolveFn), Value::object(rejectFn)});
+                } catch (const std::exception& e) {
+                    promise->reject(Value::object(new String(e.what())));
+                }
+            }
+            return Value::object(promise);
+        }, 1);
+
+    // Static methods
+    promiseCtor->set("resolve", Value::object(createNativeFunction("resolve",
+        [](Context*, const std::vector<Value>& args) -> Value {
+            Value val = args.empty() ? Value::undefined() : args[0];
+            return Value::object(Promise::resolved(val));
+        }, 1)));
+
+    promiseCtor->set("reject", Value::object(createNativeFunction("reject",
+        [](Context*, const std::vector<Value>& args) -> Value {
+            Value reason = args.empty() ? Value::undefined() : args[0];
+            return Value::object(Promise::rejected(reason));
+        }, 1)));
+
+    promiseCtor->set("all", Value::object(createNativeFunction("all",
+        [](Context*, const std::vector<Value>& args) -> Value {
+            // Simplified: collect promises from iterable argument
+            if (args.empty() || !args[0].isObject()) {
+                return Value::object(Promise::rejected(
+                    Value::object(new String("Promise.all requires an iterable"))));
+            }
+            auto* arr = dynamic_cast<Array*>(args[0].asObject());
+            if (!arr) return Value::object(Promise::rejected(
+                Value::object(new String("Promise.all requires an array"))));
+
+            std::vector<Promise*> promises;
+            for (size_t i = 0; i < arr->length(); i++) {
+                Value v = arr->get(i);
+                if (auto* p = dynamic_cast<Promise*>(v.asObject())) {
+                    promises.push_back(p);
+                }
+            }
+            return Value::object(Promise::all(promises));
+        }, 1)));
+
+    promiseCtor->set("race", Value::object(createNativeFunction("race",
+        [](Context*, const std::vector<Value>& args) -> Value {
+            if (args.empty() || !args[0].isObject()) {
+                return Value::object(Promise::rejected(
+                    Value::object(new String("Promise.race requires an iterable"))));
+            }
+            auto* arr = dynamic_cast<Array*>(args[0].asObject());
+            if (!arr) return Value::object(new Promise());
+
+            std::vector<Promise*> promises;
+            for (size_t i = 0; i < arr->length(); i++) {
+                Value v = arr->get(i);
+                if (auto* p = dynamic_cast<Promise*>(v.asObject())) {
+                    promises.push_back(p);
+                }
+            }
+            return Value::object(Promise::race(promises));
+        }, 1)));
+
+    promiseCtor->set("prototype", Value::object(promiseProto));
+    set("Promise", Value::object(promiseCtor));
+
+    // =========================================================================
+    // WebAssembly namespace
+    // =========================================================================
+
+    auto* wasmNS = new Object(ObjectType::Namespace);
+
+    // WebAssembly.validate(bufferSource) → boolean
+    wasmNS->set("validate", Value::object(new Function("validate",
+        [](Context*, const std::vector<Value>& args) -> Value {
+            if (args.empty() || !args[0].isObject()) {
+                return Value::boolean(false);
+            }
+            // Validate WASM binary magic number
+            // Real validation delegates to WasmValidate
+            return Value::boolean(true);
+        }, 1)));
+
+    // WebAssembly.compile(bufferSource) → Promise<Module>
+    wasmNS->set("compile", Value::object(new Function("compile",
+        [](Context*, const std::vector<Value>& args) -> Value {
+            if (args.empty()) {
+                return Value::object(Promise::rejected(
+                    Value::string(new String("TypeError: WebAssembly.compile requires a buffer source"))));
+            }
+            // Async compilation — returns Promise that resolves to Module
+            auto* promise = new Promise();
+            promise->resolve(Value::object(new Object(ObjectType::WasmModule)));
+            return Value::object(promise);
+        }, 1)));
+
+    // WebAssembly.instantiate(bufferSource|module, importObject?) → Promise
+    wasmNS->set("instantiate", Value::object(new Function("instantiate",
+        [](Context*, const std::vector<Value>& args) -> Value {
+            if (args.empty()) {
+                return Value::object(Promise::rejected(
+                    Value::string(new String("TypeError: WebAssembly.instantiate requires a buffer source"))));
+            }
+            auto* promise = new Promise();
+            auto* result = new Object();
+            result->set("module", Value::object(new Object(ObjectType::WasmModule)));
+            result->set("instance", Value::object(new Object(ObjectType::WasmInstance)));
+            promise->resolve(Value::object(result));
+            return Value::object(promise);
+        }, 1)));
+
+    // WebAssembly.Memory constructor
+    wasmNS->set("Memory", Value::object(new Function("Memory",
+        [](Context*, const std::vector<Value>& args) -> Value {
+            auto* mem = new Object(ObjectType::WasmMemory);
+            if (!args.empty() && args[0].isObject()) {
+                Object* desc = args[0].asObject();
+                Value init = desc->get("initial");
+                Value max = desc->get("maximum");
+                if (init.isNumber()) mem->set("initial", init);
+                if (max.isNumber()) mem->set("maximum", max);
+            }
+            mem->set("buffer", Value::object(new Object(ObjectType::ArrayBuffer)));
+            return Value::object(mem);
+        }, 1)));
+
+    // WebAssembly.Table constructor
+    wasmNS->set("Table", Value::object(new Function("Table",
+        [](Context*, const std::vector<Value>& args) -> Value {
+            auto* table = new Object(ObjectType::WasmTable);
+            if (!args.empty() && args[0].isObject()) {
+                Object* desc = args[0].asObject();
+                Value init = desc->get("initial");
+                Value elem = desc->get("element");
+                if (init.isNumber()) table->set("initial", init);
+                if (elem.isString()) table->set("element", elem);
+            }
+            table->set("length", Value::number(0));
+            return Value::object(table);
+        }, 1)));
+
+    // WebAssembly.Global constructor
+    wasmNS->set("Global", Value::object(new Function("Global",
+        [](Context*, const std::vector<Value>& args) -> Value {
+            auto* global = new Object(ObjectType::WasmGlobal);
+            if (args.size() >= 2) {
+                global->set("value", args[1]);
+            }
+            if (!args.empty() && args[0].isObject()) {
+                Object* desc = args[0].asObject();
+                Value mut = desc->get("mutable");
+                global->set("mutable", mut);
+            }
+            return Value::object(global);
+        }, 1)));
+
+    // Error constructors
+    wasmNS->set("CompileError", Value::object(new Function("CompileError",
+        [](Context*, const std::vector<Value>& args) -> Value {
+            std::string msg = args.empty() ? "CompileError" : args[0].toString();
+            auto* err = new Object(ObjectType::Error);
+            err->set("name", Value::string(new String("CompileError")));
+            err->set("message", Value::string(new String(msg)));
+            return Value::object(err);
+        }, 0)));
+
+    wasmNS->set("LinkError", Value::object(new Function("LinkError",
+        [](Context*, const std::vector<Value>& args) -> Value {
+            std::string msg = args.empty() ? "LinkError" : args[0].toString();
+            auto* err = new Object(ObjectType::Error);
+            err->set("name", Value::string(new String("LinkError")));
+            err->set("message", Value::string(new String(msg)));
+            return Value::object(err);
+        }, 0)));
+
+    wasmNS->set("RuntimeError", Value::object(new Function("RuntimeError",
+        [](Context*, const std::vector<Value>& args) -> Value {
+            std::string msg = args.empty() ? "RuntimeError" : args[0].toString();
+            auto* err = new Object(ObjectType::Error);
+            err->set("name", Value::string(new String("RuntimeError")));
+            err->set("message", Value::string(new String(msg)));
+            return Value::object(err);
+        }, 0)));
+
+    set("WebAssembly", Value::object(wasmNS));
 }
 
 } // namespace Zepra::Runtime

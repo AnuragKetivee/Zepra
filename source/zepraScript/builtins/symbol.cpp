@@ -15,7 +15,7 @@ namespace Zepra::Builtins {
 std::atomic<uint64_t> SymbolObject::nextId_{1};
 
 SymbolObject::SymbolObject(const std::string& description)
-    : Object(ObjectType::Arguments)  // Using Arguments as Symbol type placeholder
+    : Object(ObjectType::Symbol)
     , id_(nextId_.fetch_add(1))
     , description_(description) {}
 

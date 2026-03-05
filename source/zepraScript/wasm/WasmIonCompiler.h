@@ -13,7 +13,7 @@
 
 #include "wasm/WasmModule.h"
 #include "wasm/WasmInstance.h"
-#include "jit/dfg/DFGGraph.h"
+#include "jit/zopt/ZOptGraph.h"
 
 #include <cstdint>
 #include <vector>

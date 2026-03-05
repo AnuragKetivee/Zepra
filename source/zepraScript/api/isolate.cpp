@@ -1,12 +1,12 @@
 /**
  * @file isolate.cpp
- * @brief Isolate implementation - isolated JavaScript execution environment
+ * @brief Isolate implementation — isolated JavaScript execution environment
  */
 
 #include "zepra_api.hpp"
 #include "runtime/execution/vm.hpp"
-#include "heap/heap.hpp"
 #include <memory>
+#include <algorithm>
 
 namespace Zepra {
 
@@ -28,6 +28,9 @@ const char* getVersion() {
     return g_version;
 }
 
+// Forward — defined in context.cpp
+class ContextImpl;
+
 /**
  * @brief Concrete Isolate implementation
  */
@@ -37,50 +40,42 @@ public:
         : options_(options)
         , objectCount_(0)
         , usedHeapSize_(0)
+        , totalHeapSize_(options.initialHeapSize)
     {
-        // Initialize heap with specified size
-        totalHeapSize_ = options.initialHeapSize;
     }
-    
+
     ~IsolateImpl() override {
-        // Cleanup all contexts
         contexts_.clear();
     }
-    
+
     std::unique_ptr<Context> createContext() override;
-    
+
     void collectGarbage(bool fullGC) override {
-        // Trigger GC on all contexts
-        // For now, just reset some stats
-        if (fullGC) {
-            // Full collection
-        }
+        // GC integration point — when a GC heap is wired,
+        // this will trigger collection on it.
+        (void)fullGC;
     }
-    
+
     HeapStats getHeapStats() const override {
-        return {
-            totalHeapSize_,
-            usedHeapSize_,
-            objectCount_
-        };
+        return { totalHeapSize_, usedHeapSize_, objectCount_ };
     }
-    
+
     void registerContext(Context* ctx) {
         contexts_.push_back(ctx);
     }
-    
+
     void unregisterContext(Context* ctx) {
         contexts_.erase(
             std::remove(contexts_.begin(), contexts_.end(), ctx),
             contexts_.end());
     }
-    
+
     const IsolateOptions& options() const { return options_; }
-    
+
     void addObject() { objectCount_++; }
     void removeObject() { if (objectCount_ > 0) objectCount_--; }
     void addHeapUsage(size_t bytes) { usedHeapSize_ += bytes; }
-    
+
 private:
     IsolateOptions options_;
     std::vector<Context*> contexts_;
@@ -94,14 +89,6 @@ std::unique_ptr<Isolate> Isolate::create(const IsolateOptions& options) {
         initialize();
     }
     return std::make_unique<IsolateImpl>(options);
-}
-
-// Forward declaration - implemented in context.cpp
-class ContextImpl;
-
-std::unique_ptr<Context> IsolateImpl::createContext() {
-    // Will be implemented in context.cpp
-    return nullptr;
 }
 
 // Exception implementation
@@ -123,12 +110,29 @@ std::string Exception::toString() const {
         case ErrorType::URIError: typeName = "URIError"; break;
         case ErrorType::InternalError: typeName = "InternalError"; break;
     }
-    
+
     std::string result = std::string(typeName) + ": " + message_;
     if (!stack_.empty()) {
         result += "\n" + stack_;
     }
     return result;
+}
+
+} // namespace Zepra
+
+// Include context implementation
+#include "api/context_impl.hpp"
+
+namespace Zepra {
+
+std::unique_ptr<Context> IsolateImpl::createContext() {
+    auto ctx = std::make_unique<ContextImpl>(this);
+    registerContext(ctx.get());
+    return ctx;
+}
+
+Isolate* ContextImpl::isolate() {
+    return static_cast<Isolate*>(isolate_);
 }
 
 } // namespace Zepra

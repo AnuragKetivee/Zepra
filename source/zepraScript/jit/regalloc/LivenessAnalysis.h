@@ -8,7 +8,7 @@
 
 #pragma once
 
-#include "jit/dfg/DFGGraph.h"
+#include "jit/zopt/ZOptGraph.h"
 #include <vector>
 #include <map>
 #include <algorithm>
@@ -33,7 +33,7 @@ struct LiveInterval {
 
 class LivenessAnalysis {
 public:
-    explicit LivenessAnalysis(const DFG::Graph& graph) : graph_(graph) {}
+    explicit LivenessAnalysis(const ZOpt::Graph& graph) : graph_(graph) {}
     
     void compute() {
         // 1. Linearize blocks (compute instruction indices)
@@ -69,7 +69,7 @@ private:
         // Build linear order of instructions
     }
     
-    const DFG::Graph& graph_;
+    const ZOpt::Graph& graph_;
     std::vector<LiveInterval> intervals_;
 };
 

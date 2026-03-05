@@ -14,6 +14,7 @@
 #include <stack>
 #include <unordered_map>
 #include "runtime/handles/inline_cache.hpp"
+#include "jit/jit_profiler.hpp"
 
 namespace Zepra::Runtime {
 
@@ -303,6 +304,7 @@ private:
     ResourceMonitor* resourceMonitor_ = nullptr;  // Resource limit tracking
     GCHeap* gcHeap_ = nullptr;                    // GC heap for safe-points/barriers
     ICManager icManager_;                          // Inline cache for property access
+    JIT::JITProfiler jitProfiler_;                  // Hot function detection
     bool terminationRequested_ = false;           // Termination flag
     uint64_t instructionCounter_ = 0;             // For periodic limit checks
     static constexpr uint64_t LIMIT_CHECK_INTERVAL = 1000;  // Check every N instructions

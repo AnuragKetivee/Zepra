@@ -154,6 +154,15 @@ set(ZEPRA_CORE_SOURCES
     heap/gc_heap_statistics.cpp
     heap/gc_finalization_executor.cpp
     heap/gc_heap_verifier.cpp
+    heap/gc_secure_wipe.cpp
+    heap/gc_tab_isolator.cpp
+    heap/gc_idle_scheduler.cpp
+    heap/gc_rss_limiter.cpp
+    heap/gc_page_decommit.cpp
+    heap/gc_bg_throttle.cpp
+    heap/gc_per_tab_allocator.cpp
+    heap/gc_heap_trimmer.cpp
+    heap/gc_low_memory_protector.cpp
 
     # Bytecode
     bytecode/bytecode_generator.cpp

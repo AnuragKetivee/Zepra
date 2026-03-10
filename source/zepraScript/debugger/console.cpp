@@ -256,8 +256,21 @@ std::string Console::formatArgs(const std::vector<Value>& args) {
 }
 
 std::string Console::getCurrentStackTrace() {
-    // TODO: Get actual stack trace from VM
-    return "";
+    std::string trace;
+    if (!vm_) return trace;
+
+    size_t depth = vm_->getCallDepth();
+    for (size_t i = 0; i < depth && i < 32; ++i) {
+        trace += "    at ";
+        std::string name = vm_->getFrameFunctionName(i);
+        trace += name.empty() ? "<anonymous>" : name;
+        trace += " (";
+        trace += vm_->getFrameSourceFile(i);
+        trace += ":";
+        trace += std::to_string(vm_->getFrameLine(i));
+        trace += ")\n";
+    }
+    return trace;
 }
 
 // =============================================================================

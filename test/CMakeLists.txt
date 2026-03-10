@@ -206,3 +206,8 @@ if(GTest_FOUND)
 else()
     message(STATUS "GTest not found - security tests skipped")
 endif()
+
+# -----------------------------------------------------------------------------
+# ZepraScript Tests (reorganized from source/zepraScript/tests/)
+# -----------------------------------------------------------------------------
+add_subdirectory(zeprascript)

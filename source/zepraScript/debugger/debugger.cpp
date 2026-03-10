@@ -111,23 +111,40 @@ void Debugger::stepOut() {
 std::vector<DebugCallFrame> Debugger::getCallStack() const {
     std::vector<DebugCallFrame> frames;
     
-    // Get call depth from VM
     size_t depth = vm_->getCallDepth();
     
     for (size_t i = 0; i < depth; ++i) {
         DebugCallFrame frame;
-        frame.functionName = "<frame " + std::to_string(i) + ">";
-        frame.line = 0;
-        // TODO: Get actual frame info from VM
+        frame.functionName = vm_->getFrameFunctionName(i);
+        frame.sourceFile = vm_->getFrameSourceFile(i);
+        frame.line = vm_->getFrameLine(i);
+        frame.column = vm_->getFrameColumn(i);
+        frame.thisValue = vm_->getFrameThisValue(i);
+
+        auto localNames = vm_->getFrameLocalNames(i);
+        for (const auto& name : localNames) {
+            frame.locals[name] = vm_->getFrameLocal(i, name);
+        }
+
         frames.push_back(frame);
     }
     
     return frames;
 }
 
-std::unordered_map<std::string, Value> Debugger::getScopeVariables(size_t) const {
+std::unordered_map<std::string, Value> Debugger::getScopeVariables(size_t frameIndex) const {
     std::unordered_map<std::string, Value> vars;
-    // TODO: Get variables from VM environment
+
+    auto localNames = vm_->getFrameLocalNames(frameIndex);
+    for (const auto& name : localNames) {
+        vars[name] = vm_->getFrameLocal(frameIndex, name);
+    }
+
+    auto closureNames = vm_->getFrameClosureNames(frameIndex);
+    for (const auto& name : closureNames) {
+        vars[name] = vm_->getFrameClosure(frameIndex, name);
+    }
+
     return vars;
 }
 
@@ -135,9 +152,9 @@ std::unordered_map<std::string, Value> Debugger::getScopeVariables(size_t) const
 // Variable Inspection
 // =============================================================================
 
-Value Debugger::evaluate(const std::string&) {
-    // TODO: Compile and evaluate expression in current context
-    return Value::undefined();
+Value Debugger::evaluate(const std::string& expression) {
+    if (expression.empty()) return Value::undefined();
+    return vm_->evaluateInFrame(0, expression);
 }
 
 void Debugger::addWatch(const std::string& expression) {
@@ -147,8 +164,8 @@ void Debugger::addWatch(const std::string& expression) {
 std::vector<std::pair<std::string, Value>> Debugger::getWatches() const {
     std::vector<std::pair<std::string, Value>> result;
     for (const auto& expr : watches_) {
-        // TODO: Evaluate each expression
-        result.push_back({expr, Value::undefined()});
+        Value val = vm_->evaluateInFrame(0, expr);
+        result.push_back({expr, val});
     }
     return result;
 }
@@ -232,7 +249,10 @@ bool Debugger::checkBreakpoint(const std::string& file, uint32_t line) {
             
             bp.hitCount++;
             
-            // TODO: Evaluate condition if present
+            if (!bp.condition.empty()) {
+                Value result = vm_->evaluateInFrame(0, bp.condition);
+                if (!result.toBoolean()) continue;
+            }
             
             notifyEvent(DebugEvent::BreakpointHit, &bp);
             return true;

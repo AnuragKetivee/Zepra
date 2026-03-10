@@ -79,7 +79,9 @@ public:
         namespaces_.push_back(ns);
         // Register with GC as root
         if (gc_) {
-            // TODO: gc_->addRoot when GCController supports it
+            gc_->addRoot(ns, [](void* root, auto& marker) {
+                static_cast<ModuleNamespace*>(root)->markReferences(marker);
+            });
         }
     }
     
@@ -89,7 +91,9 @@ public:
     void registerEnvironment(ModuleEnvironmentRecord* env) {
         environments_.push_back(env);
         if (gc_) {
-            // TODO: gc_->addRoot when GCController supports it
+            gc_->addRoot(env, [](void* root, auto& marker) {
+                static_cast<ModuleEnvironmentRecord*>(root)->markReferences(marker);
+            });
         }
     }
     

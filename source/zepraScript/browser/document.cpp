@@ -201,9 +201,17 @@ void Element::addEventListener(const std::string& type, Value callback) {
     eventListeners_[type].push_back(callback);
 }
 
-void Element::removeEventListener(const std::string& type, Value) {
-    // TODO: Match and remove specific callback
-    eventListeners_[type].clear();
+void Element::removeEventListener(const std::string& type, Value callback) {
+    auto it = eventListeners_.find(type);
+    if (it == eventListeners_.end()) return;
+
+    auto& listeners = it->second;
+    for (auto li = listeners.begin(); li != listeners.end(); ++li) {
+        if (li->strictEquals(callback)) {
+            listeners.erase(li);
+            return;
+        }
+    }
 }
 
 void Element::dispatchEvent(const std::string& type, Value eventData) {
@@ -292,9 +300,14 @@ void Document::addEventListener(const std::string& type, Value callback) {
 // DocumentBuiltin Implementation
 // =============================================================================
 
-Value DocumentBuiltin::getElementById(Runtime::Context*, const std::vector<Value>&) {
-    // TODO: Get document from context and call getElementById
-    return Value::null();
+Value DocumentBuiltin::getElementById(Runtime::Context* ctx, const std::vector<Value>& args) {
+    if (!ctx || args.empty() || !args[0].isString()) return Value::null();
+
+    Document* doc = ctx->getDocument();
+    if (!doc) return Value::null();
+
+    Element* el = doc->getElementById(args[0].toString());
+    return el ? Value::object(el) : Value::null();
 }
 
 Value DocumentBuiltin::querySelector(Runtime::Context*, const std::vector<Value>&) {

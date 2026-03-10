@@ -400,11 +400,26 @@ public:
      */
     std::vector<CapturedVar> getCapturedVariables(Value functionValue) const {
         std::vector<CapturedVar> result;
-        
-        // TODO: Implement actual closure inspection
-        // This requires Function object to expose closure environment
-        (void)functionValue;
-        
+
+        if (!functionValue.isObject() || !functionValue.asObject()->isFunction()) {
+            return result;
+        }
+
+        Runtime::Function* fn = static_cast<Runtime::Function*>(
+            functionValue.asObject());
+        auto closureEnv = fn->getClosureEnvironment();
+        if (!closureEnv) return result;
+
+        auto names = closureEnv->getBindingNames();
+        for (const auto& name : names) {
+            CapturedVar cv;
+            cv.name = name;
+            cv.value = closureEnv->getBinding(name);
+            cv.originalScope = fn->sourceFile();
+            cv.originalLine = fn->sourceLine();
+            result.push_back(cv);
+        }
+
         return result;
     }
 };

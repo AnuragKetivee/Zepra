@@ -212,10 +212,14 @@ public:
             PropertyInfo info;
             info.name = name;
             info.value = obj->get(name);
-            info.enumerable = true;
-            info.writable = true;
-            info.configurable = true;
-            // TODO: Get actual property attributes
+
+            auto desc = obj->getPropertyDescriptor(name);
+            info.writable = desc.writable;
+            info.enumerable = desc.enumerable;
+            info.configurable = desc.configurable;
+            info.isGetter = desc.hasGetter;
+            info.isSetter = desc.hasSetter;
+
             result.push_back(info);
         }
         
@@ -308,15 +312,21 @@ public:
             // Check for function
             if (obj->isFunction()) {
                 preview.type = "function";
-                preview.description = "function";
-                // TODO: Get function name
+                Runtime::Function* fn = static_cast<Runtime::Function*>(obj);
+                preview.description = "function " + fn->name() + "()";
                 return preview;
             }
             
             // Regular object
             preview.type = "object";
-            preview.className = "Object"; // TODO: Get actual class name
-            preview.description = "Object";
+            Value ctor = obj->get("constructor");
+            if (ctor.isObject() && ctor.asObject()->isFunction()) {
+                Runtime::Function* ctorFn = static_cast<Runtime::Function*>(ctor.asObject());
+                preview.className = ctorFn->name();
+            } else {
+                preview.className = "Object";
+            }
+            preview.description = preview.className;
             
             if (depth < config_.maxObjectPreviewDepth) {
                 auto props = getProperties(obj, true, false);

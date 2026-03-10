@@ -12,7 +12,6 @@
  *   4. Move objects to new locations
  *   5. Release empty pages
  *
- * Ref: V8 Mark-Compact, Shenandoah GC (OpenJDK), LuaJIT GC compaction
  */
 
 #include <cstdint>

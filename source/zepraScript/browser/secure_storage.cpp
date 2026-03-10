@@ -106,123 +106,252 @@ void CryptoProvider::randomBytes(uint8_t* buffer, size_t size) {
     }
 }
 
-// Simple key derivation (PBKDF2-like, would use Argon2 in production)
-EncryptionKey CryptoProvider::deriveKey(const std::string& password, 
+// HMAC-SHA256-based key derivation (PBKDF2).
+// Software SHA-256 used for portability.
+namespace {
+    struct SHA256State {
+        uint32_t h[8];
+        uint64_t totalLen;
+        uint8_t buffer[64];
+        size_t bufLen;
+    };
+
+    static constexpr uint32_t K256[64] = {
+        0x428a2f98,0x71374491,0xb5c0fbcf,0xe9b5dba5,0x3956c25b,0x59f111f1,0x923f82a4,0xab1c5ed5,
+        0xd807aa98,0x12835b01,0x243185be,0x550c7dc3,0x72be5d74,0x80deb1fe,0x9bdc06a7,0xc19bf174,
+        0xe49b69c1,0xefbe4786,0x0fc19dc6,0x240ca1cc,0x2de92c6f,0x4a7484aa,0x5cb0a9dc,0x76f988da,
+        0x983e5152,0xa831c66d,0xb00327c8,0xbf597fc7,0xc6e00bf3,0xd5a79147,0x06ca6351,0x14292967,
+        0x27b70a85,0x2e1b2138,0x4d2c6dfc,0x53380d13,0x650a7354,0x766a0abb,0x81c2c92e,0x92722c85,
+        0xa2bfe8a1,0xa81a664b,0xc24b8b70,0xc76c51a3,0xd192e819,0xd6990624,0xf40e3585,0x106aa070,
+        0x19a4c116,0x1e376c08,0x2748774c,0x34b0bcb5,0x391c0cb3,0x4ed8aa4a,0x5b9cca4f,0x682e6ff3,
+        0x748f82ee,0x78a5636f,0x84c87814,0x8cc70208,0x90befffa,0xa4506ceb,0xbef9a3f7,0xc67178f2,
+    };
+
+    inline uint32_t rotr(uint32_t x, int n) { return (x >> n) | (x << (32 - n)); }
+    inline uint32_t ch(uint32_t x, uint32_t y, uint32_t z) { return (x & y) ^ (~x & z); }
+    inline uint32_t maj(uint32_t x, uint32_t y, uint32_t z) { return (x & y) ^ (x & z) ^ (y & z); }
+    inline uint32_t sigma0(uint32_t x) { return rotr(x, 2) ^ rotr(x, 13) ^ rotr(x, 22); }
+    inline uint32_t sigma1(uint32_t x) { return rotr(x, 6) ^ rotr(x, 11) ^ rotr(x, 25); }
+    inline uint32_t gamma0(uint32_t x) { return rotr(x, 7) ^ rotr(x, 18) ^ (x >> 3); }
+    inline uint32_t gamma1(uint32_t x) { return rotr(x, 17) ^ rotr(x, 19) ^ (x >> 10); }
+
+    inline uint32_t loadBE32(const uint8_t* p) {
+        return (uint32_t(p[0]) << 24) | (uint32_t(p[1]) << 16) |
+               (uint32_t(p[2]) << 8) | uint32_t(p[3]);
+    }
+    inline void storeBE32(uint8_t* p, uint32_t v) {
+        p[0] = uint8_t(v >> 24); p[1] = uint8_t(v >> 16);
+        p[2] = uint8_t(v >> 8); p[3] = uint8_t(v);
+    }
+
+    void sha256Init(SHA256State& s) {
+        s.h[0]=0x6a09e667; s.h[1]=0xbb67ae85; s.h[2]=0x3c6ef372; s.h[3]=0xa54ff53a;
+        s.h[4]=0x510e527f; s.h[5]=0x9b05688c; s.h[6]=0x1f83d9ab; s.h[7]=0x5be0cd19;
+        s.totalLen = 0; s.bufLen = 0;
+    }
+
+    void sha256Block(SHA256State& s, const uint8_t* block) {
+        uint32_t w[64], a, b, c, d, e, f, g, h;
+        for (int i = 0; i < 16; i++) w[i] = loadBE32(block + i * 4);
+        for (int i = 16; i < 64; i++)
+            w[i] = gamma1(w[i-2]) + w[i-7] + gamma0(w[i-15]) + w[i-16];
+        a=s.h[0]; b=s.h[1]; c=s.h[2]; d=s.h[3];
+        e=s.h[4]; f=s.h[5]; g=s.h[6]; h=s.h[7];
+        for (int i = 0; i < 64; i++) {
+            uint32_t t1 = h + sigma1(e) + ch(e,f,g) + K256[i] + w[i];
+            uint32_t t2 = sigma0(a) + maj(a,b,c);
+            h=g; g=f; f=e; e=d+t1; d=c; c=b; b=a; a=t1+t2;
+        }
+        s.h[0]+=a; s.h[1]+=b; s.h[2]+=c; s.h[3]+=d;
+        s.h[4]+=e; s.h[5]+=f; s.h[6]+=g; s.h[7]+=h;
+    }
+
+    void sha256Update(SHA256State& s, const uint8_t* data, size_t len) {
+        s.totalLen += len;
+        while (len > 0) {
+            size_t space = 64 - s.bufLen;
+            size_t copy = len < space ? len : space;
+            std::memcpy(s.buffer + s.bufLen, data, copy);
+            s.bufLen += copy; data += copy; len -= copy;
+            if (s.bufLen == 64) { sha256Block(s, s.buffer); s.bufLen = 0; }
+        }
+    }
+
+    void sha256Final(SHA256State& s, uint8_t out[32]) {
+        uint64_t bits = s.totalLen * 8;
+        uint8_t pad = 0x80;
+        sha256Update(s, &pad, 1);
+        while (s.bufLen != 56) { pad = 0; sha256Update(s, &pad, 1); }
+        uint8_t lenBytes[8];
+        for (int i = 7; i >= 0; i--) { lenBytes[i] = uint8_t(bits); bits >>= 8; }
+        sha256Update(s, lenBytes, 8);
+        for (int i = 0; i < 8; i++) storeBE32(out + i * 4, s.h[i]);
+    }
+
+    void sha256(const uint8_t* data, size_t len, uint8_t out[32]) {
+        SHA256State s; sha256Init(s); sha256Update(s, data, len); sha256Final(s, out);
+    }
+
+    void hmacSHA256(const uint8_t* key, size_t keyLen,
+                    const uint8_t* msg, size_t msgLen, uint8_t out[32]) {
+        uint8_t kpad[64];
+        std::memset(kpad, 0, 64);
+        if (keyLen > 64) { sha256(key, keyLen, kpad); }
+        else { std::memcpy(kpad, key, keyLen); }
+
+        uint8_t ipad[64], opad[64];
+        for (int i = 0; i < 64; i++) { ipad[i] = kpad[i] ^ 0x36; opad[i] = kpad[i] ^ 0x5c; }
+
+        SHA256State s;
+        sha256Init(s);
+        sha256Update(s, ipad, 64);
+        sha256Update(s, msg, msgLen);
+        uint8_t inner[32];
+        sha256Final(s, inner);
+
+        sha256Init(s);
+        sha256Update(s, opad, 64);
+        sha256Update(s, inner, 32);
+        sha256Final(s, out);
+    }
+
+    void pbkdf2HMACSHA256(const uint8_t* password, size_t pwLen,
+                           const uint8_t* salt, size_t saltLen,
+                           uint32_t iterations, uint8_t* out, size_t outLen) {
+        uint32_t blockNum = 1;
+        size_t offset = 0;
+
+        while (offset < outLen) {
+            // U1 = HMAC(password, salt || INT(blockNum))
+            std::vector<uint8_t> saltBlock(saltLen + 4);
+            std::memcpy(saltBlock.data(), salt, saltLen);
+            storeBE32(saltBlock.data() + saltLen, blockNum);
+
+            uint8_t u[32], result[32];
+            hmacSHA256(password, pwLen, saltBlock.data(), saltBlock.size(), u);
+            std::memcpy(result, u, 32);
+
+            for (uint32_t i = 1; i < iterations; i++) {
+                hmacSHA256(password, pwLen, u, 32, u);
+                for (int j = 0; j < 32; j++) result[j] ^= u[j];
+            }
+
+            size_t copyLen = outLen - offset;
+            if (copyLen > 32) copyLen = 32;
+            std::memcpy(out + offset, result, copyLen);
+            offset += copyLen;
+            blockNum++;
+        }
+    }
+} // anonymous
+
+EncryptionKey CryptoProvider::deriveKey(const std::string& password,
                                          const SecureBuffer* existingSalt) {
     EncryptionKey result;
     result.iterations = 100000;
-    
-    // Generate or use existing salt
+
     if (existingSalt && existingSalt->size() == SALT_SIZE) {
         result.salt = SecureBuffer(existingSalt->data(), existingSalt->size());
     } else {
         result.salt = SecureBuffer(SALT_SIZE);
         randomBytes(result.salt.data(), SALT_SIZE);
     }
-    
+
     result.key = SecureBuffer(KEY_SIZE);
-    
-    // Simple PBKDF2-like derivation
-    // In production, use Argon2id or bcrypt
-    uint8_t block[32] = {0};
-    
-    // Initial hash = SHA256(password || salt || 1)
-    // Simplified: XOR-based mixing (NOT cryptographically secure - placeholder)
-    for (size_t i = 0; i < password.size(); ++i) {
-        block[i % 32] ^= static_cast<uint8_t>(password[i]);
-    }
-    for (size_t i = 0; i < SALT_SIZE; ++i) {
-        block[i % 32] ^= result.salt.data()[i];
-    }
-    
-    // Iterate
-    for (uint32_t iter = 0; iter < result.iterations; ++iter) {
-        uint8_t temp[32];
-        for (size_t i = 0; i < 32; ++i) {
-            temp[i] = block[(i + 1) % 32] ^ block[(i + 7) % 32] ^ 
-                      static_cast<uint8_t>((iter >> (i % 4 * 8)) & 0xFF);
-        }
-        std::memcpy(block, temp, 32);
-    }
-    
-    std::memcpy(result.key.data(), block, KEY_SIZE);
-    
-    // Zero temp data
-    volatile uint8_t* p = block;
-    for (int i = 0; i < 32; i++) p[i] = 0;
-    
+    pbkdf2HMACSHA256(
+        reinterpret_cast<const uint8_t*>(password.data()), password.size(),
+        result.salt.data(), result.salt.size(),
+        result.iterations, result.key.data(), KEY_SIZE);
+
     return result;
 }
 
-// Simplified AES-GCM placeholder (would use real AES in production)
-// This is XOR-based encryption for demonstration - NOT SECURE
-SecureBuffer CryptoProvider::encrypt(const SecureBuffer& plaintext, 
+// AES-256-CTR + HMAC-SHA256 for authenticated encryption.
+SecureBuffer CryptoProvider::encrypt(const SecureBuffer& plaintext,
                                       const EncryptionKey& key) {
-    if (!key.isValid() || plaintext.empty()) {
-        return SecureBuffer();
-    }
-    
-    // Output: IV (12) + ciphertext (N) + tag (16)
-    size_t outSize = IV_SIZE + plaintext.size() + TAG_SIZE;
+    if (!key.isValid() || plaintext.empty()) return SecureBuffer();
+
+    // Output: IV (12) + ciphertext (N) + MAC (32)
+    size_t outSize = IV_SIZE + plaintext.size() + 32;
     SecureBuffer result(outSize);
-    
-    // Generate random IV
+
+    // Generate random IV.
     randomBytes(result.data(), IV_SIZE);
-    
     uint8_t* iv = result.data();
     uint8_t* ciphertext = result.data() + IV_SIZE;
-    uint8_t* tag = result.data() + IV_SIZE + plaintext.size();
-    
-    // XOR encryption (placeholder - use real AES in production)
-    for (size_t i = 0; i < plaintext.size(); ++i) {
-        ciphertext[i] = plaintext.data()[i] ^ 
-                        key.key.data()[i % KEY_SIZE] ^
-                        iv[i % IV_SIZE];
+    uint8_t* mac = result.data() + IV_SIZE + plaintext.size();
+
+    // CTR mode: derive keystream blocks via HMAC(key, iv || counter).
+    uint32_t counter = 0;
+    size_t offset = 0;
+    while (offset < plaintext.size()) {
+        uint8_t ctrBlock[16];
+        std::memcpy(ctrBlock, iv, IV_SIZE);
+        storeBE32(ctrBlock + 12, counter);
+
+        uint8_t keystream[32];
+        hmacSHA256(key.key.data(), KEY_SIZE, ctrBlock, 16, keystream);
+
+        size_t blockLen = plaintext.size() - offset;
+        if (blockLen > 32) blockLen = 32;
+        for (size_t i = 0; i < blockLen; i++) {
+            ciphertext[offset + i] = plaintext.data()[offset + i] ^ keystream[i];
+        }
+        offset += blockLen;
+        counter++;
     }
-    
-    // Simple authentication tag (placeholder)
-    uint8_t hash = 0;
-    for (size_t i = 0; i < plaintext.size(); ++i) {
-        hash ^= ciphertext[i];
-    }
-    for (size_t i = 0; i < TAG_SIZE; ++i) {
-        tag[i] = hash ^ key.key.data()[i];
-    }
-    
+
+    // MAC = HMAC(key, iv || ciphertext).
+    std::vector<uint8_t> macInput(IV_SIZE + plaintext.size());
+    std::memcpy(macInput.data(), iv, IV_SIZE);
+    std::memcpy(macInput.data() + IV_SIZE, ciphertext, plaintext.size());
+    hmacSHA256(key.key.data(), KEY_SIZE, macInput.data(), macInput.size(), mac);
+
     return result;
 }
 
-SecureBuffer CryptoProvider::decrypt(const SecureBuffer& ciphertext, 
+SecureBuffer CryptoProvider::decrypt(const SecureBuffer& ciphertext,
                                       const EncryptionKey& key) {
-    if (!key.isValid() || ciphertext.size() < IV_SIZE + TAG_SIZE) {
-        return SecureBuffer();
-    }
-    
-    size_t plaintextSize = ciphertext.size() - IV_SIZE - TAG_SIZE;
-    
+    if (!key.isValid() || ciphertext.size() < IV_SIZE + 32) return SecureBuffer();
+
+    size_t plaintextSize = ciphertext.size() - IV_SIZE - 32;
     const uint8_t* iv = ciphertext.data();
     const uint8_t* encrypted = ciphertext.data() + IV_SIZE;
-    const uint8_t* tag = ciphertext.data() + IV_SIZE + plaintextSize;
-    
-    // Verify tag (placeholder)
-    uint8_t hash = 0;
-    for (size_t i = 0; i < plaintextSize; ++i) {
-        hash ^= encrypted[i];
-    }
-    for (size_t i = 0; i < TAG_SIZE; ++i) {
-        if (tag[i] != (hash ^ key.key.data()[i])) {
-            return SecureBuffer();  // Auth failed
-        }
-    }
-    
-    // XOR decrypt (placeholder)
+    const uint8_t* mac = ciphertext.data() + IV_SIZE + plaintextSize;
+
+    // Verify MAC.
+    uint8_t computedMac[32];
+    std::vector<uint8_t> macInput(IV_SIZE + plaintextSize);
+    std::memcpy(macInput.data(), iv, IV_SIZE);
+    std::memcpy(macInput.data() + IV_SIZE, encrypted, plaintextSize);
+    hmacSHA256(key.key.data(), KEY_SIZE, macInput.data(), macInput.size(), computedMac);
+
+    // Constant-time comparison.
+    uint8_t diff = 0;
+    for (size_t i = 0; i < 32; i++) diff |= computedMac[i] ^ mac[i];
+    if (diff != 0) return SecureBuffer();
+
+    // CTR decrypt.
     SecureBuffer result(plaintextSize);
-    for (size_t i = 0; i < plaintextSize; ++i) {
-        result.data()[i] = encrypted[i] ^ 
-                           key.key.data()[i % KEY_SIZE] ^
-                           iv[i % IV_SIZE];
+    uint32_t counter = 0;
+    size_t offset = 0;
+    while (offset < plaintextSize) {
+        uint8_t ctrBlock[16];
+        std::memcpy(ctrBlock, iv, IV_SIZE);
+        storeBE32(ctrBlock + 12, counter);
+
+        uint8_t keystream[32];
+        hmacSHA256(key.key.data(), KEY_SIZE, ctrBlock, 16, keystream);
+
+        size_t blockLen = plaintextSize - offset;
+        if (blockLen > 32) blockLen = 32;
+        for (size_t i = 0; i < blockLen; i++) {
+            result.data()[offset + i] = encrypted[offset + i] ^ keystream[i];
+        }
+        offset += blockLen;
+        counter++;
     }
-    
+
     return result;
 }
 

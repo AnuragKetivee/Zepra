@@ -578,11 +578,31 @@ IDBRequest* IDBObjectStore::openCursor(const Value& query, IDBCursor::Direction 
     
     IDBCursor* cursor = new IDBCursor(this, range, dir);
     
-    // Initialize cursor with first record
+    // Initialize cursor with first matching record
     if (!records_.empty()) {
-        auto it = records_.begin();
-        // TODO: Apply range filter and direction
-        req->setResult(Value::object(cursor));
+        auto records = getAllInternal();
+
+        // Apply range filter and direction
+        if (range) {
+            records.erase(
+                std::remove_if(records.begin(), records.end(),
+                    [&](const std::pair<Value, Value>& rec) {
+                        return !range->includes(rec.first);
+                    }),
+                records.end());
+        }
+
+        if (dir == IDBCursor::Direction::Prev || dir == IDBCursor::Direction::PrevUnique) {
+            std::reverse(records.begin(), records.end());
+        }
+
+        if (!records.empty()) {
+            cursor->key_ = records[0].first;
+            cursor->value_ = records[0].second;
+            req->setResult(Value::object(cursor));
+        } else {
+            req->setResult(Value::null());
+        }
     } else {
         req->setResult(Value::null());
     }
@@ -703,7 +723,13 @@ void IDBTransaction::abort() {
     active_ = false;
     finished_ = true;
     
-    // TODO: Rollback changes
+    // Rollback: restore pre-transaction record snapshots.
+    for (auto& [name, store] : stores_) {
+        auto it = snapshots_.find(name);
+        if (it != snapshots_.end()) {
+            store->restoreSnapshot(it->second);
+        }
+    }
     
     if (onabort) {
         onabort(this);

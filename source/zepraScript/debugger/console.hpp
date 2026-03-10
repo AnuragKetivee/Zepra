@@ -12,7 +12,7 @@
 #include <chrono>
 #include <functional>
 
-namespace Zepra::Runtime { class Context; }
+namespace Zepra::Runtime { class Context; class VM; }
 
 namespace Zepra::Debug {
 
@@ -114,9 +114,10 @@ public:
     // --- Source Info ---
     
     void setSourceInfo(const std::string& file, int line, int column);
+    void setVM(Runtime::VM* vm) { vm_ = vm; }
     
 private:
-    Console() = default;
+    Console() : vm_(nullptr) {}
     
     void addMessage(LogLevel level, const std::string& text, 
                     const std::vector<Value>& args = {});
@@ -135,6 +136,7 @@ private:
     std::unordered_map<std::string, int> counters_;
     
     int nextMessageId_ = 1;
+    Runtime::VM* vm_;
 };
 
 /**

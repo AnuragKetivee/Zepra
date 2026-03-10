@@ -321,6 +321,31 @@ Target: 80K GC lines | Current: ~50K | 120+ files across heap/, runtime/, test/
 - gc_age_table (adaptive tenuring), gc_heap_iterator, gc_sweep_worklist
 - gc_pressure_api (runtime), gc_card_table_test, gc_age_table_test
 
-#### Batch 21+ — In Progress
+#### Batch 21–23 ✅ — Runtime Integration + Controller Expansion
+
+- gc_vm_allocator, gc_controller, gc_concurrent_mark_controller
+- gc_promotion_bridge, gc_heap_init, gc_scavenger_controller
+- gc_state_machine, gc_heap_sizing, gc_vm_hooks
+
+#### Batch 24 ✅ — Sweep + Handle + Stats (924 lines, 9 files)
+
+- gc_concurrent_sweep_controller (104), gc_nursery_sizing (87), gc_handle_table (140)
+- gc_marking_visitor (104), gc_allocation_budget (90), gc_remembered_set_manager (89)
+- gc_heap_statistics (102), gc_finalization_executor (83), gc_heap_verifier (125)
+
+#### Batch 25 ✅ — GC 80K+ Capacity + Smart RAM Allocator (2,063 lines, 11 files)
+
+- **GC Capacity**: gc_capacity_manager (149), gc_object_table (180), gc_generation_balancer (147)
+- **Smart RAM Allocator**: smart_ram_allocator (289), gc_tab_memory_policy (172), gc_background_throttle_policy (146), gc_media_tab_protector (101)
+- **Runtime Bridges**: gc_smart_ram_bridge (110), gc_tab_lifecycle (131)
+- **Tests**: gc_capacity_test (289), smart_ram_allocator_test (349)
+- **Reorganized**: all ZepraScript tests moved to `test/zeprascript/` with KPL-2.0 headers
 
 ---
+
+#### Batch 26 ✅ — Test Stubs → Real Implementations + Tab Isolation Audit (1,096 lines expanded)
+
+- **value_tests.cpp**: 61→352 lines — NaN-boxing edges (NaN, Infinity, -0), all operators, bitwise, symbols, type tags
+- **sandbox_tests.cpp**: 293→431 lines — 8 cross-tab heap isolation GTests (SimTabIsolator, pointer blocking, secure wipe)
+- **fetch_tests.cpp**: 150→313 lines — error codes, body tracking, credential isolation, CORS, URL edge cases
+- **Tab isolation audit**: clean, no duplicates, all in `gc_tab_isolator.cpp`

@@ -284,7 +284,7 @@ public:
                 // Here we just pass IN to OUT for unmodified variables
                 std::unordered_map<uint32_t, SpeculatedType> newOut = block.stateIn;
                 
-                // Simulate some operations adding specific types (mock logic)
+                // Merge block-local type changes from prior instructions into output
                 for (auto& var : block.stateOut) {
                     // Retain any explicitly inferred types from the block's instructions
                     newOut[var.first] |= var.second; 

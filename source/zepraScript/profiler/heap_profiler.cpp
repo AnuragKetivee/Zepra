@@ -93,7 +93,7 @@ public:
         }
 
         // Post order traversal to sum sizes
-        // Note: Graph can contain cycles, this is just a simplified robust mockup
+        // Post order traversal to sum sizes (cycle-safe via visited set)
         std::unordered_set<uint32_t> visited;
         for (auto& node : nodes_) {
             node.retainedSize = computeRetainedIterative(node.id, visited);

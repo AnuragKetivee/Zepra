@@ -156,8 +156,8 @@ size_t MemoryProfiler::getUsedHeapSize() const {
 }
 
 size_t MemoryProfiler::getTotalHeapSize() const {
-    // TODO: Get from GC heap
-    return getUsedHeapSize() * 2;  // Estimate
+    if (gcHeapSize_) return gcHeapSize_();
+    return getUsedHeapSize() * 2;  // Fallback estimate
 }
 
 void MemoryProfiler::onAllocation(void* ptr, size_t size, const std::string& type) {

@@ -152,11 +152,97 @@ private:
     std::unordered_map<std::string, Mapping> mappings_;
 };
 
-// Placeholder for JSON parsing
-bool SourceMap::loadFromJson(const std::string& /*json*/) {
-    // TODO: Implement V3 source map parsing
-    // For now, return false to indicate no source map loaded
-    return false;
+bool SourceMap::loadFromJson(const std::string& json) {
+    // Minimal V3 source map parser.
+    // Expects: {"version":3,"sources":[...],"mappings":"..."}
+    auto findStr = [&](const std::string& key) -> std::string {
+        size_t pos = json.find("\"" + key + "\"");
+        if (pos == std::string::npos) return "";
+        pos = json.find(':', pos);
+        if (pos == std::string::npos) return "";
+        pos++;
+        while (pos < json.size() && json[pos] == ' ') pos++;
+        if (pos >= json.size()) return "";
+        if (json[pos] == '"') {
+            size_t end = json.find('"', pos + 1);
+            return end != std::string::npos ? json.substr(pos + 1, end - pos - 1) : "";
+        }
+        return "";
+    };
+
+    auto findArray = [&](const std::string& key) -> std::vector<std::string> {
+        std::vector<std::string> result;
+        size_t pos = json.find("\"" + key + "\"");
+        if (pos == std::string::npos) return result;
+        pos = json.find('[', pos);
+        if (pos == std::string::npos) return result;
+        size_t end = json.find(']', pos);
+        if (end == std::string::npos) return result;
+        std::string arr = json.substr(pos + 1, end - pos - 1);
+        size_t s = 0;
+        while (s < arr.size()) {
+            size_t q1 = arr.find('"', s);
+            if (q1 == std::string::npos) break;
+            size_t q2 = arr.find('"', q1 + 1);
+            if (q2 == std::string::npos) break;
+            result.push_back(arr.substr(q1 + 1, q2 - q1 - 1));
+            s = q2 + 1;
+        }
+        return result;
+    };
+
+    std::string mappingsStr = findStr("mappings");
+    auto sources = findArray("sources");
+    std::string generatedFile = findStr("file");
+    if (mappingsStr.empty() || sources.empty()) return false;
+
+    // VLQ decode helper.
+    auto decodeVLQ = [](const std::string& s, size_t& pos) -> int {
+        int value = 0, shift = 0;
+        while (pos < s.size()) {
+            static const char base64[] = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
+            const char* p = strchr(base64, s[pos++]);
+            if (!p) break;
+            int digit = static_cast<int>(p - base64);
+            value |= (digit & 0x1F) << shift;
+            shift += 5;
+            if (!(digit & 0x20)) break;
+        }
+        return (value & 1) ? -(value >> 1) : (value >> 1);
+    };
+
+    int genLine = 0, genCol = 0, srcIdx = 0, srcLine = 0, srcCol = 0;
+    size_t pos = 0;
+
+    while (pos < mappingsStr.size()) {
+        if (mappingsStr[pos] == ';') {
+            genLine++;
+            genCol = 0;
+            pos++;
+            continue;
+        }
+        if (mappingsStr[pos] == ',') { pos++; continue; }
+
+        genCol += decodeVLQ(mappingsStr, pos);
+        if (pos < mappingsStr.size() && mappingsStr[pos] != ',' && mappingsStr[pos] != ';') {
+            srcIdx += decodeVLQ(mappingsStr, pos);
+            srcLine += decodeVLQ(mappingsStr, pos);
+            srcCol += decodeVLQ(mappingsStr, pos);
+
+            if (srcIdx >= 0 && srcIdx < static_cast<int>(sources.size())) {
+                Mapping m;
+                m.generatedFile = generatedFile;
+                m.generatedLine = static_cast<uint32_t>(genLine);
+                m.generatedColumn = static_cast<uint32_t>(genCol);
+                m.originalFile = sources[srcIdx];
+                m.originalLine = static_cast<uint32_t>(srcLine);
+                m.originalColumn = static_cast<uint32_t>(srcCol);
+                addMapping(m);
+            }
+        }
+    }
+
+    return true;
 }
 
 // =============================================================================

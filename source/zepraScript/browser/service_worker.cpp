@@ -31,7 +31,18 @@ ServiceWorker::ServiceWorker(const std::string& scriptURL)
 
 void ServiceWorker::postMessage(const Value& message, 
                                  const std::vector<Object*>& transfer) {
-    // TODO: Implement message passing to service worker thread
+    MessageEvent event;
+    event.data = message;
+    event.origin = scriptURL_;
+
+    // Transfer ownership of transferable objects.
+    for (auto* obj : transfer) {
+        event.transferList.push_back(obj);
+    }
+
+    // Enqueue to worker's message queue.
+    std::lock_guard<std::mutex> lock(messageMutex_);
+    messageQueue_.push(std::move(event));
 }
 
 void ServiceWorker::setState(State state) {
@@ -53,11 +64,26 @@ ServiceWorkerRegistration::ServiceWorkerRegistration(const std::string& scope)
 
 Promise* ServiceWorkerRegistration::update() {
     Promise* p = new Promise();
-    
-    // TODO: Check for updated service worker script
-    // For now, resolve with this registration
+
+    // Compare current script content with fetched version.
+    if (active_) {
+        std::string currentHash = active_->scriptHash();
+        std::string fetchedSource = active_->fetchScriptSource();
+
+        // Byte-for-byte comparison via hash.
+        uint32_t newHash = 0;
+        for (char c : fetchedSource) newHash = newHash * 31 + static_cast<uint8_t>(c);
+        std::string newHashStr = std::to_string(newHash);
+
+        if (currentHash != newHashStr && !fetchedSource.empty()) {
+            ServiceWorker* sw = new ServiceWorker(active_->scriptURL());
+            sw->setScriptHash(newHashStr);
+            sw->setState(ServiceWorker::State::Installing);
+            installing_ = sw;
+        }
+    }
+
     p->resolve(Value::object(this));
-    
     return p;
 }
 

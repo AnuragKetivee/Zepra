@@ -54,12 +54,18 @@ void EventTarget::addEventListener(const std::string& type, Value callback,
     listeners_[type].push_back(listener);
 }
 
-void EventTarget::removeEventListener(const std::string& type, Value,
+void EventTarget::removeEventListener(const std::string& type, Value callback,
                                        bool) {
-    // TODO: Match and remove specific callback
     auto it = listeners_.find(type);
-    if (it != listeners_.end()) {
-        it->second.clear();
+    if (it == listeners_.end()) return;
+
+    auto& list = it->second;
+    for (auto li = list.begin(); li != list.end(); ++li) {
+        if (li->callback.isObject() && callback.isObject() &&
+            li->callback.asObject() == callback.asObject()) {
+            list.erase(li);
+            return;
+        }
     }
 }
 

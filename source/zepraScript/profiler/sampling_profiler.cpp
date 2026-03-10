@@ -23,7 +23,7 @@
 
 namespace Zepra::Profiler {
 
-// We borrow ProfileFrame from cpu_profiler, mock it here for independence
+// Standalone frame struct, decoupled from cpu_profiler for compilation independence
 struct AllocProfileFrame {
     std::string functionName;
     std::string scriptUrl;

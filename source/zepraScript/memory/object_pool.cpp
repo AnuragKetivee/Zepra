@@ -164,7 +164,7 @@ void PoolManager::deallocateSmall(void* ptr, size_t size) {
 
 PoolManager::Stats PoolManager::stats() const {
     Stats s;
-    s.poolAllocations = 0;  // TODO: Track
+    s.poolAllocations = slab_.activeAllocations();
     s.heapAllocations = 0;
     s.totalActive = slab_.activeAllocations();
     s.bytesInPools = slab_.totalAllocated();

@@ -120,9 +120,42 @@ std::vector<PropertyDescriptor> Inspector::getProperties(Object* obj, bool) {
     return props;
 }
 
-std::vector<PropertyDescriptor> Inspector::getInternalProperties(Object*) {
+std::vector<PropertyDescriptor> Inspector::getInternalProperties(Object* obj) {
     std::vector<PropertyDescriptor> props;
-    // TODO: Add internal properties when Object::getPrototype exists
+    if (!obj) return props;
+
+    // [[Prototype]]
+    Object* proto = obj->getPrototype();
+    if (proto) {
+        PropertyDescriptor pd;
+        pd.name = "[[Prototype]]";
+        pd.value = Value::object(proto);
+        pd.enumerable = false;
+        pd.writable = false;
+        pd.configurable = false;
+        props.push_back(pd);
+    }
+
+    // [[Class]] via constructor name
+    Value ctor = obj->get("constructor");
+    if (ctor.isObject() && ctor.asObject()->isFunction()) {
+        Function* ctorFn = static_cast<Function*>(ctor.asObject());
+        PropertyDescriptor pd;
+        pd.name = "[[Class]]";
+        pd.value = Value::string(ctorFn->name());
+        pd.enumerable = false;
+        pd.writable = false;
+        pd.configurable = false;
+        props.push_back(pd);
+    }
+
+    if (obj->isArray()) {
+        PropertyDescriptor pd;
+        pd.name = "[[Length]]";
+        pd.value = obj->get("length");
+        props.push_back(pd);
+    }
+
     return props;
 }
 
@@ -175,16 +208,61 @@ void Inspector::releaseAllObjects() {
 }
 
 // =============================================================================
-// DOMInspector (stubs)
+// DOMInspector — delegates to WebCore DOM tree when available
 // =============================================================================
 
-std::vector<InspectedNode> DOMInspector::getDocument(int) { return {}; }
-InspectedNode DOMInspector::getNode(int) { return {}; }
-std::vector<CSSProperty> DOMInspector::getComputedStyle(int) { return {}; }
-void DOMInspector::highlightNode(int) {}
-void DOMInspector::hideHighlight() {}
-int DOMInspector::getNodeAtPosition(int, int) { return -1; }
-void DOMInspector::setAttribute(int, const std::string&, const std::string&) {}
-void DOMInspector::setInnerHTML(int, const std::string&) {}
+std::vector<InspectedNode> DOMInspector::getDocument(int depth) {
+    std::vector<InspectedNode> result;
+    if (!domRoot_) return result;
+    collectNodes(domRoot_, result, 0, depth);
+    return result;
+}
+
+InspectedNode DOMInspector::getNode(int nodeId) {
+    auto it = nodeMap_.find(nodeId);
+    if (it != nodeMap_.end()) return it->second;
+    return {};
+}
+
+std::vector<CSSProperty> DOMInspector::getComputedStyle(int nodeId) {
+    std::vector<CSSProperty> styles;
+    auto it = computedStyleCache_.find(nodeId);
+    if (it != computedStyleCache_.end()) return it->second;
+    return styles;
+}
+
+void DOMInspector::highlightNode(int nodeId) {
+    highlightedNodeId_ = nodeId;
+}
+
+void DOMInspector::hideHighlight() {
+    highlightedNodeId_ = -1;
+}
+
+int DOMInspector::getNodeAtPosition(int x, int y) {
+    for (auto& [id, node] : nodeMap_) {
+        if (x >= node.x && x <= node.x + node.width &&
+            y >= node.y && y <= node.y + node.height) {
+            return id;
+        }
+    }
+    return -1;
+}
+
+void DOMInspector::setAttribute(int nodeId, const std::string& name,
+                                 const std::string& value) {
+    auto it = nodeMap_.find(nodeId);
+    if (it != nodeMap_.end()) {
+        it->second.attributes[name] = value;
+    }
+}
+
+void DOMInspector::setInnerHTML(int nodeId, const std::string& html) {
+    auto it = nodeMap_.find(nodeId);
+    if (it != nodeMap_.end()) {
+        it->second.innerHTML = html;
+        it->second.children.clear();
+    }
+}
 
 } // namespace Zepra::Debug

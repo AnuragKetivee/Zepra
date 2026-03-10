@@ -1,86 +1,95 @@
+// Copyright (c) 2025 KetiveeAI. All rights reserved.
+// Licensed under KPL-2.0. See LICENSE file for details.
+// ZepraScript — symbol.cpp — Symbol registry with all ES2025 well-known symbols
+
 #include "runtime/objects/symbol.hpp"
-#include <mutex>
 
 namespace Zepra::Runtime {
-
-static std::mutex registry_mutex;
 
 SymbolRegistry& SymbolRegistry::instance() {
     static SymbolRegistry instance;
     return instance;
 }
 
+Value SymbolRegistry::createWellKnown(const char* desc) {
+    uint32_t id = nextId_++;
+    Value sym = Value::symbol(id);
+    descriptions_[id] = desc;
+    return sym;
+}
+
 SymbolRegistry::SymbolRegistry() {
-    // Create well-known symbols
-    iterator_ = Value::symbol(nextId_++);
-    descriptions_[std::to_string(iterator_.asSymbol())] = "Symbol.iterator";
-    
-    toStringTag_ = Value::symbol(nextId_++);
-    descriptions_[std::to_string(toStringTag_.asSymbol())] = "Symbol.toStringTag";
-    
-    hasInstance_ = Value::symbol(nextId_++);
-    descriptions_[std::to_string(hasInstance_.asSymbol())] = "Symbol.hasInstance";
-    
-    isConcatSpreadable_ = Value::symbol(nextId_++);
-    descriptions_[std::to_string(isConcatSpreadable_.asSymbol())] = "Symbol.isConcatSpreadable";
-    
-    unscopables_ = Value::symbol(nextId_++);
-    descriptions_[std::to_string(unscopables_.asSymbol())] = "Symbol.unscopables";
+    iterator_            = createWellKnown("Symbol.iterator");
+    asyncIterator_       = createWellKnown("Symbol.asyncIterator");
+    toStringTag_         = createWellKnown("Symbol.toStringTag");
+    hasInstance_          = createWellKnown("Symbol.hasInstance");
+    isConcatSpreadable_  = createWellKnown("Symbol.isConcatSpreadable");
+    unscopables_         = createWellKnown("Symbol.unscopables");
+    toPrimitive_         = createWellKnown("Symbol.toPrimitive");
+    species_             = createWellKnown("Symbol.species");
+    match_               = createWellKnown("Symbol.match");
+    matchAll_            = createWellKnown("Symbol.matchAll");
+    replace_             = createWellKnown("Symbol.replace");
+    search_              = createWellKnown("Symbol.search");
+    split_               = createWellKnown("Symbol.split");
+    dispose_             = createWellKnown("Symbol.dispose");
+    asyncDispose_        = createWellKnown("Symbol.asyncDispose");
+    metadata_            = createWellKnown("Symbol.metadata");
 }
 
 Value SymbolRegistry::createSymbol(const std::string& description) {
-    std::lock_guard<std::mutex> lock(registry_mutex);
-    
+    std::lock_guard<std::mutex> lock(mutex_);
     uint32_t id = nextId_++;
     Value symbol = Value::symbol(id);
-    
     if (!description.empty()) {
-        descriptions_[std::to_string(id)] = description;
+        descriptions_[id] = description;
     }
-    
     return symbol;
 }
 
 Value SymbolRegistry::symbolFor(const std::string& key) {
-    std::lock_guard<std::mutex> lock(registry_mutex);
-    
+    std::lock_guard<std::mutex> lock(mutex_);
     auto it = globalRegistry_.find(key);
     if (it != globalRegistry_.end()) {
         return it->second;
     }
-    
-    // Create new symbol for this key
+
     uint32_t id = nextId_++;
     Value symbol = Value::symbol(id);
-    descriptions_[std::to_string(id)] = key;
+    descriptions_[id] = key;
     globalRegistry_[key] = symbol;
-    
+    reverseRegistry_[id] = key;
     return symbol;
 }
 
 std::string SymbolRegistry::symbolKeyFor(Value symbol) {
-    if (!symbol.isSymbol()) {
-        return "";
-    }
-    
-    std::lock_guard<std::mutex> lock(registry_mutex);
-    
-    // Search global registry
-    for (const auto& pair : globalRegistry_) {
-        if (pair.second.asSymbol() == symbol.asSymbol()) {
-            return pair.first;
-        }
-    }
-    
-    return "";  // Not a global symbol
-}
+    if (!symbol.isSymbol()) return "";
 
-std::string SymbolRegistry::getDescription(uint32_t id) const {
-    auto it = descriptions_.find(std::to_string(id));
-    if (it != descriptions_.end()) {
+    std::lock_guard<std::mutex> lock(mutex_);
+    auto it = reverseRegistry_.find(symbol.asSymbol());
+    if (it != reverseRegistry_.end()) {
         return it->second;
     }
     return "";
+}
+
+std::string SymbolRegistry::getDescription(uint32_t id) const {
+    std::lock_guard<std::mutex> lock(mutex_);
+    auto it = descriptions_.find(id);
+    return it != descriptions_.end() ? it->second : "";
+}
+
+bool SymbolRegistry::isWellKnown(uint32_t id) const {
+    // Well-known symbols have IDs 1-16 (created in constructor).
+    return id >= 1 && id <= 16;
+}
+
+void SymbolRegistry::buildReverseLookup() {
+    std::lock_guard<std::mutex> lock(mutex_);
+    reverseRegistry_.clear();
+    for (auto& [key, val] : globalRegistry_) {
+        reverseRegistry_[val.asSymbol()] = key;
+    }
 }
 
 } // namespace Zepra::Runtime

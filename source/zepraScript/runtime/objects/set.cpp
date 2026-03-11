@@ -26,7 +26,7 @@ uint32_t Set::hashValue(const Value& val) const {
         return static_cast<uint32_t>(bits);
     }
     if (val.isString()) {
-        const char* str = val.asCString();
+        const char* str = val.asString()->value().c_str();
         if (!str) return 0;
         uint32_t h = 2166136261u;
         while (*str) {
@@ -35,7 +35,7 @@ uint32_t Set::hashValue(const Value& val) const {
         }
         return h;
     }
-    if (val.isBool()) return val.asBool() ? 1 : 0;
+    if (val.isBoolean()) return val.asBoolean() ? 1 : 0;
     if (val.isNull()) return 0x12345678u;
     if (val.isUndefined()) return 0x87654321u;
     if (val.isSymbol()) return val.asSymbol() * 2654435761u;

@@ -1,3 +1,5 @@
+// Copyright (c) 2025 KetiveeAI. All rights reserved.
+// Licensed under KPL-2.0. See LICENSE file for details.
 /**
  * @file WasmValType.h
  * @brief WebAssembly value types and heap types
@@ -7,7 +9,6 @@
  * - Reference types (funcref, externref, anyref, etc.)
  * - GC types (structref, arrayref, i31ref)
  * 
- * Based on Firefox SpiderMonkey WasmValType.h
  */
 
 #pragma once

@@ -1,3 +1,5 @@
+// Copyright (c) 2025 KetiveeAI. All rights reserved.
+// Licensed under KPL-2.0. See LICENSE file for details.
 /**
  * @file stack_frame.cpp
  * @brief Stack frame debug inspection

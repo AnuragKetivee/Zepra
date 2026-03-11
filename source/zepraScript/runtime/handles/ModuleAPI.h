@@ -1,10 +1,10 @@
+// Copyright (c) 2025 KetiveeAI. All rights reserved.
+// Licensed under KPL-2.0. See LICENSE file for details.
 /**
  * @file ModuleAPI.h
  * @brief ES Module System Implementation
  * 
  * ECMAScript Modules based on:
- * - JSC JSModuleRecord.h
- * - SpiderMonkey ModuleObject.h
  * - ECMA-262 15.2 Modules
  */
 

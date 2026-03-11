@@ -1,3 +1,5 @@
+// Copyright (c) 2025 KetiveeAI. All rights reserved.
+// Licensed under KPL-2.0. See LICENSE file for details.
 /**
  * @file write_barrier.cpp
  * @brief Write barrier for generational and incremental GC

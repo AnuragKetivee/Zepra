@@ -1,3 +1,5 @@
+// Copyright (c) 2025 KetiveeAI. All rights reserved.
+// Licensed under KPL-2.0. See LICENSE file for details.
 /**
  * @file WasmInstance.h
  * @brief WebAssembly instance implementation
@@ -7,7 +9,6 @@
  * - Function exports/imports
  * - Module instantiation
  * 
- * Based on Firefox SpiderMonkey / WebKit JSC
  */
 
 #pragma once

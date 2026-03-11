@@ -1,8 +1,9 @@
+// Copyright (c) 2025 KetiveeAI. All rights reserved.
+// Licensed under KPL-2.0. See LICENSE file for details.
 /**
  * @file CrashBoundary.h
  * @brief Crash Containment and Recovery
  * 
- * Implements SpiderMonkey/WebKit-inspired patterns:
  * - OOM → uncatchable exception (not process crash)
  * - WASM trap → engine exception (contained)
  * - Worker crash isolation
@@ -25,7 +26,6 @@
 namespace Zepra::Safety {
 
 // =============================================================================
-// Uncatchable Exceptions (SpiderMonkey Pattern)
 // =============================================================================
 
 /**
@@ -74,13 +74,11 @@ private:
 };
 
 // =============================================================================
-// OOM Handler (SpiderMonkey Pattern)
 // =============================================================================
 
 /**
  * @brief OOM handling with graceful degradation
  * 
- * SpiderMonkey converts OOM to uncatchable exceptions, allowing embedders
  * to handle memory exhaustion without crashing.
  */
 class OOMHandler {
@@ -325,7 +323,6 @@ private:
 /**
  * @brief Fallback to interpreter when JIT fails
  * 
- * WebKit pattern: If JIT compilation fails (memory, internal error),
  * fall back to baseline interpreter. Never crash.
  */
 class JITFallback {

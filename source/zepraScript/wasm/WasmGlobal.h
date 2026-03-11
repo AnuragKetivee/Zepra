@@ -1,3 +1,5 @@
+// Copyright (c) 2025 KetiveeAI. All rights reserved.
+// Licensed under KPL-2.0. See LICENSE file for details.
 /**
  * @file WasmGlobal.h
  * @brief WebAssembly global variable implementation
@@ -6,7 +8,6 @@
  * - Mutable and immutable globals
  * - All value types (i32, i64, f32, f64, v128, ref types)
  * 
- * Based on Firefox SpiderMonkey / WebKit JSC
  */
 
 #pragma once

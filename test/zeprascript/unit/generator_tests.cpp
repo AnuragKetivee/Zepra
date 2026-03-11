@@ -88,7 +88,7 @@ protected:
 };
 
 TEST_F(IteratorTests, IteratorResultDone) {
-    auto result = IteratorResult::done();
+    auto result = IteratorResult::makeDone();
     EXPECT_TRUE(result.done);
 }
 
@@ -222,7 +222,7 @@ TEST(FunctionIteratorTests, CustomNext) {
     int count = 0;
     FunctionIterator iter([&count]() -> IteratorResult {
         if (count >= 3) {
-            return IteratorResult::done();
+            return IteratorResult::makeDone();
         }
         count++;
         IteratorValue val = static_cast<double>(count);

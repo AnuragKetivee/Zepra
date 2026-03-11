@@ -1,9 +1,10 @@
+// Copyright (c) 2025 KetiveeAI. All rights reserved.
+// Licensed under KPL-2.0. See LICENSE file for details.
 /**
  * @file SymbolAPI.h
  * @brief Symbol Implementation
  * 
  * ECMAScript Symbol based on:
- * - JSC Symbol.h
  * - ECMA-262 6.1.7 Symbol Type
  */
 

@@ -9,6 +9,7 @@
 #include <mutex>
 #include <vector>
 #include <functional>
+#include <thread>
 
 namespace Zepra::Heap {
 

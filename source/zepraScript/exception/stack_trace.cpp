@@ -1,3 +1,5 @@
+// Copyright (c) 2025 KetiveeAI. All rights reserved.
+// Licensed under KPL-2.0. See LICENSE file for details.
 /**
  * @file stack_trace.cpp
  * @brief JavaScript stack trace capture and formatting
@@ -6,18 +8,17 @@
  * console.trace(), and debugger call stacks.
  *
  * Supports:
- * - V8-style stack trace formatting (Error.captureStackTrace)
  * - Source map resolution (if available)
  * - Async stack traces (following promise chains)
  * - Stack frame filtering (hide internal frames)
  *
- * Ref: V8 Stack Trace API, SpiderMonkey SavedStacks
  */
 
 #include <string>
 #include <vector>
 #include <sstream>
 #include <cstdint>
+#include <memory>
 #include <cstdio>
 #include <algorithm>
 #include <functional>
@@ -41,7 +42,6 @@ struct StackFrame {
     bool isToplevel = false;      // Global scope
 
     /**
-     * Format as V8-style stack frame string:
      *   "    at functionName (scriptName:line:column)"
      */
     std::string toString() const {
@@ -116,7 +116,6 @@ public:
     // =========================================================================
 
     /**
-     * Format as V8-style Error.stack string.
      */
     std::string format(const std::string& errorType = "Error",
                         const std::string& message = "") const {
@@ -264,9 +263,14 @@ public:
         return ErrorObject(Type::SyntaxError, msg);
     }
 
+    ErrorObject(ErrorObject&&) = default;
+    ErrorObject& operator=(ErrorObject&&) = default;
+    ErrorObject(const ErrorObject&) = delete;
+    ErrorObject& operator=(const ErrorObject&) = delete;
+
     // ES2022 Error.cause
-    void setCause(const ErrorObject& cause) {
-        cause_ = std::make_unique<ErrorObject>(cause);
+    void setCause(ErrorObject cause) {
+        cause_ = std::make_unique<ErrorObject>(std::move(cause));
     }
 
     const ErrorObject* cause() const { return cause_.get(); }

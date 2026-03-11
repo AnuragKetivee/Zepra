@@ -1,3 +1,5 @@
+// Copyright (c) 2025 KetiveeAI. All rights reserved.
+// Licensed under KPL-2.0. See LICENSE file for details.
 /**
  * @file ZOptLowering.cpp
  * @brief ZOpt Graph → Machine Code Lowering
@@ -6,7 +8,6 @@
  * This is the final stage of the ZOpt JIT pipeline:
  *   Bytecode → ZOptBuilder → Graph → ConstFold → DCE → StrengthReduce → Lowering → native code
  *
- * Ref: JSC ZIR lowering, SpiderMonkey CodeGenerator
  */
 
 #include "zopt/ZOptGraph.h"

@@ -1,3 +1,5 @@
+// Copyright (c) 2025 KetiveeAI. All rights reserved.
+// Licensed under KPL-2.0. See LICENSE file for details.
 /**
  * @file TypedArrayAPI.h
  * @brief TypedArray Implementation
@@ -9,6 +11,7 @@
 #include <cstdint>
 #include <cstring>
 #include <algorithm>
+#include <climits>
 #include <memory>
 #include <stdexcept>
 

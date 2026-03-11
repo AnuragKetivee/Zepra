@@ -1,3 +1,5 @@
+// Copyright (c) 2025 KetiveeAI. All rights reserved.
+// Licensed under KPL-2.0. See LICENSE file for details.
 /**
  * @file devtools.cpp
  * @brief DevTools Inspector, Profiler, and MemoryInspector implementation
@@ -8,7 +10,6 @@
  * - MemoryInspector: heap snapshots, allocation tracking, GC stats
  *
  * Ref: CDPv1 Debugger domain (for interface parity)
- *      WebKit Inspector Protocol
  */
 
 #include "browser/DevToolsAPI.h"

@@ -1,3 +1,5 @@
+// Copyright (c) 2025 KetiveeAI. All rights reserved.
+// Licensed under KPL-2.0. See LICENSE file for details.
 #include "engine/dev_tools.h"
 #include <iostream>
 #include <algorithm>
@@ -143,11 +145,9 @@ void DeveloperTools::executeJavaScriptAsync(const String& script) {
     // TODO: Implement async JavaScript execution
 }
 
-std::vector<JSContext> DeveloperTools::getJSContexts() const {
     return jsContexts;
 }
 
-void DeveloperTools::addJSContext(const JSContext& context) {
     jsContexts.push_back(context);
     std::cout << "📜 Added JS Context: " << context.name << std::endl;
 }

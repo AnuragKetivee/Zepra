@@ -1,9 +1,10 @@
+// Copyright (c) 2025 KetiveeAI. All rights reserved.
+// Licensed under KPL-2.0. See LICENSE file for details.
 /**
  * @file WasmConstants.h
  * @brief WebAssembly constants, opcodes, type codes, and trap definitions
  * 
  * Based on WebAssembly 2.0 specification with proposal extensions.
- * Reference: Firefox SpiderMonkey WasmConstants.h
  */
 
 #pragma once

@@ -1,6 +1,7 @@
+// Copyright (c) 2025 KetiveeAI. All rights reserved.
+// Licensed under KPL-2.0. See LICENSE file for details.
 /**
  * @file hidden_class.cpp
- * @brief V8-style hidden classes (shapes/maps) for fast property access
  *
  * Every JS object has a hidden class (shape) describing its property layout.
  * Objects with the same property sequence share a hidden class, enabling:
@@ -11,7 +12,6 @@
  * Transitions: When a property is added, the object transitions from
  * one hidden class to another. This forms a transition tree.
  *
- * Ref: V8 Maps, SpiderMonkey Shapes, JSC Structures
  */
 
 #include <string>

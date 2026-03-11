@@ -1,3 +1,5 @@
+// Copyright (c) 2025 KetiveeAI. All rights reserved.
+// Licensed under KPL-2.0. See LICENSE file for details.
 /**
  * @file global_object.cpp
  * @brief Global object initialization
@@ -27,6 +29,8 @@
 #include "runtime/objects/well_known_symbols.hpp"
 #include "runtime/objects/function.hpp"
 #include "runtime/async/promise.hpp"
+#include "runtime/execution/vm.hpp"
+#include "runtime/execution/event_loop.hpp"
 #include <cmath>
 #include <limits>
 #include <stdexcept>
@@ -295,39 +299,54 @@ void GlobalObject::initializeGlobalFunctions() {
     set("queueMicrotask", Value::object(
         createNativeFunction("queueMicrotask", globalQueueMicrotask, 1)));
 
-    // Timer APIs — setTimeout / setInterval / clearTimeout / clearInterval
-    static uint32_t nextTimerId = 1;
-
+    // Timer APIs — wired to EventLoop when available
     set("setTimeout", Value::object(new Function("setTimeout",
         [](Context*, const std::vector<Value>& args) -> Value {
-            if (args.empty() || !args[0].isObject()) {
-                return Value::number(0);
+            if (args.empty() || !args[0].isObject()) return Value::number(0);
+            Function* fn = static_cast<Function*>(args[0].asObject());
+            uint32_t delay = args.size() > 1 ? static_cast<uint32_t>(args[1].toNumber()) : 0;
+            VM* vm = VM::current();
+            if (vm && vm->eventLoop()) {
+                uint32_t id = vm->eventLoop()->setTimeout(fn, delay);
+                return Value::number(static_cast<double>(id));
             }
-            uint32_t id = nextTimerId++;
-            // Callback stored for event loop dispatch
-            // delay in ms from args[1] (default 0)
-            return Value::number(static_cast<double>(id));
+            static uint32_t fallbackId = 1;
+            return Value::number(static_cast<double>(fallbackId++));
         }, 1)));
 
     set("setInterval", Value::object(new Function("setInterval",
         [](Context*, const std::vector<Value>& args) -> Value {
-            if (args.empty() || !args[0].isObject()) {
-                return Value::number(0);
+            if (args.empty() || !args[0].isObject()) return Value::number(0);
+            Function* fn = static_cast<Function*>(args[0].asObject());
+            uint32_t interval = args.size() > 1 ? static_cast<uint32_t>(args[1].toNumber()) : 0;
+            VM* vm = VM::current();
+            if (vm && vm->eventLoop()) {
+                uint32_t id = vm->eventLoop()->setInterval(fn, interval);
+                return Value::number(static_cast<double>(id));
             }
-            uint32_t id = nextTimerId++;
-            return Value::number(static_cast<double>(id));
+            static uint32_t fallbackId = 1;
+            return Value::number(static_cast<double>(fallbackId++));
         }, 1)));
 
     set("clearTimeout", Value::object(new Function("clearTimeout",
         [](Context*, const std::vector<Value>& args) -> Value {
-            // Cancel timer by ID
-            (void)args;
+            if (!args.empty() && args[0].isNumber()) {
+                VM* vm = VM::current();
+                if (vm && vm->eventLoop()) {
+                    vm->eventLoop()->clearTimer(static_cast<uint32_t>(args[0].asNumber()));
+                }
+            }
             return Value::undefined();
         }, 1)));
 
     set("clearInterval", Value::object(new Function("clearInterval",
         [](Context*, const std::vector<Value>& args) -> Value {
-            (void)args;
+            if (!args.empty() && args[0].isNumber()) {
+                VM* vm = VM::current();
+                if (vm && vm->eventLoop()) {
+                    vm->eventLoop()->clearTimer(static_cast<uint32_t>(args[0].asNumber()));
+                }
+            }
             return Value::undefined();
         }, 1)));
 
@@ -419,6 +438,80 @@ void GlobalObject::initializeGlobalFunctions() {
             return Value::object(wm);
         }, 0);
     set("WeakMap", Value::object(weakMapCtor));
+
+    // WeakRef constructor + prototype (ES2021)
+    Object* weakRefProto = new Object();
+    weakRefProto->set("deref", Value::object(
+        new Function("deref", [](const FunctionCallInfo& info) -> Value {
+            if (!info.thisValue().isObject()) return Value::undefined();
+            auto* wr = dynamic_cast<WeakReference*>(info.thisValue().asObject());
+            if (!wr) return Value::undefined();
+            return wr->deref();
+        }, 0)));
+
+    Object* weakRefCtor = createNativeFunction("WeakRef",
+        [](Context*, const std::vector<Value>& args) -> Value {
+            if (args.empty() || !args[0].isObject()) {
+                throw std::runtime_error("TypeError: WeakRef target must be an object");
+            }
+            return Value::object(new WeakReference(args[0].asObject()));
+        }, 1);
+    weakRefCtor->set("prototype", Value::object(weakRefProto));
+    set("WeakRef", Value::object(weakRefCtor));
+
+    // FinalizationRegistry constructor + prototype (ES2021)
+    Object* frProto = new Object();
+    frProto->set("register", Value::object(
+        new Function("register", [](const FunctionCallInfo& info) -> Value {
+            if (!info.thisValue().isObject()) return Value::undefined();
+            auto* fr = dynamic_cast<FinalizationRegistry*>(info.thisValue().asObject());
+            if (!fr || info.argumentCount() < 2 || !info.argument(0).isObject()) {
+                return Value::undefined();
+            }
+            Value token = info.argumentCount() > 2 ? info.argument(2) : Value::undefined();
+            fr->registerTarget(info.argument(0).asObject(), info.argument(1), token);
+            return Value::undefined();
+        }, 3)));
+
+    frProto->set("unregister", Value::object(
+        new Function("unregister", [](const FunctionCallInfo& info) -> Value {
+            if (!info.thisValue().isObject()) return Value::boolean(false);
+            auto* fr = dynamic_cast<FinalizationRegistry*>(info.thisValue().asObject());
+            if (!fr || info.argumentCount() < 1) return Value::boolean(false);
+            return Value::boolean(fr->unregister(info.argument(0)));
+        }, 1)));
+
+    Object* frCtor = createNativeFunction("FinalizationRegistry",
+        [](Context*, const std::vector<Value>& args) -> Value {
+            if (args.empty() || !args[0].isObject() || !args[0].asObject()->isFunction()) {
+                throw std::runtime_error("TypeError: FinalizationRegistry requires a callback function");
+            }
+            Function* callback = static_cast<Function*>(args[0].asObject());
+            auto cleanupFn = [callback](Value heldValue) {
+                std::vector<Value> cbArgs = { heldValue };
+                callback->call(nullptr, Value::undefined(), cbArgs);
+            };
+            return Value::object(new FinalizationRegistry(cleanupFn));
+        }, 1);
+    frCtor->set("prototype", Value::object(frProto));
+    set("FinalizationRegistry", Value::object(frCtor));
+
+    // AggregateError constructor (ES2021 — used by Promise.any)
+    set("AggregateError", Value::object(createNativeFunction("AggregateError",
+        [](Context*, const std::vector<Value>& args) -> Value {
+            std::vector<Value> errors;
+            if (!args.empty() && args[0].isObject()) {
+                auto* arr = dynamic_cast<Array*>(args[0].asObject());
+                if (arr) {
+                    for (size_t i = 0; i < arr->length(); i++) {
+                        errors.push_back(arr->get(i));
+                    }
+                }
+            }
+            std::string msg = args.size() > 1 ? args[1].toString() : "";
+            return Value::object(Error::aggregateError(msg, errors));
+        }, 2)));
+
 
     // RegExp constructor + prototype
     static Object* regexpProto = Builtins::RegExpBuiltin::createRegExpPrototype();

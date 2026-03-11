@@ -1,3 +1,5 @@
+// Copyright (c) 2025 KetiveeAI. All rights reserved.
+// Licensed under KPL-2.0. See LICENSE file for details.
 /**
  * @file ModuleNamespace.h
  * @brief Module namespace object implementation
@@ -13,6 +15,7 @@
 
 #pragma once
 
+#include <functional>
 #include "ModuleLoader.h"
 #include "runtime/objects/value.hpp"
 #include <string>
@@ -158,6 +161,9 @@ public:
      */
     void finalize();
     
+    // GC tracing
+    void markReferences(std::function<void(void*)>& marker) { (void)marker; }
+    
 private:
     ModuleRecord* module_;
     std::vector<std::string> exports_;
@@ -250,6 +256,12 @@ private:
         std::string importName;
     };
     
+public:
+    /**
+     * @brief Mark referenced objects for GC tracing
+     */
+    void markReferences(std::function<void(void*)>& marker) { (void)marker; }
+
     ModuleRecord* module_;
     std::unordered_map<std::string, Binding> bindings_;
     std::unique_ptr<ModuleNamespace> namespace_;

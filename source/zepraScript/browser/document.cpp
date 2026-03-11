@@ -1,3 +1,5 @@
+// Copyright (c) 2025 KetiveeAI. All rights reserved.
+// Licensed under KPL-2.0. See LICENSE file for details.
 /**
  * @file document.cpp
  * @brief JavaScript Document and Element implementation
@@ -6,6 +8,7 @@
 #include "browser/document.hpp"
 #include "browser/window.hpp"
 #include "runtime/objects/function.hpp"
+#include "runtime/execution/context.hpp"
 
 namespace Zepra::Browser {
 

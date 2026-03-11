@@ -1,3 +1,5 @@
+// Copyright (c) 2025 KetiveeAI. All rights reserved.
+// Licensed under KPL-2.0. See LICENSE file for details.
 /**
  * @file devtools_ultimate.cpp
  * @brief Zepra DevTools Ultimate - VM-Integrated with AI Insights

@@ -1,3 +1,5 @@
+// Copyright (c) 2025 KetiveeAI. All rights reserved.
+// Licensed under KPL-2.0. See LICENSE file for details.
 #include "../../source/platform/include/config/dual_config.h"
 #include "config_manager.h"
 #include <fstream>

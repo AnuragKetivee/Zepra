@@ -1,3 +1,5 @@
+// Copyright (c) 2025 KetiveeAI. All rights reserved.
+// Licensed under KPL-2.0. See LICENSE file for details.
 /**
  * @file ephemeron_table.cpp
  * @brief Ephemeron (WeakMap/WeakSet) support for GC

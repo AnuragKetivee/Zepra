@@ -9,6 +9,7 @@
 #include <vector>
 #include <unordered_map>
 #include <functional>
+#include <memory>
 
 namespace Zepra::Heap {
 

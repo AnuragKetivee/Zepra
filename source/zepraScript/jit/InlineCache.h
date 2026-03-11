@@ -1,8 +1,9 @@
+// Copyright (c) 2025 KetiveeAI. All rights reserved.
+// Licensed under KPL-2.0. See LICENSE file for details.
 /**
  * @file InlineCache.h
  * @brief Polymorphic Inline Caching System
  * 
- * SpiderMonkey-inspired IC implementation:
  * - Monomorphic/Polymorphic/Megamorphic states
  * - IC stub chains for property access
  * - CacheIR bytecode for stub compilation

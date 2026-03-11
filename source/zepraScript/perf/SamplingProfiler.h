@@ -1,8 +1,9 @@
+// Copyright (c) 2025 KetiveeAI. All rights reserved.
+// Licensed under KPL-2.0. See LICENSE file for details.
 /**
  * @file SamplingProfiler.h
  * @brief Low-Overhead CPU Profiling
  * 
- * JSC Sampling Profiler pattern:
  * - Background sampling thread
  * - Stack capture with minimal overhead
  * - Flame graph generation

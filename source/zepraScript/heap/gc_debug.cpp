@@ -1,3 +1,5 @@
+// Copyright (c) 2025 KetiveeAI. All rights reserved.
+// Licensed under KPL-2.0. See LICENSE file for details.
 /**
  * @file gc_debug.cpp
  * @brief Heap dump, heap summary, and GC diagnostics
@@ -5,7 +7,6 @@
  * Provides rich diagnostic output for debugging GC issues:
  *
  * 1. Heap dump: writes all live objects to a binary/JSON file
- *    for offline analysis (V8 .heapsnapshot compatible)
  * 2. Heap summary: ASCII table of per-type object counts and sizes
  * 3. GC timeline: chronological log of GC events
  * 4. Fragmentation map: visual per-page occupancy

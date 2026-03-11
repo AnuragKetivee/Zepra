@@ -55,7 +55,6 @@ public:
      * @brief Create a JavaScript WebGLRenderingContext object
      * for use in the VM
      */
-    static Runtime::Object* createJSContextObject(Runtime::VM* vm, uint32_t handle);
     
     /**
      * @brief Register all WebGL native functions

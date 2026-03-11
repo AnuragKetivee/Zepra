@@ -1,3 +1,5 @@
+// Copyright (c) 2025 KetiveeAI. All rights reserved.
+// Licensed under KPL-2.0. See LICENSE file for details.
 /**
  * @file BytecodeOptimizer.h
  * @brief Bytecode-level optimizations
@@ -8,7 +10,6 @@
  * - Dead code elimination
  * - Jump threading
  * 
- * Based on V8/SpiderMonkey bytecode optimizer
  */
 
 #pragma once

@@ -1,3 +1,5 @@
+// Copyright (c) 2025 KetiveeAI. All rights reserved.
+// Licensed under KPL-2.0. See LICENSE file for details.
 /**
  * @file debugger.cpp
  * @brief ZepraScript Debugger implementation
@@ -142,7 +144,7 @@ std::unordered_map<std::string, Value> Debugger::getScopeVariables(size_t frameI
 
     auto closureNames = vm_->getFrameClosureNames(frameIndex);
     for (const auto& name : closureNames) {
-        vars[name] = vm_->getFrameClosure(frameIndex, name);
+        vars[name] = vm_->getFrameClosureValue(frameIndex, name);
     }
 
     return vars;

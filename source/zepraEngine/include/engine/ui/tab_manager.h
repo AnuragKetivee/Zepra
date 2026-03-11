@@ -1,3 +1,5 @@
+// Copyright (c) 2025 KetiveeAI. All rights reserved.
+// Licensed under KPL-2.0. See LICENSE file for details.
 #pragma once
 
 #include "../common/types.h"
@@ -53,7 +55,6 @@ struct TabEntry {
     bool isPinned;
     bool isMuted;
     bool isCrashed;
-    std::shared_ptr<WebKitEngine> engine;
     // Add more tab state as needed
     
     // Stubs for browser operations

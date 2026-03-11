@@ -1,9 +1,10 @@
+// Copyright (c) 2025 KetiveeAI. All rights reserved.
+// Licensed under KPL-2.0. See LICENSE file for details.
 /**
  * @file ObjectAPI.h
  * @brief Object Runtime Implementation
  * 
  * ECMAScript Object based on:
- * - JSC JSObject.h
  * - ECMA-262 19.1 Object Objects
  */
 

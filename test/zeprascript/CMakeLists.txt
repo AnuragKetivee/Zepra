@@ -42,6 +42,9 @@ set(ZEPRASCRIPT_UNIT_TEST_SOURCES
     unit/stress_tests.cpp
     unit/browser_integration_tests.cpp
     unit/generator_tests.cpp
+    unit/vm_stress_test.cpp
+    unit/gc_concurrent_stress_test.cpp
+    unit/jit_stress_test.cpp
 )
 
 add_executable(zeprascript-unit-tests ${ZEPRASCRIPT_UNIT_TEST_SOURCES})
@@ -70,6 +73,7 @@ set(ZEPRASCRIPT_INTEGRATION_TEST_SOURCES
     integration/promise_tests.cpp
     integration/fetch_tests.cpp
     integration/indexeddb_tests.cpp
+    integration/browser_vm_integration_test.cpp
 )
 
 add_executable(zeprascript-integration-tests ${ZEPRASCRIPT_INTEGRATION_TEST_SOURCES})

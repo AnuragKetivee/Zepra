@@ -1,3 +1,5 @@
+// Copyright (c) 2025 KetiveeAI. All rights reserved.
+// Licensed under KPL-2.0. See LICENSE file for details.
 #pragma once
 #include <string>
 #include <vector>
@@ -38,7 +40,6 @@ struct DevToolsDOMNode {
     std::vector<std::shared_ptr<DevToolsDOMNode>> children;
 };
 
-struct JSContext {
     String name;
 };
 
@@ -77,8 +78,6 @@ public:
     // JavaScript Console
     String executeJavaScript(const String& script);
     void executeJavaScriptAsync(const String& script);
-    std::vector<JSContext> getJSContexts() const;
-    void addJSContext(const JSContext& context);
 
     // Performance Monitoring
     void startPerformanceMonitoring();
@@ -126,7 +125,6 @@ private:
     std::vector<NetworkRequest> networkRequests;
     std::vector<NetworkResponse> networkResponses;
     std::shared_ptr<DevToolsDOMNode> domTree;
-    std::vector<JSContext> jsContexts;
     PerformanceMetrics performanceMetrics;
     std::function<void(const PerformanceMetrics&)> performanceCallback;
 

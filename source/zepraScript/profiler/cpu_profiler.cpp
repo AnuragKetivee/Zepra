@@ -1,3 +1,5 @@
+// Copyright (c) 2025 KetiveeAI. All rights reserved.
+// Licensed under KPL-2.0. See LICENSE file for details.
 /**
  * @file cpu_profiler.cpp
  * @brief Sampling CPU profiler
@@ -9,7 +11,6 @@
  * interval (default: 1ms). Each sample records the current call stack.
  * After profiling, the samples are aggregated into a tree.
  *
- * Ref: V8 CpuProfiler, perf(1), gperftools
  */
 
 #include <thread>

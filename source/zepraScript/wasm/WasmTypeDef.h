@@ -1,3 +1,5 @@
+// Copyright (c) 2025 KetiveeAI. All rights reserved.
+// Licensed under KPL-2.0. See LICENSE file for details.
 /**
  * @file WasmTypeDef.h
  * @brief WebAssembly type definitions (function, struct, array)
@@ -5,7 +7,6 @@
  * Defines composite types for the type section including
  * function signatures, structs (GC), and arrays (GC).
  * 
- * Based on Firefox SpiderMonkey WasmTypeDef.h
  */
 
 #pragma once

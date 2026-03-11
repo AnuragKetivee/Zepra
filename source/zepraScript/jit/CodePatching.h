@@ -1,3 +1,5 @@
+// Copyright (c) 2025 KetiveeAI. All rights reserved.
+// Licensed under KPL-2.0. See LICENSE file for details.
 /**
  * @file CodePatching.h
  * @brief Runtime code patching for inline caches and deoptimization
@@ -8,7 +10,6 @@
  * - NOP sleds for patchable regions
  * - Thread-safe patching
  * 
- * Based on V8/JSC IC patching mechanisms
  */
 
 #pragma once

@@ -1,3 +1,5 @@
+// Copyright (c) 2025 KetiveeAI. All rights reserved.
+// Licensed under KPL-2.0. See LICENSE file for details.
 /**
  * @file RecordTupleAPI.h
  * @brief Immutable Record & Tuple (Stage 2 Proposal)

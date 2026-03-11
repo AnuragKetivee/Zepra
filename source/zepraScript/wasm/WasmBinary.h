@@ -1,3 +1,5 @@
+// Copyright (c) 2025 KetiveeAI. All rights reserved.
+// Licensed under KPL-2.0. See LICENSE file for details.
 /**
  * @file WasmBinary.h
  * @brief WebAssembly binary format encoder and decoder
@@ -8,7 +10,6 @@
  * - Section parsing
  * - Opcode handling (including prefixed opcodes)
  * 
- * Based on Firefox SpiderMonkey WasmBinary.h
  */
 
 #pragma once

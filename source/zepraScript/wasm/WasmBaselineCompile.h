@@ -1,3 +1,5 @@
+// Copyright (c) 2025 KetiveeAI. All rights reserved.
+// Licensed under KPL-2.0. See LICENSE file for details.
 /**
  * @file WasmBaselineCompile.h
  * @brief WebAssembly Baseline JIT Compiler
@@ -5,7 +7,6 @@
  * Single-pass JIT compiler that generates native code quickly.
  * Focuses on compilation speed over optimization.
  * 
- * Based on Firefox SpiderMonkey / WebKit JSC Baseline compilers
  */
 
 #pragma once

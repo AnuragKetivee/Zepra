@@ -1,3 +1,5 @@
+// Copyright (c) 2025 KetiveeAI. All rights reserved.
+// Licensed under KPL-2.0. See LICENSE file for details.
 /**
  * @file unicode.cpp
  * @brief UTF-8/UTF-16 conversion and codepoint operations

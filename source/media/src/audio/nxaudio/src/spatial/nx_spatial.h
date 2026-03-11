@@ -1,3 +1,5 @@
+// Copyright (c) 2025 KetiveeAI. All rights reserved.
+// Licensed under KPL-2.0. See LICENSE file for details.
 /* Copyright (c) 2025 Swanaya Gupta
  * KETIVEEAI License v1.1 - Always Free.
  * See LICENSE in repo root.

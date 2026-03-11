@@ -1,8 +1,9 @@
+// Copyright (c) 2025 KetiveeAI. All rights reserved.
+// Licensed under KPL-2.0. See LICENSE file for details.
 /**
  * @file ZepraTierBuilder.h
  * @brief Warp-Style IC-Driven Optimization
  * 
- * SpiderMonkey WarpMonkey pattern:
  * - Captures IC chain data as WarpSnapshot
  * - Translates IC stubs directly to ZOpt nodes
  * - Bypasses bytecode for hot paths

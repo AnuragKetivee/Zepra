@@ -1,3 +1,5 @@
+// Copyright (c) 2025 KetiveeAI. All rights reserved.
+// Licensed under KPL-2.0. See LICENSE file for details.
 /**
  * @file WasmTable.h
  * @brief WebAssembly table implementation
@@ -7,7 +9,6 @@
  * - Reference tables (externref, anyref)
  * - Table grow operations
  * 
- * Based on Firefox SpiderMonkey / WebKit JSC
  */
 
 #pragma once

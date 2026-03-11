@@ -9,6 +9,7 @@
 #include <unordered_map>
 #include <vector>
 #include <memory>
+#include <algorithm>
 #include <mutex>
 #include <atomic>
 

@@ -1,3 +1,5 @@
+// Copyright (c) 2025 KetiveeAI. All rights reserved.
+// Licensed under KPL-2.0. See LICENSE file for details.
 /**
  * @file string.cpp
  * @brief String builtin implementation
@@ -10,7 +12,6 @@
 #include <algorithm>
 #include <sstream>
 #include <cctype>
-#include <regex>
 #include "builtins/regexp.hpp"
 
 namespace Zepra::Builtins {
@@ -598,6 +599,40 @@ Runtime::Object* StringBuiltin::createStringPrototype(Runtime::Context*) {
             } catch (...) {
                 return Runtime::Value::number(-1);
             }
+        }, 1)));
+
+    // String.prototype.matchAll(regexp)
+    prototype->set("matchAll", Runtime::Value::object(
+        new Runtime::Function("matchAll", [](const Runtime::FunctionCallInfo& info) -> Runtime::Value {
+            std::string str = info.thisValue().toString();
+            if (info.argumentCount() < 1) return Runtime::Value::object(new Runtime::Array());
+
+            RegExpObject* re = nullptr;
+            if (info.argument(0).isObject()) {
+                re = dynamic_cast<RegExpObject*>(info.argument(0).asObject());
+            }
+
+            Runtime::Array* results = new Runtime::Array();
+
+            if (re) {
+                auto matches = re->match(str);
+                for (const auto& m : matches) {
+                    Runtime::Array* matchArr = new Runtime::Array();
+                    matchArr->push(Runtime::Value::string(new Runtime::String(m)));
+                    results->push(Runtime::Value::object(matchArr));
+                }
+            } else {
+                std::string pattern = info.argument(0).toString();
+                RegExpObject tempRe(pattern, "g");
+                auto matches = tempRe.match(str);
+                for (const auto& m : matches) {
+                    Runtime::Array* matchArr = new Runtime::Array();
+                    matchArr->push(Runtime::Value::string(new Runtime::String(m)));
+                    results->push(Runtime::Value::object(matchArr));
+                }
+            }
+
+            return Runtime::Value::object(results);
         }, 1)));
 
     return prototype;

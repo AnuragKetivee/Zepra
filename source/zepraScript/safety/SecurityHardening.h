@@ -1,8 +1,9 @@
+// Copyright (c) 2025 KetiveeAI. All rights reserved.
+// Licensed under KPL-2.0. See LICENSE file for details.
 /**
  * @file SecurityHardening.h
  * @brief Security Hardening for Release Builds
  * 
- * Firefox/WebKit-inspired patterns:
  * - Debug hooks disabled in release
  * - Reference tracking enforcement
  * - Memory contract hardening

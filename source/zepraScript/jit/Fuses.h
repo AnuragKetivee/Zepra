@@ -1,8 +1,9 @@
+// Copyright (c) 2025 KetiveeAI. All rights reserved.
+// Licensed under KPL-2.0. See LICENSE file for details.
 /**
  * @file Fuses.h
  * @brief Assumption-Based Optimization System
  * 
- * SpiderMonkey 2024 "Fuses" pattern:
  * - Track VM state assumptions
  * - Invalidate JIT code when assumptions break
  * - Enable aggressive speculation without guards

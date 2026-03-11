@@ -1,3 +1,5 @@
+// Copyright (c) 2025 KetiveeAI. All rights reserved.
+// Licensed under KPL-2.0. See LICENSE file for details.
 #ifndef ZEPRA_AUDIO_CODEC_DETECTOR_H
 #define ZEPRA_AUDIO_CODEC_DETECTOR_H
 

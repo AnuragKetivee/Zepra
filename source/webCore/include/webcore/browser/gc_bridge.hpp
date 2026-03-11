@@ -103,7 +103,6 @@ public:
      * @param eventType Optional event type for event listeners
      * @return Handle for tracking
      */
-    GCHandle registerJSCallback(void* domNode, Runtime::Object* jsCallback, 
                                  const std::string& eventType = "");
     
     /**

@@ -1,3 +1,5 @@
+// Copyright (c) 2025 KetiveeAI. All rights reserved.
+// Licensed under KPL-2.0. See LICENSE file for details.
 /**
  * @file regex_engine.cpp
  * @brief NFA/backtracking regex execution engine
@@ -7,7 +9,6 @@
  *
  * Supports: exec, test, matchAll, replace, replaceAll, split.
  *
- * Ref: RE2 NFA execution, SpiderMonkey irregexp interpreter
  */
 
 #include "regex/regex_engine.h"

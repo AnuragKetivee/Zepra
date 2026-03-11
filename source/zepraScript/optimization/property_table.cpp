@@ -1,3 +1,5 @@
+// Copyright (c) 2025 KetiveeAI. All rights reserved.
+// Licensed under KPL-2.0. See LICENSE file for details.
 /**
  * @file property_table.cpp
  * @brief Fast ordered property table with hash-based lookup
@@ -13,7 +15,6 @@
  *   1. Inline: Small objects (<=4 props) use contiguous array
  *   2. Dict: Large objects use hash table + ordered linked list
  *
- * Ref: V8 NameDictionary/SwissTable, SpiderMonkey Shape/NativeObject
  */
 
 #include <string>

@@ -1,10 +1,10 @@
+// Copyright (c) 2025 KetiveeAI. All rights reserved.
+// Licensed under KPL-2.0. See LICENSE file for details.
 /**
  * @file RegExpAPI.h
  * @brief Regular Expression Engine Implementation
  * 
  * ECMAScript RegExp based on:
- * - JSC RegExp.h and Yarr
- * - SpiderMonkey RegExp.cpp
  * - ECMA-262 21.2 RegExp Objects
  */
 

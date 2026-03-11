@@ -1,3 +1,5 @@
+// Copyright (c) 2025 KetiveeAI. All rights reserved.
+// Licensed under KPL-2.0. See LICENSE file for details.
 /**
  * @file gc_heap_facade.cpp
  * @brief GCHeap facade — the bridge between GC subsystem and runtime

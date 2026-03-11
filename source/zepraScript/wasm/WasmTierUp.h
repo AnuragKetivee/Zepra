@@ -1,8 +1,9 @@
+// Copyright (c) 2025 KetiveeAI. All rights reserved.
+// Licensed under KPL-2.0. See LICENSE file for details.
 /**
  * @file WasmTierUp.h
  * @brief WebAssembly Tier-Up and OSR Implementation
  * 
- * Based on JavaScriptCore's TierUpCount design.
  * Manages execution counters and compilation status for hot code.
  */
 
@@ -54,7 +55,6 @@ enum class TierUpCompilationStatus : uint8_t {
  */
 enum class CompilationTier : uint8_t {
     Baseline = 0,         // Baseline JIT (current)
-    Optimized = 1,        // Optimized (future: equivalent to JSC's OMG)
     Native = 2            // Full native (future)
 };
 
@@ -118,7 +118,6 @@ protected:
 /**
  * @brief Manages tier-up execution counts for a WASM function
  * 
- * Based on JSC's TierUpCount. Key features:
  * - Countdown counter (negative = ready to tier up)
  * - Per-loop OSR entry triggers
  * - Compilation status tracking

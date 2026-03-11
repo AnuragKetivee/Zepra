@@ -11,6 +11,7 @@
 #include <string>
 #include <vector>
 #include <functional>
+#include <unordered_map>
 
 namespace Zepra::Debug {
 
@@ -117,16 +118,23 @@ struct CSSProperty {
  * @brief DOM node for inspection
  */
 struct InspectedNode {
-    int nodeId;
+    int nodeId = 0;
     std::string nodeType;
     std::string nodeName;
     std::string nodeValue;
-    std::vector<std::pair<std::string, std::string>> attributes;
+    std::unordered_map<std::string, std::string> attributes;
     std::vector<int> childNodeIds;
+    
+    // Layout box (for hit-testing / highlight)
+    int x = 0, y = 0, width = 0, height = 0;
     
     // CSS
     std::vector<CSSProperty> computedStyle;
     std::vector<CSSProperty> inlineStyle;
+
+    // DOM content
+    std::string innerHTML;
+    std::vector<InspectedNode> children;
 };
 
 /**
@@ -137,42 +145,49 @@ public:
     /**
      * @brief Get DOM tree starting from node
      */
-    static std::vector<InspectedNode> getDocument(int depth = 2);
+    std::vector<InspectedNode> getDocument(int depth = 2);
     
     /**
      * @brief Get node by ID
      */
-    static InspectedNode getNode(int nodeId);
+    InspectedNode getNode(int nodeId);
     
     /**
      * @brief Get computed style for node
      */
-    static std::vector<CSSProperty> getComputedStyle(int nodeId);
+    std::vector<CSSProperty> getComputedStyle(int nodeId);
     
     /**
      * @brief Highlight node in viewport
      */
-    static void highlightNode(int nodeId);
+    void highlightNode(int nodeId);
     
     /**
      * @brief Remove highlight
      */
-    static void hideHighlight();
+    void hideHighlight();
     
     /**
      * @brief Get node at position (for element picker)
      */
-    static int getNodeAtPosition(int x, int y);
+    int getNodeAtPosition(int x, int y);
     
     /**
      * @brief Set attribute value
      */
-    static void setAttribute(int nodeId, const std::string& name, const std::string& value);
+    void setAttribute(int nodeId, const std::string& name, const std::string& value);
     
     /**
      * @brief Set inner HTML
      */
-    static void setInnerHTML(int nodeId, const std::string& html);
+    void setInnerHTML(int nodeId, const std::string& html);
+
+private:
+    void* domRoot_ = nullptr;
+    std::unordered_map<int, InspectedNode> nodeMap_;
+    std::unordered_map<int, std::vector<CSSProperty>> computedStyleCache_;
+    int highlightedNodeId_ = -1;
+    void collectNodes(void* node, std::vector<InspectedNode>& out, int depth, int maxDepth);
 };
 
 } // namespace Zepra::Debug

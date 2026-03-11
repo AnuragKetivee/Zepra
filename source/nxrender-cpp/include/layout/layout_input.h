@@ -1,3 +1,5 @@
+// Copyright (c) 2025 KetiveeAI. All rights reserved.
+// Licensed under KPL-2.0. See LICENSE file for details.
 /**
  * @file layout_input.h
  * @brief Layout constraint system (inspired by Gecko's ReflowInput)

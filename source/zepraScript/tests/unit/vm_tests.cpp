@@ -1,4 +1,6 @@
-// VM unit tests stub
+// Copyright (c) 2025 KetiveeAI. All rights reserved.
+// Licensed under KPL-2.0. See LICENSE file for details.
+// VM unit tests
 #include <gtest/gtest.h>
 #include "runtime/execution/vm.hpp"
 

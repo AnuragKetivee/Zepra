@@ -1,3 +1,5 @@
+// Copyright (c) 2025 KetiveeAI. All rights reserved.
+// Licensed under KPL-2.0. See LICENSE file for details.
 /**
  * @file scavenger_impl.cpp
  * @brief Full nursery scavenger (Cheney semi-space + generational)
@@ -456,7 +458,6 @@ inline void ScavengerImpl::flipSpaces() {
 // =============================================================================
 
 /**
- * @brief Serializes heap state to V8 heap snapshot format
  *
  * Used by DevTools for memory profiling.
  * Format: JSON with nodes, edges, strings arrays.
@@ -476,13 +477,12 @@ inline void ScavengerImpl::flipSpaces() {
 class HeapSnapshotSerializer {
 public:
     struct EdgeInfo {
-        uint8_t type;           // V8 edge type
         std::string name;
         size_t targetNodeIndex;
+        uint32_t typeId = 0;
     };
 
     struct NodeInfo {
-        uint8_t type;           // V8 node type
         std::string name;
         uint64_t id;
         size_t selfSize;
@@ -567,7 +567,7 @@ inline std::string HeapSnapshotSerializer::serializeJSON() const {
     bool first = true;
     for (const auto& n : nodes_) {
         if (!first) out += ",";
-        out += std::to_string(n.type) + ","
+        out += std::to_string(n.typeId) + ","
              + "\"" + n.name + "\","
              + std::to_string(n.id) + ","
              + std::to_string(n.selfSize) + ","
@@ -583,7 +583,7 @@ inline std::string HeapSnapshotSerializer::serializeJSON() const {
     for (const auto& n : nodes_) {
         for (const auto& e : n.edges) {
             if (!first) out += ",";
-            out += std::to_string(e.type) + ","
+            out += std::to_string(e.typeId) + ","
                  + "\"" + e.name + "\","
                  + std::to_string(e.targetNodeIndex);
             first = false;

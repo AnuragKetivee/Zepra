@@ -1,3 +1,5 @@
+// Copyright (c) 2025 KetiveeAI. All rights reserved.
+// Licensed under KPL-2.0. See LICENSE file for details.
 /**
  * @file inspector.cpp
  * @brief DevTools Inspector implementation
@@ -13,6 +15,7 @@ namespace Zepra::Debug {
 
 using Runtime::Object;
 using Runtime::Function;
+using Runtime::String;
 
 // Object ID management
 static std::unordered_map<std::string, Object*> objectRegistry;
@@ -125,7 +128,7 @@ std::vector<PropertyDescriptor> Inspector::getInternalProperties(Object* obj) {
     if (!obj) return props;
 
     // [[Prototype]]
-    Object* proto = obj->getPrototype();
+    Object* proto = obj->prototype();
     if (proto) {
         PropertyDescriptor pd;
         pd.name = "[[Prototype]]";
@@ -142,7 +145,7 @@ std::vector<PropertyDescriptor> Inspector::getInternalProperties(Object* obj) {
         Function* ctorFn = static_cast<Function*>(ctor.asObject());
         PropertyDescriptor pd;
         pd.name = "[[Class]]";
-        pd.value = Value::string(ctorFn->name());
+        pd.value = Value::string(new String(ctorFn->name()));
         pd.enumerable = false;
         pd.writable = false;
         pd.configurable = false;

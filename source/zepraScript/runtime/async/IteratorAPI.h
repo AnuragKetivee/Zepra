@@ -1,3 +1,5 @@
+// Copyright (c) 2025 KetiveeAI. All rights reserved.
+// Licensed under KPL-2.0. See LICENSE file for details.
 /**
  * @file IteratorAPI.h
  * @brief Iterator Protocol Implementation
@@ -39,11 +41,11 @@ struct IteratorResult {
     IteratorValue value;
     bool done;
     
-    static IteratorResult value(IteratorValue v) {
+    static IteratorResult makeValue(IteratorValue v) {
         return {std::move(v), false};
     }
     
-    static IteratorResult done() {
+    static IteratorResult makeDone() {
         return {std::monostate{}, true};
     }
 };
@@ -62,7 +64,7 @@ public:
     virtual IteratorResult next() = 0;
     
     virtual IteratorResult return_(IteratorValue value = std::monostate{}) {
-        return IteratorResult::done();
+        return IteratorResult::makeDone();
     }
     
     virtual IteratorResult throw_(IteratorValue exception) {
@@ -95,10 +97,10 @@ public:
     
     IteratorResult next() override {
         if (index_ >= array_.size()) {
-            return IteratorResult::done();
+            return IteratorResult::makeDone();
         }
         
-        return IteratorResult::value(getValue(array_[index_++]));
+        return IteratorResult::makeValue(getValue(array_[index_++]));
     }
     
 private:
@@ -136,29 +138,29 @@ public:
     
     IteratorResult next() override {
         if (index_ >= array_.size()) {
-            return IteratorResult::done();
+            return IteratorResult::makeDone();
         }
         
         size_t i = index_++;
         
         switch (type_) {
             case ArrayIterationType::Keys:
-                return IteratorResult::value(static_cast<double>(i));
+                return IteratorResult::makeValue(static_cast<double>(i));
                 
             case ArrayIterationType::Values:
                 if constexpr (std::is_same_v<T, double>) {
-                    return IteratorResult::value(array_[i]);
+                    return IteratorResult::makeValue(array_[i]);
                 } else if constexpr (std::is_same_v<T, std::string>) {
-                    return IteratorResult::value(array_[i]);
+                    return IteratorResult::makeValue(array_[i]);
                 }
-                return IteratorResult::value(std::monostate{});
+                return IteratorResult::makeValue(std::monostate{});
                 
             case ArrayIterationType::Entries:
                 // Would return [index, value] pair
-                return IteratorResult::value(std::monostate{});
+                return IteratorResult::makeValue(std::monostate{});
         }
         
-        return IteratorResult::done();
+        return IteratorResult::makeDone();
     }
     
 private:
@@ -181,7 +183,7 @@ public:
     
     IteratorResult next() override {
         if (pos_ >= str_.size()) {
-            return IteratorResult::done();
+            return IteratorResult::makeDone();
         }
         
         // Handle UTF-8 code points
@@ -201,7 +203,7 @@ public:
         std::string codePoint = str_.substr(pos_, charLen);
         pos_ += charLen;
         
-        return IteratorResult::value(codePoint);
+        return IteratorResult::makeValue(codePoint);
     }
     
 private:
@@ -225,7 +227,7 @@ public:
     
     IteratorResult next() override {
         if (pos_ >= map_.size()) {
-            return IteratorResult::done();
+            return IteratorResult::makeDone();
         }
         
         const auto& [key, value] = map_[pos_++];
@@ -237,21 +239,21 @@ public:
                 return makeValue(value);
             case Type::Entries:
                 // Would return [key, value]
-                return IteratorResult::value(std::monostate{});
+                return IteratorResult::makeValue(std::monostate{});
         }
         
-        return IteratorResult::done();
+        return IteratorResult::makeDone();
     }
     
 private:
     template<typename T>
     IteratorResult makeValue(const T& item) {
         if constexpr (std::is_same_v<T, double>) {
-            return IteratorResult::value(item);
+            return IteratorResult::makeValue(item);
         } else if constexpr (std::is_same_v<T, std::string>) {
-            return IteratorResult::value(item);
+            return IteratorResult::makeValue(item);
         }
-        return IteratorResult::value(std::monostate{});
+        return IteratorResult::makeValue(std::monostate{});
     }
     
     const Map& map_;
@@ -273,18 +275,18 @@ public:
     
     IteratorResult next() override {
         if (pos_ >= set_.size()) {
-            return IteratorResult::done();
+            return IteratorResult::makeDone();
         }
         
         const T& value = set_[pos_++];
         
         if constexpr (std::is_same_v<T, double>) {
-            return IteratorResult::value(value);
+            return IteratorResult::makeValue(value);
         } else if constexpr (std::is_same_v<T, std::string>) {
-            return IteratorResult::value(value);
+            return IteratorResult::makeValue(value);
         }
         
-        return IteratorResult::value(std::monostate{});
+        return IteratorResult::makeValue(std::monostate{});
     }
     
 private:
@@ -307,7 +309,7 @@ public:
     explicit FunctionIterator(NextFn next) : nextFn_(std::move(next)) {}
     
     IteratorResult next() override {
-        return nextFn_ ? nextFn_() : IteratorResult::done();
+        return nextFn_ ? nextFn_() : IteratorResult::makeDone();
     }
     
 private:

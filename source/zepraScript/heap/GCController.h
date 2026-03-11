@@ -1,3 +1,5 @@
+// Copyright (c) 2025 KetiveeAI. All rights reserved.
+// Licensed under KPL-2.0. See LICENSE file for details.
 /**
  * @file GCController.h
  * @brief Unified GC controller coordinating all GC components
@@ -7,7 +9,6 @@
  * - Coordination between nursery/old-gen
  * - Concurrent/incremental GC management
  * 
- * Based on V8/JSC GC schedulers
  */
 
 #pragma once
@@ -18,6 +19,9 @@
 #include "concurrent_gc.hpp"
 #include <chrono>
 #include <atomic>
+#include <functional>
+#include <algorithm>
+#include <vector>
 
 namespace Zepra::GC {
 
@@ -125,6 +129,17 @@ public:
     const GCControllerStats& stats() const { return stats_; }
     GCSchedule& schedule() { return schedule_; }
     
+    // Root set management for modules/external references
+    using RootMarkFn = std::function<void(void* root, std::function<void(void*)>& marker)>;
+    void addRoot(void* root, RootMarkFn markFn) {
+        roots_.push_back({root, std::move(markFn)});
+    }
+    void removeRoot(void* root) {
+        roots_.erase(std::remove_if(roots_.begin(), roots_.end(),
+            [root](const RootEntry& e) { return e.root == root; }),
+            roots_.end());
+    }
+    
 private:
     Nursery nursery_;
     OldGeneration oldGen_;
@@ -136,6 +151,12 @@ private:
     GCControllerStats stats_;
     GCSchedule schedule_;
     size_t lastLiveSize_ = 0;
+    
+    struct RootEntry {
+        void* root;
+        RootMarkFn markFn;
+    };
+    std::vector<RootEntry> roots_;
     
     void markAll();
     bool shouldCompact() const;

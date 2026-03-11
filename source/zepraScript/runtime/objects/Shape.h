@@ -1,3 +1,5 @@
+// Copyright (c) 2025 KetiveeAI. All rights reserved.
+// Licensed under KPL-2.0. See LICENSE file for details.
 /**
  * @file Shape.h
  * @brief Hidden class / shape implementation for property access optimization
@@ -8,7 +10,6 @@
  * - Inline cache integration
  * - Shape tree management
  * 
- * Based on V8 Maps and JSC Structures
  */
 
 #pragma once

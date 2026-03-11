@@ -10,6 +10,7 @@
 #include <cmath>
 #include <algorithm>
 #include <vector>
+#include <memory>
 
 namespace Zepra::Heap {
 
@@ -52,10 +53,10 @@ public:
     }
 
     Histogram() : name_(""), numBuckets_(0), totalCount_(0), totalSum_(0)
-        , min_(1e18), max_(0) {}
+        , min_(1e18), max_(0), mutex_(std::make_unique<std::mutex>()) {}
 
     void record(double value) {
-        std::lock_guard<std::mutex> lock(mutex_);
+        std::lock_guard<std::mutex> lock(*mutex_);
         totalCount_++;
         totalSum_ += value;
         if (value < min_) min_ = value;
@@ -88,7 +89,7 @@ public:
 
     // Percentile from buckets (linear interpolation).
     double percentile(double p) const {
-        std::lock_guard<std::mutex> lock(mutex_);
+        std::lock_guard<std::mutex> lock(*mutex_);
         if (totalCount_ == 0) return 0;
 
         uint64_t target = static_cast<uint64_t>(p / 100.0 * totalCount_);
@@ -115,7 +116,7 @@ public:
     size_t numBuckets() const { return numBuckets_; }
 
     void reset() {
-        std::lock_guard<std::mutex> lock(mutex_);
+        std::lock_guard<std::mutex> lock(*mutex_);
         for (size_t i = 0; i < numBuckets_; i++) {
             buckets_[i].count = 0;
             buckets_[i].sum = 0;
@@ -134,7 +135,7 @@ private:
     double totalSum_;
     double min_;
     double max_;
-    mutable std::mutex mutex_;
+    mutable std::unique_ptr<std::mutex> mutex_;
 };
 
 // Pre-defined histograms for GC.

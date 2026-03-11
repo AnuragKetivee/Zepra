@@ -1,3 +1,5 @@
+// Copyright (c) 2025 KetiveeAI. All rights reserved.
+// Licensed under KPL-2.0. See LICENSE file for details.
 /**
  * @file worker.cpp
  * @brief JavaScript Web Workers implementation
@@ -6,6 +8,8 @@
 #include "browser/worker.hpp"
 #include "runtime/execution/vm.hpp"
 #include "runtime/objects/function.hpp"
+#include <fstream>
+#include <fstream>
 
 namespace Zepra::Browser {
 
@@ -67,8 +71,24 @@ void Worker::workerThread() {
         outgoingMessages_.push(msg);
     });
     
-    // TODO: Load and compile script from scriptUrl_
-    // For now, worker is ready to receive messages
+    // Load and compile script from scriptUrl_.
+    std::string scriptSource;
+    if (scriptUrl_.substr(0, 7) == "file://") {
+        std::string path = scriptUrl_.substr(7);
+        std::ifstream f(path);
+        if (f) scriptSource.assign(std::istreambuf_iterator<char>(f), {});
+    } else {
+        scriptSource = workerVM_->loadBundledScript(scriptUrl_);
+    }
+
+    if (!scriptSource.empty()) {
+        auto compiled = workerVM_->compile(scriptSource, scriptUrl_);
+        if (compiled) {
+            workerVM_->execute(compiled);
+        } else if (onError_) {
+            onError_("Failed to compile worker script: " + scriptUrl_);
+        }
+    }
     
     while (!shouldTerminate_) {
         std::unique_lock<std::mutex> lock(mutex_);

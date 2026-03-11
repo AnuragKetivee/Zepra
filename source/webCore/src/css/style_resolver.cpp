@@ -1,3 +1,5 @@
+// Copyright (c) 2025 KetiveeAI. All rights reserved.
+// Licensed under KPL-2.0. See LICENSE file for details.
 /**
  * style_resolver.cpp - CSS Style Resolution
  * 
@@ -7,7 +9,6 @@
  * 3. Handle inheritance for inheritable properties
  * 4. Compute final values
  * 
- * Based on Firefox Stylo / WebKit StyleResolver patterns.
  */
 
 #include "css/css_engine.hpp"

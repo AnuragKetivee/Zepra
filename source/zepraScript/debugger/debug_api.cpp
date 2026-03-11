@@ -1,3 +1,5 @@
+// Copyright (c) 2025 KetiveeAI. All rights reserved.
+// Licensed under KPL-2.0. See LICENSE file for details.
 /**
  * @file debug_api.cpp
  * @brief Unified debug API facade
@@ -12,6 +14,7 @@
 #include "debugger/debugger.hpp"
 #include "runtime/objects/value.hpp"
 #include "runtime/objects/object.hpp"
+#include "runtime/objects/function.hpp"
 #include "config.hpp"
 #include <functional>
 #include <unordered_map>
@@ -213,12 +216,14 @@ public:
             info.name = name;
             info.value = obj->get(name);
 
-            auto desc = obj->getPropertyDescriptor(name);
-            info.writable = desc.writable;
-            info.enumerable = desc.enumerable;
-            info.configurable = desc.configurable;
-            info.isGetter = desc.hasGetter;
-            info.isSetter = desc.hasSetter;
+            auto descOpt = obj->getOwnPropertyDescriptor(name);
+            if (descOpt) {
+                info.writable = descOpt->isWritable();
+                info.enumerable = descOpt->isEnumerable();
+                info.configurable = descOpt->isConfigurable();
+                info.isGetter = descOpt->isAccessorDescriptor();
+                info.isSetter = descOpt->isAccessorDescriptor();
+            }
 
             result.push_back(info);
         }

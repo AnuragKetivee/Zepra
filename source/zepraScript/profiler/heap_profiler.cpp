@@ -1,3 +1,5 @@
+// Copyright (c) 2025 KetiveeAI. All rights reserved.
+// Licensed under KPL-2.0. See LICENSE file for details.
 /**
  * @file heap_profiler.cpp
  * @brief Heap Snapshot generator and Allocation Profiler
@@ -7,7 +9,7 @@
  * - Calculate self sizes and retained sizes (dominator tree logic).
  * - Track allocations over time to identify memory leaks.
  *
- * Ref: V8 HeapProfiler, Chrome DevTools Protocol HeapProfiler Domain
+ * - Copyright ketiveeai 
  */
 
 #include <vector>
@@ -35,7 +37,6 @@ struct GCNode {
 };
 
 // =============================================================================
-// Graph Structures (V8 Format)
 // =============================================================================
 
 struct HeapEdge {

@@ -1,3 +1,5 @@
+// Copyright (c) 2025 KetiveeAI. All rights reserved.
+// Licensed under KPL-2.0. See LICENSE file for details.
 /**
  * @file WasmValidate.h
  * @brief WebAssembly module validation
@@ -8,7 +10,6 @@
  * - Memory/table access validation
  * - Import/export validation
  * 
- * Based on Firefox SpiderMonkey WasmValidate.h
  */
 
 #pragma once

@@ -1,3 +1,5 @@
+// Copyright (c) 2025 KetiveeAI. All rights reserved.
+// Licensed under KPL-2.0. See LICENSE file for details.
 /**
  * @file deoptimizer.cpp
  * @brief JIT Deoptimization (OSR exit)
@@ -12,7 +14,6 @@
  *   3. Reconstruct interpreter stack
  *   4. Resume in VM::run() at the correct bytecode offset
  *
- * Ref: V8 Deoptimizer, JSC OSRExit, SpiderMonkey Bailout
  */
 
 #include "jit/MacroAssembler.h"

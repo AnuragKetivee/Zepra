@@ -1,3 +1,5 @@
+// Copyright (c) 2025 KetiveeAI. All rights reserved.
+// Licensed under KPL-2.0. See LICENSE file for details.
 /**
  * @file devtools_advanced.cpp
  * @brief Advanced Zepra DevTools with VM integration, responsive presets, AI debug

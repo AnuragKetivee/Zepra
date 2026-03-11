@@ -5,7 +5,6 @@
  * Tracks operand types at specific bytecode locations to enable
  * speculative type-specialized code generation.
  * 
- * Production-ready implementation following V8/JSC patterns.
  */
 
 #pragma once

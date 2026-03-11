@@ -1,3 +1,5 @@
+// Copyright (c) 2025 KetiveeAI. All rights reserved.
+// Licensed under KPL-2.0. See LICENSE file for details.
 /**
  * NXSVG C Wrapper Implementation
  * Bridges C code (IconLay) to C++ NXSVG library

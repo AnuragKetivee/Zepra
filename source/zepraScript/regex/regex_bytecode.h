@@ -1,3 +1,5 @@
+// Copyright (c) 2025 KetiveeAI. All rights reserved.
+// Licensed under KPL-2.0. See LICENSE file for details.
 /**
  * @file regex_bytecode.h
  * @brief Regex bytecode instruction set
@@ -6,7 +8,6 @@
  * The regex compiler converts patterns into this bytecode,
  * which the regex engine then executes via an NFA/backtracking VM.
  *
- * Ref: SpiderMonkey irregexp, RE2 NFA
  */
 
 #pragma once

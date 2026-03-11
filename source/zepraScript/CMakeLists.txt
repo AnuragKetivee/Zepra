@@ -19,12 +19,25 @@ set(ZEPRA_CORE_SOURCES
     runtime/objects/class_fields.cpp
     runtime/objects/map.cpp
     runtime/objects/set.cpp
+    runtime/objects/coercion.cpp
+    runtime/objects/native_binding.cpp
+    runtime/objects/object_layout.cpp
+    runtime/objects/property_storage.cpp
+    runtime/objects/reflect_impl.cpp
+    runtime/objects/shape_impl.cpp
 
     # Runtime — Execution
     runtime/execution/vm.cpp
     runtime/execution/crash_handler.cpp
     runtime/execution/environment.cpp
     runtime/execution/global_object.cpp
+    runtime/execution/event_loop.cpp
+    runtime/execution/eval_impl.cpp
+    runtime/execution/execution_context.cpp
+    runtime/execution/isolated_global.cpp
+    runtime/execution/sandbox.cpp
+    runtime/execution/scheduler.cpp
+    runtime/execution/stack_frame.cpp
     runtime/gc_object_visitor.cpp
     runtime/gc_runtime_bridge.cpp
     runtime/gc_write_barrier.cpp
@@ -36,6 +49,15 @@ set(ZEPRA_CORE_SOURCES
     runtime/gc_event_log.cpp
     runtime/gc_vm_allocator.cpp
     runtime/gc_vm_hooks.cpp
+    runtime/gc_smart_ram_bridge.cpp
+    runtime/gc_tab_lifecycle.cpp
+
+    # Runtime — Builtins API
+    runtime/builtins_api/array_builtins.cpp
+    runtime/builtins_api/error_builtins.cpp
+    runtime/builtins_api/number_builtins.cpp
+    runtime/builtins_api/regexp_builtins.cpp
+    runtime/builtins_api/string_builtins.cpp
 
     # Runtime — Async
     runtime/async/promise.cpp
@@ -105,7 +127,6 @@ set(ZEPRA_CORE_SOURCES
     heap/gc_handle_scope.cpp
     heap/gc_integration_test.cpp
     heap/remembered_set.cpp
-    heap/concurrent_marker.cpp
     heap/gc_verifier.cpp
     heap/gc_nursery.cpp
     heap/gc_old_space.cpp
@@ -163,6 +184,55 @@ set(ZEPRA_CORE_SOURCES
     heap/gc_per_tab_allocator.cpp
     heap/gc_heap_trimmer.cpp
     heap/gc_low_memory_protector.cpp
+    heap/smart_ram_allocator.cpp
+    heap/gc_activity_callback.cpp
+    heap/gc_alloc_kind.cpp
+    heap/gc_arena.cpp
+    heap/gc_arena_list.cpp
+    heap/gc_atom_marking.cpp
+    heap/gc_atom_table.cpp
+    heap/gc_background_throttle_policy.cpp
+    heap/gc_barrier_batch.cpp
+    heap/gc_barrier_set.cpp
+    heap/gc_block_directory.cpp
+    heap/gc_capacity_manager.cpp
+    heap/gc_cell_container.cpp
+    heap/gc_cell.cpp
+    heap/gc_complete_subspace.cpp
+    heap/gc_conservative_scanner.cpp
+    heap/gc_defer_context.cpp
+    heap/gc_destructor_dispatch.cpp
+    heap/gc_exclusive_access.cpp
+    heap/gc_generation_balancer.cpp
+    heap/gc_histogram.cpp
+    heap/gc_idle_time_handler.cpp
+    heap/gc_interior_pointer.cpp
+    heap/gc_lock.cpp
+    heap/gc_media_tab_protector.cpp
+    heap/gc_memory_counters.cpp
+    heap/gc_object_table.cpp
+    heap/gc_parallel_marker.cpp
+    heap/gc_parallel_sweeper.cpp
+    heap/gc_parallel_task.cpp
+    heap/gc_phase_timer.cpp
+    heap/gc_probe_points.cpp
+    heap/gc_root_marking.cpp
+    heap/gc_scheduling_policy.cpp
+    heap/gc_slice_budget.cpp
+    heap/gc_statistics_collector.cpp
+    heap/gc_store_buffer.cpp
+    heap/gc_store_buffer_drain.cpp
+    heap/gc_string_dedup.cpp
+    heap/gc_subspace.cpp
+    heap/gc_tab_memory_policy.cpp
+    heap/gc_thread_state.cpp
+    heap/gc_weak_cache.cpp
+    heap/gc_weak_map.cpp
+    heap/gc_weak_ref_processor.cpp
+    heap/gc_work_stealing.cpp
+    heap/gc_zone_allocator.cpp
+    heap/gc_zone.cpp
+    heap/gc_zone_group.cpp
 
     # Bytecode
     bytecode/bytecode_generator.cpp
@@ -172,6 +242,10 @@ set(ZEPRA_CORE_SOURCES
     # Interpreter
     interpreter/interpreter.cpp
     interpreter/stack_frame.cpp
+    interpreter/bytecode_dispatch.cpp
+    interpreter/interpreter_builtins.cpp
+    interpreter/interpreter_debug.cpp
+    interpreter/interpreter_dispatch.cpp
 
     # Builtins
     builtins/object_builtins.cpp
@@ -188,6 +262,7 @@ set(ZEPRA_CORE_SOURCES
     builtins/regexp.cpp
     builtins/symbol.cpp
     builtins/weakmap.cpp
+    builtins/weakref.cpp
     builtins/reflect.cpp
     builtins/generator.cpp
     builtins/intl.cpp
@@ -212,6 +287,12 @@ set(ZEPRA_CORE_SOURCES
     jit/osr.cpp
     jit/macro_assembler.cpp
     jit/deoptimizer.cpp
+    jit/jit_ir.cpp
+    jit/jit_lowering.cpp
+    jit/jit_code_gen.cpp
+    jit/jit_code_cache.cpp
+    jit/jit_inline_cache.cpp
+    jit/jit_tier_policy.cpp
 
     # Zepra Optimizer
     zopt/ZOptGraph.cpp
@@ -223,6 +304,7 @@ set(ZEPRA_CORE_SOURCES
     memory/page_allocator.cpp
     memory/arena_allocator.cpp
     memory/memory_pool.cpp
+    memory/object_pool.cpp
 
     # API
     api/isolate.cpp
@@ -231,7 +313,7 @@ set(ZEPRA_CORE_SOURCES
     api/value_api.cpp
     api/script_engine.cpp
 
-    # Debugger (was debug/)
+    # Debugger
     debugger/debug_api.cpp
     debugger/breakpoint_manager.cpp
     debugger/call_stack_info.cpp
@@ -289,6 +371,14 @@ set(ZEPRA_CORE_SOURCES
 
     # Workers
     workers/WorkerModuleLoader.cpp
+
+    # Modules
+    modules/DynamicImport.cpp
+    modules/ModuleExecutor.cpp
+    modules/ModuleLinker.cpp
+
+    # Exception
+    exception/stack_trace.cpp
 
     # Integration
     integration/VMModuleIntegration.cpp

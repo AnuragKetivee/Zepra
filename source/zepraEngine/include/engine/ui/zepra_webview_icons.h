@@ -1,3 +1,5 @@
+// Copyright (c) 2025 KetiveeAI. All rights reserved.
+// Licensed under KPL-2.0. See LICENSE file for details.
 /**
  * @file devtools_icons.h
  * @brief SVG-based icons for DevTools panel tabs
@@ -102,7 +104,6 @@ constexpr const char* BUG_SVG = R"(
 <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
 <path d="M12 2C10 2 8.5 3.5 8.5 5.5V7H15.5V5.5C15.5 3.5 14 2 12 2Z" stroke="currentColor" stroke-width="2"/>
 <path d="M20 12H22M2 12H4M8 19V22M16 19V22" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
-<path d="M12 22C15.3 22 18 19.3 18 16V8C18 4.7 15.3 2 12 2C8.7 2 6 4.7 6 8V16C6 19.3 8.7 22 12 22Z" stroke="currentColor" stroke-width="2"/>
 </svg>
 )";
 

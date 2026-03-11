@@ -31,7 +31,7 @@ uint32_t Map::hashKey(const Value& key) const {
         return static_cast<uint32_t>(bits);
     }
     if (key.isString()) {
-        const char* str = key.asCString();
+        const char* str = key.asString()->value().c_str();
         if (!str) return 0;
         // FNV-1a.
         uint32_t h = 2166136261u;
@@ -41,8 +41,8 @@ uint32_t Map::hashKey(const Value& key) const {
         }
         return h;
     }
-    if (key.isBool()) {
-        return key.asBool() ? 1 : 0;
+    if (key.isBoolean()) {
+        return key.asBoolean() ? 1 : 0;
     }
     if (key.isNull()) return 0x12345678u;
     if (key.isUndefined()) return 0x87654321u;

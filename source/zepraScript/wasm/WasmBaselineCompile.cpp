@@ -1,3 +1,5 @@
+// Copyright (c) 2025 KetiveeAI. All rights reserved.
+// Licensed under KPL-2.0. See LICENSE file for details.
 /**
  * @file WasmBaselineCompile.cpp
  * @brief WebAssembly Baseline JIT Compiler Implementation
@@ -1386,7 +1388,6 @@ public:
     // Vector registers: v0-v31
     enum VPR : uint8_t {
         V0 = 0, V1 = 1, V2 = 2, V3 = 3, V4 = 4, V5 = 5, V6 = 6, V7 = 7,
-        V8 = 8, V9 = 9, V10 = 10, V11 = 11, V12 = 12, V13 = 13, V14 = 14, V15 = 15,
         V16 = 16, V17 = 17, V18 = 18, V19 = 19, V20 = 20, V21 = 21, V22 = 22, V23 = 23,
         V24 = 24, V25 = 25, V26 = 26, V27 = 27, V28 = 28, V29 = 29, V30 = 30, V31 = 31
     };
@@ -2764,7 +2765,6 @@ public:
     }
     
     // ==========================================================================
-    // SIMD Floating-Point Operations (from SpiderMonkey VIXL reference)
     // ==========================================================================
     
     // FP absolute value (vector)
@@ -6688,7 +6688,6 @@ void BaselineCompiler::emitEpilogue() {
 }
 
 void BaselineCompiler::emitTierUpCheck() {
-    // Tier-up check at loop header (based on JSC's BBQ JIT approach)
     //
     // The tier-up counter is stored in the TierUpCount structure.
     // We decrement by loopIncrement() on each loop iteration.

@@ -107,19 +107,17 @@ public:
     }
 
     // Pre-sweep: collect cells needing destruction before freeing memory.
-    void preSweep(std::function<void(void* cell, CellType type, bool isMarked)> scanner) {
+    void preSweep(std::function<void(std::function<void(void*, CellType, bool)>)> scanner) {
         std::lock_guard<std::mutex> lock(mutex_);
         sweepPending_ = true;
 
         pendingDestructors_.clear();
 
-        auto collector = [this](void* cell, CellType type, bool isMarked) {
+        scanner([this](void* cell, CellType type, bool isMarked) {
             if (!isMarked && hasDestructorLocked(type)) {
                 pendingDestructors_.push_back({cell, type});
             }
-        };
-
-        scanner(collector);
+        });
     }
 
     // Execute pending destructors from pre-sweep.

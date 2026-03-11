@@ -1,3 +1,5 @@
+// Copyright (c) 2025 KetiveeAI. All rights reserved.
+// Licensed under KPL-2.0. See LICENSE file for details.
 /**
  * @file sandbox_tests.cpp
  * @brief Unit tests for Sandbox and Security Infrastructure

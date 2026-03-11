@@ -1,3 +1,5 @@
+// Copyright (c) 2025 KetiveeAI. All rights reserved.
+// Licensed under KPL-2.0. See LICENSE file for details.
 /**
  * @file vm.cpp
  * @brief JavaScript Virtual Machine implementation
@@ -13,6 +15,10 @@
 #include "builtins/generator.hpp"
 #include "runtime/handles/module_loader.hpp"
 #include "bytecode/bytecode_generator.hpp"
+#include "frontend/source_code.hpp"
+#include "frontend/lexer.hpp"
+#include "frontend/parser.hpp"
+#include "frontend/syntax_checker.hpp"
 #include "runtime/execution/Sandbox.h"
 #include "heap/gc_heap.hpp"
 #include "builtins/string.hpp"
@@ -24,6 +30,7 @@
 #include <cmath>
 #include <iostream>
 #include <stdexcept>
+#include "runtime/execution/event_loop.hpp"
 
 namespace Zepra::Runtime {
 
@@ -33,9 +40,9 @@ using Zepra::Bytecode::BytecodeChunk;
 // Thread-local current VM for callback execution
 thread_local VM* VM::currentVM_ = nullptr;
 
-VM::VM(Context* context) : context_(context) {
+VM::VM(Context* context) : context_(context), jit_(this) {
     stack_.reserve(ZEPRA_MAX_CALL_STACK_DEPTH * 256);
-    heapStack_.reserve(HEAP_STACK_PREALLOC);  // Pre-allocate for deep recursion
+    heapStack_.reserve(HEAP_STACK_PREALLOC);
 }
 
 VM::~VM() = default;
@@ -2147,6 +2154,127 @@ Value VM::resumeGenerator(GeneratorFrame* frame, Value yieldVal, const std::vect
     ip_ = savedIP;
     
     return yieldedValue_;
+}
+
+} // namespace Zepra::Runtime
+
+// Frame accessor implementations (in separate TU block to avoid recompiling all of vm.cpp)
+namespace Zepra::Runtime {
+
+const VMCallFrame* VM_getFrame(const VM* vm, size_t idx,
+    const VMCallFrame* nativeStack, size_t nativeDepth,
+    const std::vector<VMCallFrame>& heapStack, size_t heapDepth) {
+    if (idx < nativeDepth) return &nativeStack[nativeDepth - 1 - idx];
+    idx -= nativeDepth;
+    if (idx < heapDepth) return &heapStack[heapDepth - 1 - idx];
+    return nullptr;
+}
+
+std::string VM::getFrameFunctionName(size_t frameIdx) const {
+    auto* f = VM_getFrame(this, frameIdx, nativeStack_, nativeDepth_, heapStack_, heapDepth_);
+    if (f && f->function) return f->function->name();
+    return "<anonymous>";
+}
+
+std::string VM::getFrameSourceFile(size_t frameIdx) const {
+    (void)frameIdx;
+    return "<unknown>";
+}
+
+uint32_t VM::getFrameLine(size_t frameIdx) const {
+    (void)frameIdx;
+    return 0;
+}
+
+uint32_t VM::getFrameColumn(size_t frameIdx) const {
+    (void)frameIdx;
+    return 0;
+}
+
+Value VM::getFrameThisValue(size_t frameIdx) const {
+    auto* f = VM_getFrame(this, frameIdx, nativeStack_, nativeDepth_, heapStack_, heapDepth_);
+    if (f) return f->thisValue;
+    return Value::undefined();
+}
+
+std::vector<std::string> VM::getFrameLocalNames(size_t frameIdx) const {
+    (void)frameIdx;
+    return {};
+}
+
+Value VM::getFrameLocal(size_t frameIdx, const std::string& name) const {
+    (void)frameIdx; (void)name;
+    return Value::undefined();
+}
+
+std::vector<std::string> VM::getFrameClosureNames(size_t frameIdx) const {
+    (void)frameIdx;
+    return {};
+}
+
+Value VM::getFrameClosureValue(size_t frameIdx, const std::string& name) const {
+    (void)frameIdx; (void)name;
+    return Value::undefined();
+}
+
+Value VM::evaluateInFrame(size_t frameIdx, const std::string& expression) {
+    (void)frameIdx;
+    if (!context_ || expression.empty()) return Value::undefined();
+
+    // Compile expression in isolated scope and execute
+    auto sourceCode = Frontend::SourceCode::fromString(expression, "<eval>");
+    Frontend::Parser parser(sourceCode.get());
+    auto ast = parser.parseProgram();
+    if (parser.hasErrors()) return Value::undefined();
+
+    Frontend::SyntaxChecker checker;
+    if (!checker.check(ast.get())) return Value::undefined();
+
+    Bytecode::BytecodeGenerator generator;
+    auto chunk = generator.compile(ast.get());
+    if (generator.hasErrors() || !chunk) return Value::undefined();
+
+    auto result = execute(chunk.get());
+    return (result.status == ExecutionResult::Status::Success) ? result.value : Value::undefined();
+}
+
+// Compiled chunk storage — keeps unique_ptrs alive for execute(void*) callers
+static std::vector<std::unique_ptr<Bytecode::BytecodeChunk>> compiledChunks_;
+
+void* VM::compile(const std::string& source, const std::string& filename) {
+    auto sourceCode = Frontend::SourceCode::fromString(source, filename.empty() ? "<worker>" : filename);
+    Frontend::Parser parser(sourceCode.get());
+    auto ast = parser.parseProgram();
+    if (parser.hasErrors()) return nullptr;
+
+    Frontend::SyntaxChecker checker;
+    if (!checker.check(ast.get())) return nullptr;
+
+    Bytecode::BytecodeGenerator generator;
+    auto chunk = generator.compile(ast.get());
+    if (generator.hasErrors() || !chunk) return nullptr;
+
+    auto* raw = chunk.get();
+    compiledChunks_.push_back(std::move(chunk));
+    return static_cast<void*>(const_cast<Bytecode::BytecodeChunk*>(raw));
+}
+
+void VM::execute(void* compiled) {
+    if (!compiled) return;
+    auto* chunk = static_cast<const Bytecode::BytecodeChunk*>(compiled);
+    execute(chunk);
+}
+
+std::string VM::loadBundledScript(const std::string& url) {
+    (void)url;
+    // Requires browser resource layer — returns empty until wired to network/cache
+    return "";
+}
+
+void VM::runEventLoop() {
+    if (eventLoop_) {
+        eventLoop_->run();
+    }
 }
 
 } // namespace Zepra::Runtime

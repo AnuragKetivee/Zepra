@@ -1,3 +1,5 @@
+// Copyright (c) 2025 KetiveeAI. All rights reserved.
+// Licensed under KPL-2.0. See LICENSE file for details.
 /**
  * @file ZOptPipeline.cpp
  * @brief ZOpt JIT Compilation Pipeline
@@ -10,7 +12,6 @@
  *   5. Lowering to machine code
  *   6. Emit into executable buffer
  *
- * Ref: JSC ZOpt::Plan, SpiderMonkey Ion pipeline
  */
 
 #include "zopt/ZOptGraph.h"

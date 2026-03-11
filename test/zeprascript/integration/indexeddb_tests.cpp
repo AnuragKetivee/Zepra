@@ -314,13 +314,13 @@ TEST(IDBTransactionTests, AbortFinishes) {
 // =============================================================================
 
 TEST(StructuredCloneTests, ClonePrimitives) {
-    EXPECT_TRUE(StructuredClone::clone(Value::undefined()).isUndefined());
-    EXPECT_TRUE(StructuredClone::clone(Value::null()).isNull());
-    EXPECT_EQ(StructuredClone::clone(Value::number(42)).asNumber(), 42.0);
-    EXPECT_EQ(StructuredClone::clone(Value::boolean(true)).asBoolean(), true);
+    EXPECT_TRUE(Zepra::Browser::StructuredClone::clone(Value::undefined()).isUndefined());
+    EXPECT_TRUE(Zepra::Browser::StructuredClone::clone(Value::null()).isNull());
+    EXPECT_EQ(Zepra::Browser::StructuredClone::clone(Value::number(42)).asNumber(), 42.0);
+    EXPECT_EQ(Zepra::Browser::StructuredClone::clone(Value::boolean(true)).asBoolean(), true);
     
     auto str = Value::string(new String("hello"));
-    auto cloned = StructuredClone::clone(str);
+    auto cloned = Zepra::Browser::StructuredClone::clone(str);
     EXPECT_EQ(cloned.asString()->value(), "hello");
 }
 
@@ -329,7 +329,7 @@ TEST(StructuredCloneTests, CloneObject) {
     obj->set("a", Value::number(1));
     obj->set("b", Value::string(new String("test")));
     
-    auto cloned = StructuredClone::clone(Value::object(obj));
+    auto cloned = Zepra::Browser::StructuredClone::clone(Value::object(obj));
     EXPECT_TRUE(cloned.isObject());
     
     Object* clonedObj = cloned.asObject();
@@ -344,7 +344,7 @@ TEST(StructuredCloneTests, CloneArray) {
     arr->push(Value::number(2));
     arr->push(Value::number(3));
     
-    auto cloned = StructuredClone::clone(Value::object(arr));
+    auto cloned = Zepra::Browser::StructuredClone::clone(Value::object(arr));
     EXPECT_TRUE(cloned.isObject());
     
     Array* clonedArr = dynamic_cast<Array*>(cloned.asObject());
@@ -357,10 +357,10 @@ TEST(StructuredCloneTests, SerializeDeserialize) {
     obj->set("x", Value::number(100));
     obj->set("y", Value::string(new String("hello")));
     
-    auto serialized = StructuredClone::serialize(Value::object(obj));
+    auto serialized = Zepra::Browser::StructuredClone::serialize(Value::object(obj));
     EXPECT_FALSE(serialized.buffer.empty());
     
-    auto deserialized = StructuredClone::deserialize(serialized);
+    auto deserialized = Zepra::Browser::StructuredClone::deserialize(serialized);
     EXPECT_TRUE(deserialized.isObject());
     
     Object* result = deserialized.asObject();

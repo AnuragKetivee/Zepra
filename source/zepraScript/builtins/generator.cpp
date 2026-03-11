@@ -1,3 +1,5 @@
+// Copyright (c) 2025 KetiveeAI. All rights reserved.
+// Licensed under KPL-2.0. See LICENSE file for details.
 /**
  * @file generator.cpp
  * @brief ES6 Generator Object implementation
@@ -5,7 +7,6 @@
  * Implements GeneratorObject and Generator.prototype methods (next, return, throw)
  * following the ES2024 §27.5 Generator Objects specification.
  *
- * SpiderMonkey reference: js/src/vm/GeneratorObject.cpp
  * Key pattern: GeneratorResumeKind (Next/Throw/Return) dispatches behavior.
  */
 
@@ -84,7 +85,6 @@ Runtime::Value GeneratorBuiltin::return_(const Runtime::FunctionCallInfo& info) 
 
 // ES2024 §27.5.3.3 Generator.prototype.throw(exception)
 //
-// Per SpiderMonkey (GeneratorThrowOrReturn): when resumeKind is Throw,
 // the exception is set as pending and the interpreter's exception-handling
 // machinery (try/catch) in the generator's bytecode picks it up.
 // If uncaught, the generator completes and the exception propagates.

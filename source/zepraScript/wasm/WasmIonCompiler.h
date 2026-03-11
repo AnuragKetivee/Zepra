@@ -1,8 +1,9 @@
+// Copyright (c) 2025 KetiveeAI. All rights reserved.
+// Licensed under KPL-2.0. See LICENSE file for details.
 /**
  * @file WasmIonCompiler.h
  * @brief High-Tier WASM Compilation (Ion-Style)
  * 
- * SpiderMonkey Ion backend patterns:
  * - MIR → LIR lowering
  * - Linear scan register allocation
  * - Async compilation tasks

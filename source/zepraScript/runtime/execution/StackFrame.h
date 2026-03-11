@@ -1,3 +1,5 @@
+// Copyright (c) 2025 KetiveeAI. All rights reserved.
+// Licensed under KPL-2.0. See LICENSE file for details.
 /**
  * @file StackFrame.h
  * @brief Virtual machine stack frame structure
@@ -8,7 +10,6 @@
  * - Stack walking
  * - Frame inspection for debugging
  * 
- * Based on V8/JSC frame layouts
  */
 
 #pragma once

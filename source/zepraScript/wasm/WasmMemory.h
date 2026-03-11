@@ -1,3 +1,5 @@
+// Copyright (c) 2025 KetiveeAI. All rights reserved.
+// Licensed under KPL-2.0. See LICENSE file for details.
 /**
  * @file WasmMemory.h
  * @brief WebAssembly linear memory with guard pages and signal handling
@@ -9,7 +11,6 @@
  * - Shared memory support (threads proposal)
  * - 64-bit memory support (memory64 proposal)
  * 
- * Based on Firefox SpiderMonkey / WebKit JSC
  */
 
 #pragma once

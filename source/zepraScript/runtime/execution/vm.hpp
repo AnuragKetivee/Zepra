@@ -15,6 +15,7 @@
 #include <unordered_map>
 #include "runtime/handles/inline_cache.hpp"
 #include "jit/jit_profiler.hpp"
+#include "jit/baseline_jit.hpp"
 
 namespace Zepra::Runtime {
 
@@ -208,6 +209,38 @@ public:
     void requestTermination() { terminationRequested_ = true; }
     bool isTerminationRequested() const { return terminationRequested_; }
     
+    // Frame accessors for debugger
+    std::string getFrameFunctionName(size_t frameIdx) const;
+    std::string getFrameSourceFile(size_t frameIdx) const;
+    uint32_t getFrameLine(size_t frameIdx) const;
+    uint32_t getFrameColumn(size_t frameIdx) const;
+    Value getFrameThisValue(size_t frameIdx) const;
+    std::vector<std::string> getFrameLocalNames(size_t frameIdx) const;
+    Value getFrameLocal(size_t frameIdx, const std::string& name) const;
+    std::vector<std::string> getFrameClosureNames(size_t frameIdx) const;
+    Value getFrameClosureValue(size_t frameIdx, const std::string& name) const;
+    
+    // Evaluate expression in frame scope (for debugger watch/evaluate)
+    Value evaluateInFrame(size_t frameIdx, const std::string& expression);
+    
+    // Script loading for workers
+    std::string loadBundledScript(const std::string& url);
+    void* compile(const std::string& source, const std::string& filename = "");
+    void execute(void* compiled);
+    
+    // Event loop integration (browser-grade timer/microtask processing)
+    class EventLoop* eventLoop() const { return eventLoop_; }
+    void setEventLoop(class EventLoop* loop) { eventLoop_ = loop; }
+    void runEventLoop();
+    
+    // JIT compilation
+    JIT::BaselineJIT* jit() { return &jit_; }
+    bool hasJITCode(void* key) const { return jitCache_.count(key) > 0; }
+    void* getJITEntry(void* key) const {
+        auto it = jitCache_.find(key);
+        return it != jitCache_.end() ? it->second->entryPoint() : nullptr;
+    }
+    
 private:
     // Thread-local current VM for callback execution
     static thread_local VM* currentVM_;
@@ -240,10 +273,10 @@ private:
     // ==========================================================================
     
     // Stack configuration constants
-    static constexpr size_t NATIVE_STACK_SIZE = 512;      // Frames on C stack
-    static constexpr size_t NATIVE_STACK_THRESHOLD = 384; // 75% - switch point
-    static constexpr size_t HEAP_STACK_PREALLOC = 1024;   // Pre-allocate frames
-    static constexpr size_t HEAP_STACK_MAX = 65536;       // Max 1.8MB heap
+    static constexpr size_t NATIVE_STACK_SIZE = 2048;      // Frames on C stack
+    static constexpr size_t NATIVE_STACK_THRESHOLD = 1536; // 75% - switch point
+    static constexpr size_t HEAP_STACK_PREALLOC = 1024;    // Pre-allocate frames
+    static constexpr size_t HEAP_STACK_MAX = 262144;       // Max ~7MB heap stack
     
     // Native stack (FAST PATH - zero allocation)
     VMCallFrame nativeStack_[NATIVE_STACK_SIZE];
@@ -305,9 +338,12 @@ private:
     GCHeap* gcHeap_ = nullptr;                    // GC heap for safe-points/barriers
     ICManager icManager_;                          // Inline cache for property access
     JIT::JITProfiler jitProfiler_;                  // Hot function detection
+    JIT::BaselineJIT jit_;                          // Baseline JIT compiler
+    std::unordered_map<void*, std::unique_ptr<JIT::CompiledCode>> jitCache_;
+    class EventLoop* eventLoop_ = nullptr;          // Event loop (owned by Context)
     bool terminationRequested_ = false;           // Termination flag
     uint64_t instructionCounter_ = 0;             // For periodic limit checks
-    static constexpr uint64_t LIMIT_CHECK_INTERVAL = 1000;  // Check every N instructions
+    static constexpr uint64_t LIMIT_CHECK_INTERVAL = 4096;  // Check every N instructions
 };
 
 } // namespace Zepra::Runtime

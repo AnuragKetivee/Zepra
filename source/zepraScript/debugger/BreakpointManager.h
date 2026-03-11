@@ -1,3 +1,5 @@
+// Copyright (c) 2025 KetiveeAI. All rights reserved.
+// Licensed under KPL-2.0. See LICENSE file for details.
 /**
  * @file BreakpointManager.h
  * @brief Breakpoint management for debugger
@@ -8,7 +10,6 @@
  * - Hit count tracking
  * - Breakpoint patching in JIT code
  * 
- * Based on V8 Debug and JSC Inspector
  */
 
 #pragma once

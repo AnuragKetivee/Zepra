@@ -1,3 +1,5 @@
+// Copyright (c) 2025 KetiveeAI. All rights reserved.
+// Licensed under KPL-2.0. See LICENSE file for details.
 // NxFont - Custom Font Renderer for Zepra Browser / NeolyxOS
 // No SDL dependency - Uses FreeType directly + OpenGL
 // 

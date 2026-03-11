@@ -186,7 +186,8 @@ public:
     // Array.prototype.flat (ES2019)
     JsValue flat(JsValue array, uint32_t depth = 1) {
         JsValue result = cb_.createArray(0);
-        flattenInto(result, array, depth, 0);
+        uint32_t idx = 0;
+        flattenInto(result, array, depth, idx);
         return result;
     }
 

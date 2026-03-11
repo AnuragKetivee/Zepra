@@ -1,6 +1,5 @@
 // Copyright (c) 2025 KetiveeAI. All rights reserved.
 // Licensed under KPL-2.0. See LICENSE file for details.
-// ZepraScript — gc_heap_snapshot_serializer.cpp — V8-format heap snapshot export
 
 #include <vector>
 #include <string>
@@ -15,7 +14,6 @@
 namespace Zepra::Heap {
 
 // Serializes heap state into Chrome DevTools Heap Snapshot format.
-// Output is JSON matching V8's snapshot schema so existing tools
 // (Chrome DevTools, memlab, heapviz) can consume it directly.
 
 enum class SnapshotNodeType : uint8_t {

@@ -1,3 +1,5 @@
+// Copyright (c) 2025 KetiveeAI. All rights reserved.
+// Licensed under KPL-2.0. See LICENSE file for details.
 #include "../../source/zepraEngine/include/engine/ui/tab_manager.h"
 #include "../../source/zepraEngine/include/engine/webkit_engine.h"
 #include <algorithm>
@@ -22,7 +24,6 @@ Tab::Tab()
     state.isPinned = false;
     state.isMuted = false;
     state.isCrashed = false;
-    state.engine = std::make_shared<WebKitEngine>();
 }
 
 Tab::~Tab() {
@@ -213,8 +214,6 @@ String TabManager::openTab(const String& url, bool foreground) {
     entry.isPinned = false;
     entry.isMuted = false;
     entry.isCrashed = false;
-    entry.engine = std::make_shared<WebKitEngine>();
-    entry.engine->initialize(WebKitConfig());
 
     tabs.push_back(entry);
 

@@ -12,6 +12,8 @@
 #include <string>
 #include <functional>
 #include <atomic>
+#include <memory>
+#include <memory>
 
 namespace Zepra::Runtime {
 

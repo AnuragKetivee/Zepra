@@ -1,4 +1,6 @@
-// Unit test stubs for ZepraScript
+// Copyright (c) 2025 KetiveeAI. All rights reserved.
+// Licensed under KPL-2.0. See LICENSE file for details.
+// Unit tests for ZepraScript value types
 #include <gtest/gtest.h>
 #include "runtime/objects/value.hpp"
 

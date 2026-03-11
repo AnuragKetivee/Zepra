@@ -1,3 +1,5 @@
+// Copyright (c) 2025 KetiveeAI. All rights reserved.
+// Licensed under KPL-2.0. See LICENSE file for details.
 /**
  * @file PropertyStorage.h
  * @brief Efficient property storage for JS objects
@@ -8,7 +10,6 @@
  * - Fast property access by offset
  * - Dictionary mode fallback
  * 
- * Based on V8 property storage
  */
 
 #pragma once

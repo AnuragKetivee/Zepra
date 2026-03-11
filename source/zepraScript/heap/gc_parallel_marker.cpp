@@ -9,6 +9,7 @@
 #include <mutex>
 #include <vector>
 #include <functional>
+#include <memory>
 #include <chrono>
 
 namespace Zepra::Heap {
@@ -26,14 +27,14 @@ public:
     static constexpr size_t kSegmentCapacity = 2048;
 
     bool push(const MarkWorkItem& item) {
-        std::lock_guard<std::mutex> lock(mutex_);
+        std::lock_guard<std::mutex> lock(*mutex_);
         if (count_ >= kSegmentCapacity) return false;
         items_[count_++] = item;
         return true;
     }
 
     bool pop(MarkWorkItem& item) {
-        std::lock_guard<std::mutex> lock(mutex_);
+        std::lock_guard<std::mutex> lock(*mutex_);
         if (count_ == 0) return false;
         item = items_[--count_];
         return true;
@@ -43,13 +44,13 @@ public:
     size_t count() const { return count_; }
 
     void clear() {
-        std::lock_guard<std::mutex> lock(mutex_);
+        std::lock_guard<std::mutex> lock(*mutex_);
         count_ = 0;
     }
 
     // Steal half the items from this worklist.
     size_t stealHalf(MarkWorkItem* dest, size_t maxItems) {
-        std::lock_guard<std::mutex> lock(mutex_);
+        std::lock_guard<std::mutex> lock(*mutex_);
         size_t toSteal = std::min(count_ / 2, maxItems);
         if (toSteal == 0) return 0;
 
@@ -60,7 +61,7 @@ public:
     }
 
 private:
-    std::mutex mutex_;
+    std::unique_ptr<std::mutex> mutex_ = std::make_unique<std::mutex>();
     MarkWorkItem items_[kSegmentCapacity];
     size_t count_ = 0;
 };

@@ -1,3 +1,5 @@
+// Copyright (c) 2025 KetiveeAI. All rights reserved.
+// Licensed under KPL-2.0. See LICENSE file for details.
 /**
  * @file Deoptimization.h
  * @brief Deoptimization and bailout from JIT to interpreter
@@ -8,7 +10,6 @@
  * - OSR exit handling
  * - Deopt metadata
  * 
- * Based on V8 Deoptimizer and JSC OSR exit
  */
 
 #pragma once

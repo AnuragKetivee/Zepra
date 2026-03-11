@@ -1,3 +1,5 @@
+// Copyright (c) 2025 KetiveeAI. All rights reserved.
+// Licensed under KPL-2.0. See LICENSE file for details.
 /**
  * @file sampling_profiler.cpp
  * @brief Statistical Allocation Sampling Profiler
@@ -8,7 +10,6 @@
  *
  * This allows safe profiling of production workloads to find memory hotspots.
  *
- * Ref: V8 SamplingHeapProfiler, tcmalloc allocation sampling
  */
 
 #include <vector>

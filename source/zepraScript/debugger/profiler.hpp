@@ -11,6 +11,7 @@
 #include <chrono>
 #include <unordered_map>
 #include <memory>
+#include <functional>
 
 namespace Zepra::Debug {
 
@@ -173,6 +174,9 @@ private:
     bool trackingAllocations_ = false;
     std::unordered_map<void*, std::pair<size_t, std::string>> allocations_;
     std::vector<std::pair<std::string, size_t>> trackedAllocations_;
+    std::function<size_t()> gcHeapSize_;  // Optional GC heap size callback
+public:
+    void setGCHeapSizeCallback(std::function<size_t()> fn) { gcHeapSize_ = std::move(fn); }
 };
 
 /**

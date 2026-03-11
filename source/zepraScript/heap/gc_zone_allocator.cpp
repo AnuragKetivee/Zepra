@@ -10,6 +10,7 @@
 #include <atomic>
 #include <functional>
 #include <vector>
+#include <memory>
 
 namespace Zepra::Heap {
 
@@ -64,7 +65,7 @@ public:
             usedArenas_.push_back(currentArena_);
         }
         currentArena_ = arena;
-        cursor_ = reinterpret_cast<uint8_t*>(arena) + sizeof(ArenaPage);
+        cursor_ = reinterpret_cast<uint8_t*>(arena) + kArenaPageSize;
         limit_ = reinterpret_cast<uint8_t*>(arena) + kArenaPageSize;
     }
 

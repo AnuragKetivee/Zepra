@@ -1,3 +1,5 @@
+// Copyright (c) 2025 KetiveeAI. All rights reserved.
+// Licensed under KPL-2.0. See LICENSE file for details.
 #pragma once
 
 #include "../common/types.h"
@@ -221,7 +223,6 @@ private:
     bool initialized_;
 };
 
-// JavaScript bridge for Node.js/V8 integration
 class JavaScriptBridge {
 public:
     JavaScriptBridge();

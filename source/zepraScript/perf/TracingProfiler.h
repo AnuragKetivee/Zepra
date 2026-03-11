@@ -1,3 +1,5 @@
+// Copyright (c) 2025 KetiveeAI. All rights reserved.
+// Licensed under KPL-2.0. See LICENSE file for details.
 /**
  * @file TracingProfiler.h
  * @brief Detailed execution tracing profiler
@@ -81,7 +83,6 @@ namespace TraceCategory {
     constexpr const char* NETWORK = "network";
     constexpr const char* ASYNC = "async";
     constexpr const char* MEMORY = "memory";
-    constexpr const char* V8 = "v8";  // Compatibility
 }
 
 // =============================================================================

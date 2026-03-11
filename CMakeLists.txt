@@ -100,9 +100,11 @@ else()
     find_package(X11 REQUIRED)
     find_package(Freetype REQUIRED)
     
-    pkg_check_modules(SDL2 REQUIRED sdl2)
-    pkg_check_modules(SDL2_IMAGE REQUIRED SDL2_image)
-    pkg_check_modules(SDL2_TTF REQUIRED SDL2_ttf)
+    if(NOT USE_NXRENDER)
+        pkg_check_modules(SDL2 REQUIRED sdl2)
+        pkg_check_modules(SDL2_IMAGE REQUIRED SDL2_image)
+        pkg_check_modules(SDL2_TTF REQUIRED SDL2_ttf)
+    endif()
 
     pkg_check_modules(OPENSSL REQUIRED openssl)
     set(PLATFORM_LIBS ${X11_LIBRARIES} Freetype::Freetype)
@@ -168,7 +170,6 @@ if(USE_NXRENDER)
         source/main.cpp
         source/integration/src/zepra_browser.cpp
         source/zepraEngine/src/engine/dev_tools.cpp
-        source/zepraEngine/src/engine/webkit_engine_stub.cpp
         source/zepraEngine/src/engine/html_parser_stub.cpp
         source/zepraEngine/src/engine/audio_stub.cpp
         source/zepraEngine/src/engine/avmedia_stub.cpp
@@ -235,7 +236,6 @@ else()
         source/main.cpp
         source/integration/src/zepra_browser.cpp
         source/zepraEngine/src/engine/dev_tools.cpp
-        source/zepraEngine/src/engine/webkit_engine_stub.cpp
         source/zepraEngine/src/engine/audio_stub.cpp
         source/zepraEngine/src/engine/avmedia_stub.cpp
         source/zepraEngine/src/engine/html_parser_stub.cpp
@@ -267,7 +267,6 @@ set(HEADERS
     source/integration/include/common/constants.h
     source/zepraEngine/include/engine/core/zepra_core.h
     source/zepraEngine/include/engine/html_parser.h
-    source/zepraEngine/include/engine/webkit_engine.h
     source/zepraEngine/include/engine/dev_tools.h
     source/zepraEngine/include/engine/download_manager.h
     source/aiEngine/include/search/ketivee_search.h
@@ -449,5 +448,5 @@ message(STATUS "  Platform: ${CMAKE_SYSTEM_NAME}")
 
 
 
-# Tests (disabled — test sources need migration)
-# add_subdirectory(test)
+# Tests
+add_subdirectory(test)

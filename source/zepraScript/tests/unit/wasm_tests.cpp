@@ -1,3 +1,5 @@
+// Copyright (c) 2025 KetiveeAI. All rights reserved.
+// Licensed under KPL-2.0. See LICENSE file for details.
 /**
  * @file wasm_tests.cpp
  * @brief WebAssembly module parsing, validation, and execution tests

@@ -1,10 +1,11 @@
+// Copyright (c) 2025 KetiveeAI. All rights reserved.
+// Licensed under KPL-2.0. See LICENSE file for details.
 /**
  * @file WasmModule.h
  * @brief WebAssembly module representation
  * 
  * Represents a parsed and validated WASM module ready for instantiation.
  * 
- * Based on Firefox SpiderMonkey / WebKit JSC
  */
 
 #pragma once

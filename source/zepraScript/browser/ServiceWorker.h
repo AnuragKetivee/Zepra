@@ -1,3 +1,5 @@
+// Copyright (c) 2025 KetiveeAI. All rights reserved.
+// Licensed under KPL-2.0. See LICENSE file for details.
 /**
  * @file ServiceWorker.h
  * @brief Service Worker API skeleton
@@ -17,6 +19,8 @@
 #include <string>
 #include <functional>
 #include <vector>
+#include <mutex>
+#include <queue>
 
 namespace Zepra::Browser {
 
@@ -28,6 +32,13 @@ using Runtime::Promise;
 class ServiceWorker;
 class ServiceWorkerRegistration;
 class ServiceWorkerContainer;
+
+// Message event for worker communication
+struct MessageEvent {
+    Value data;
+    std::string origin;
+    std::vector<Object*> transferList;
+};
 
 // =============================================================================
 // ServiceWorker
@@ -69,6 +80,14 @@ private:
     
     std::string scriptURL_;
     State state_ = State::Parsed;
+    std::mutex messageMutex_;
+    std::queue<MessageEvent> messageQueue_;
+    std::string scriptHash_;
+
+public:
+    const std::string& scriptHash() const { return scriptHash_; }
+    void setScriptHash(const std::string& h) { scriptHash_ = h; }
+    std::string fetchScriptSource() const { return ""; } // Stub — fetch from network/cache
 };
 
 // =============================================================================

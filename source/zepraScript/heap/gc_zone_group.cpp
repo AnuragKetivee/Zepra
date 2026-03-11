@@ -10,6 +10,7 @@
 #include <unordered_map>
 #include <functional>
 #include <algorithm>
+#include <memory>
 #include <atomic>
 
 namespace Zepra::Heap {

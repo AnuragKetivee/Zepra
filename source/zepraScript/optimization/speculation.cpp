@@ -1,3 +1,5 @@
+// Copyright (c) 2025 KetiveeAI. All rights reserved.
+// Licensed under KPL-2.0. See LICENSE file for details.
 /**
  * @file speculation.cpp
  * @brief Type speculation and type inference system for Zepra JIT compilers
@@ -8,7 +10,6 @@
  * - Providing a TypeOracle for DFG/FTL JIT compilers to query expected types.
  * - Managing deoptimization checkpoints when speculation fails.
  *
- * Ref: WebKit DFG/FTL Type Profiling & Speculation, V8 TurboFan TypeFeedback
  */
 
 #include <cstdint>

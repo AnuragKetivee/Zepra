@@ -101,6 +101,7 @@ public:
      * @brief Get all binding names in this environment
      */
     std::vector<std::string> bindingNames() const;
+    std::vector<std::string> getBindingNames() const { return bindingNames(); }
     
 private:
     Environment* outer_;

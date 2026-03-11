@@ -1,3 +1,5 @@
+// Copyright (c) 2025 KetiveeAI. All rights reserved.
+// Licensed under KPL-2.0. See LICENSE file for details.
 /**
  * @file gc_integration.cpp
  * @brief VM ↔ GC bridge — connects engine runtime to heap subsystem

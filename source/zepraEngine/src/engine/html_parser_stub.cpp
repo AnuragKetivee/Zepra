@@ -1,3 +1,5 @@
+// Copyright (c) 2025 KetiveeAI. All rights reserved.
+// Licensed under KPL-2.0. See LICENSE file for details.
 /**
  * @file html_parser_stub.cpp
  * @brief Minimal stub implementations for HTMLParser and related classes

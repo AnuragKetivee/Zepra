@@ -1,3 +1,5 @@
+// Copyright (c) 2025 KetiveeAI. All rights reserved.
+// Licensed under KPL-2.0. See LICENSE file for details.
 // webgl_stubs.cpp - Stub implementations for missing WebCore source files
 // These files (webgl_bindings.cpp, webgl_context.cpp) are missing from the source
 // but the pre-built libwebcore.a references their symbols
@@ -38,7 +40,6 @@ void WebGLBindings::destroyContext(uint32_t handle) {
     contexts_.erase(handle);
 }
 
-Runtime::Object* WebGLBindings::createJSContextObject(Runtime::VM* vm, uint32_t handle) {
     (void)vm;
     (void)handle;
     return nullptr;

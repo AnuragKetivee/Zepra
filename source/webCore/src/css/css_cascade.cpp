@@ -1,10 +1,11 @@
+// Copyright (c) 2025 KetiveeAI. All rights reserved.
+// Licensed under KPL-2.0. See LICENSE file for details.
 /**
  * css_cascade.cpp - CSS Cascade Implementation
  * 
  * Implements the CSS cascade algorithm per W3C spec:
  * https://www.w3.org/TR/css-cascade-5/
  * 
- * Based on Firefox/WebKit patterns:
  * 1. Collect matching rules for element
  * 2. Sort by cascade order (origin, specificity, source order)
  * 3. Resolve cascaded values

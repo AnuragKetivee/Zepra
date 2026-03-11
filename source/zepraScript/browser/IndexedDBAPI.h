@@ -1,3 +1,5 @@
+// Copyright (c) 2025 KetiveeAI. All rights reserved.
+// Licensed under KPL-2.0. See LICENSE file for details.
 /**
  * @file IndexedDBAPI.h
  * @brief IndexedDB API for persistent client-side storage
@@ -186,6 +188,7 @@ public:
     IDBRequest* deleteRecord();
     
 private:
+    friend class IDBObjectStore;
     IDBObjectStore* store_;
     IDBKeyRange* range_;
     Direction direction_;
@@ -296,6 +299,11 @@ private:
     
     std::unordered_map<std::string, Value> records_;
     std::unordered_map<std::string, IDBIndex*> indexes_;
+
+public:
+    // Snapshot support for transaction rollback
+    std::unordered_map<std::string, Value> takeSnapshot() const { return records_; }
+    void restoreSnapshot(const std::unordered_map<std::string, Value>& snap) { records_ = snap; }
 };
 
 // =============================================================================
@@ -350,6 +358,7 @@ private:
     bool active_ = true;
     bool finished_ = false;
     std::unordered_map<std::string, IDBObjectStore*> stores_;
+    std::unordered_map<std::string, std::unordered_map<std::string, Value>> snapshots_;
 };
 
 // =============================================================================

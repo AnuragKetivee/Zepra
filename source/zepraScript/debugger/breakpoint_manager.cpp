@@ -1,3 +1,5 @@
+// Copyright (c) 2025 KetiveeAI. All rights reserved.
+// Licensed under KPL-2.0. See LICENSE file for details.
 /**
  * @file breakpoint_manager.cpp
  * @brief Centralized breakpoint management
@@ -11,6 +13,7 @@
 
 #include "debugger/debugger.hpp"
 #include "config.hpp"
+#include <cstring>
 #include <unordered_map>
 #include <vector>
 #include <string>

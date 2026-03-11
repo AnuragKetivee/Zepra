@@ -1,3 +1,5 @@
+// Copyright (c) 2025 KetiveeAI. All rights reserved.
+// Licensed under KPL-2.0. See LICENSE file for details.
 /**
  * @file regex_compiler.cpp
  * @brief Regex pattern → bytecode compiler
@@ -12,7 +14,6 @@
  *   Atom         = Char | CharClass | Group | Escape | Assertion
  *   Quantifier   = ('*' | '+' | '?' | '{n}' | '{n,}' | '{n,m}') '?'?
  *
- * Ref: ECMA-262 §22.2, SpiderMonkey irregexp
  */
 
 #include "regex/regex_compiler.h"

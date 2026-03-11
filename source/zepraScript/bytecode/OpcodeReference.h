@@ -1,3 +1,5 @@
+// Copyright (c) 2025 KetiveeAI. All rights reserved.
+// Licensed under KPL-2.0. See LICENSE file for details.
 /**
  * @file OpcodeReference.h
  * @brief Complete bytecode opcode reference documentation
@@ -8,7 +10,6 @@
  * - Stack effects
  * - Semantics documentation
  * 
- * Based on V8/JSC bytecode formats
  */
 
 #pragma once

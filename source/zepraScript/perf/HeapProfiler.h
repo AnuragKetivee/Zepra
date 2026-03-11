@@ -1,8 +1,9 @@
+// Copyright (c) 2025 KetiveeAI. All rights reserved.
+// Licensed under KPL-2.0. See LICENSE file for details.
 /**
  * @file HeapProfiler.h
  * @brief Heap Snapshot and Allocation Tracking
  * 
- * V8/JSC HeapProfiler patterns:
  * - Heap snapshots with object graph
  * - Allocation tracking by site
  * - Retained size calculation

@@ -1,3 +1,5 @@
+// Copyright (c) 2025 KetiveeAI. All rights reserved.
+// Licensed under KPL-2.0. See LICENSE file for details.
 #include "engine/browser_connector.h"
 #include <nxhttp.h>
 #include <chrono>
@@ -443,7 +445,6 @@ namespace connector_utils {
 }
 
 // Stub implementations for Python and JavaScript bridges
-// These would need proper implementation with Python C API and V8/QuickJS
 
 PythonBridge::PythonBridge() : initialized_(false) {}
 PythonBridge::~PythonBridge() { finalize(); }

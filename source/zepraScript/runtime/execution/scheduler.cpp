@@ -11,6 +11,8 @@
 #include <mutex>
 #include <chrono>
 #include <atomic>
+#include <memory>
+#include <memory>
 
 namespace Zepra::Runtime {
 

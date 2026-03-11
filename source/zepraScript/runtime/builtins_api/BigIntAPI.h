@@ -1,9 +1,10 @@
+// Copyright (c) 2025 KetiveeAI. All rights reserved.
+// Licensed under KPL-2.0. See LICENSE file for details.
 /**
  * @file BigIntAPI.h
  * @brief BigInt Implementation
  * 
  * ECMAScript BigInt based on:
- * - JSC JSBigInt.h
  * - ECMA-262 7.2.13 BigInt
  * 
  * Arbitrary precision integer arithmetic

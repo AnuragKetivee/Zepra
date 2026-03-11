@@ -1,3 +1,5 @@
+// Copyright (c) 2025 KetiveeAI. All rights reserved.
+// Licensed under KPL-2.0. See LICENSE file for details.
 #include "runtime/async/promise.hpp"
 #include "runtime/objects/function.hpp"
 
@@ -324,29 +326,5 @@ Object* Promise::withResolvers() {
     return result;
 }
 
-// ============================================================================
-// MicrotaskQueue
-// ============================================================================
-
-MicrotaskQueue& MicrotaskQueue::instance() {
-    static MicrotaskQueue instance;
-    return instance;
-}
-
-void MicrotaskQueue::enqueue(std::function<void()> task) {
-    queue_.push_back(task);
-}
-
-void MicrotaskQueue::process() {
-    while (!queue_.empty()) {
-        auto task = queue_.front();
-        queue_.erase(queue_.begin());
-        task();
-    }
-}
-
-bool MicrotaskQueue::isEmpty() const {
-    return queue_.empty();
-}
-
 } // namespace Zepra::Runtime
+

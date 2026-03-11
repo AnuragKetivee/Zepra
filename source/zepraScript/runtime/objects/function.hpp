@@ -181,7 +181,14 @@ public:
     }
     size_t upvalueCount() const { return upvalues_.size(); }
 
+    // Source metadata for debugging
+    const std::string& sourceFile() const { return sourceFile_; }
+    uint32_t sourceLine() const { return sourceLine_; }
+    void setSourceFile(const std::string& file) { sourceFile_ = file; }
+    void setSourceLine(uint32_t line) { sourceLine_ = line; }
     
+    // Closure environment access for debugger
+    Environment* getClosureEnvironment() const { return closure_; }    
     // Call support
     Value call(Context* ctx, Value thisValue, const std::vector<Value>& args);
     Value construct(Context* ctx, const std::vector<Value>& args);
@@ -219,6 +226,8 @@ private:
     bool isArrow_ = false;
     bool isAsync_ = false;
     bool isGenerator_ = false;
+    std::string sourceFile_;
+    uint32_t sourceLine_ = 0;
 };
 
 /**

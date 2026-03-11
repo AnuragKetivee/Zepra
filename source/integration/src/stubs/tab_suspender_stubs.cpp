@@ -1,3 +1,5 @@
+// Copyright (c) 2025 KetiveeAI. All rights reserved.
+// Licensed under KPL-2.0. See LICENSE file for details.
 /**
  * @file tab_suspender_stubs.cpp
  * @brief TabSuspender stub implementation (source file disabled in build)

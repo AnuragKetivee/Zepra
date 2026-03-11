@@ -7,6 +7,7 @@
 #include <cassert>
 #include <atomic>
 #include <cstring>
+#include <vector>
 
 namespace Zepra::Heap {
 

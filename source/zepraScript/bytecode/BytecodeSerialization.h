@@ -1,3 +1,5 @@
+// Copyright (c) 2025 KetiveeAI. All rights reserved.
+// Licensed under KPL-2.0. See LICENSE file for details.
 /**
  * @file BytecodeSerialization.h
  * @brief Bytecode serialization and snapshot support
@@ -8,7 +10,6 @@
  * - Code caching
  * - Versioned serialization
  * 
- * Based on V8 snapshot and JSC bytecode caching
  */
 
 #pragma once

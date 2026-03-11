@@ -1,3 +1,5 @@
+// Copyright (c) 2025 KetiveeAI. All rights reserved.
+// Licensed under KPL-2.0. See LICENSE file for details.
 /**
  * @file inline_cache_opt.cpp
  * @brief Polymorphic Inline Cache for property access optimization
@@ -11,7 +13,6 @@
  *   - Polymorphic: 2-4 hidden classes cached
  *   - Megamorphic: Too many shapes, fall back to hash lookup
  *
- * Ref: V8 IC system, SpiderMonkey CacheIR, JSC StructureStubInfo
  */
 
 #include <cstdint>

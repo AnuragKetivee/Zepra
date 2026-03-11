@@ -1,3 +1,5 @@
+// Copyright (c) 2025 KetiveeAI. All rights reserved.
+// Licensed under KPL-2.0. See LICENSE file for details.
 /**
  * @file generator_tests.cpp
  * @brief Unit tests for Generator Functions and Iterators
@@ -85,7 +87,7 @@ protected:
 };
 
 TEST_F(IteratorTests, IteratorResultDone) {
-    auto result = IteratorResult::done();
+    auto result = IteratorResult::makeDone();
     EXPECT_TRUE(result.done);
 }
 
@@ -219,7 +221,7 @@ TEST(FunctionIteratorTests, CustomNext) {
     int count = 0;
     FunctionIterator iter([&count]() -> IteratorResult {
         if (count >= 3) {
-            return IteratorResult::done();
+            return IteratorResult::makeDone();
         }
         count++;
         IteratorValue val = static_cast<double>(count);

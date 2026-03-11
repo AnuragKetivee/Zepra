@@ -1,3 +1,5 @@
+// Copyright (c) 2025 KetiveeAI. All rights reserved.
+// Licensed under KPL-2.0. See LICENSE file for details.
 // NxSVG - Enhanced SVG Loader for Zepra Browser / NeolyxOS
 // FIXES: Self-closing tags, style attribute parsing, proper SVG defaults
 

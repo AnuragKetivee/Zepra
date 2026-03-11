@@ -10,6 +10,7 @@
 #include <atomic>
 #include <vector>
 #include <functional>
+#include <memory>
 
 namespace Zepra::Heap {
 

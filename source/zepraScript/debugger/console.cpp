@@ -1,9 +1,13 @@
+// Copyright (c) 2025 KetiveeAI. All rights reserved.
+// Licensed under KPL-2.0. See LICENSE file for details.
 /**
  * @file console.cpp
  * @brief DevTools Console implementation
  */
 
 #include "debugger/console.hpp"
+#include "runtime/execution/vm.hpp"
+#include "runtime/execution/vm.hpp"
 #include "runtime/objects/object.hpp"
 #include "runtime/objects/function.hpp"
 #include <sstream>

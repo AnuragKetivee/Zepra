@@ -1,8 +1,9 @@
+// Copyright (c) 2025 KetiveeAI. All rights reserved.
+// Licensed under KPL-2.0. See LICENSE file for details.
 /**
  * @file EmbedderAPI.h
  * @brief Clean API for Browser Integration
  * 
- * V8/JSC-inspired embedder API:
  * - ZebraIsolate: Isolated VM instance
  * - ZebraContext: Execution context
  * - ZebraScript: Compiled script handle

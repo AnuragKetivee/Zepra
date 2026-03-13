@@ -5,10 +5,10 @@
  * @brief HTTP client implementation with socket operations
  */
 
-#include "networking/http_client.hpp"
-#include "networking/ssl_context.hpp"
-#include "networking/cookie_manager.hpp"
-#include "networking/dns_resolver.hpp"
+#include "http_client.hpp"
+#include "ssl_context.hpp"
+#include "cookie_manager.hpp"
+#include "dns_resolver.hpp"
 
 #include <sys/socket.h>
 #include <netinet/in.h>

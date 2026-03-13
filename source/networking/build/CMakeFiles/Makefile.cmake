@@ -7,7 +7,7 @@ set(CMAKE_DEPENDS_GENERATOR "Unix Makefiles")
 # The top level Makefile was generated from the following files:
 set(CMAKE_MAKEFILE_DEPENDS
   "CMakeCache.txt"
-  "/home/swana/Documents/NEOLYXOS/neolyx-os/apps/zeprabrowser/source/networking/CMakeLists.txt"
+  "/home/swana/dev/search/zeprabrowser/source/networking/CMakeLists.txt"
   "CMakeFiles/4.1.2/CMakeCXXCompiler.cmake"
   "CMakeFiles/4.1.2/CMakeSystem.cmake"
   "/usr/local/share/cmake-4.1/Modules/CMakeCXXCompiler.cmake.in"

@@ -6,10 +6,10 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
 # Sources
 set(NXBASE_SOURCES
-    src/buffer.cpp
-    src/string.cpp
-    src/allocator.cpp
-    src/log.cpp
+    buffer.cpp
+    string.cpp
+    allocator.cpp
+    log.cpp
 )
 
 # Create library

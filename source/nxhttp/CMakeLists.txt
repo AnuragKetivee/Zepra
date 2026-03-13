@@ -6,14 +6,14 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
 # Sources
 set(NXHTTP_SOURCES
-    src/url.cpp
-    src/headers.cpp
-    src/client.cpp
-    src/connection_pool.cpp
-    src/cache.cpp
-    src/punycode.cpp
-    src/http2.cpp
-    src/file_quarantine.cpp
+    url.cpp
+    headers.cpp
+    client.cpp
+    connection_pool.cpp
+    cache.cpp
+    punycode.cpp
+    http2.cpp
+    file_quarantine.cpp
 )
 
 # Create library

@@ -8,15 +8,15 @@ set(CMAKE_DEPENDS_LANGUAGES
 
 # The set of dependency files which are needed:
 set(CMAKE_DEPENDS_DEPENDENCY_FILES
-  "/home/swana/Documents/NEOLYXOS/neolyx-os/apps/zeprabrowser/source/networking/src/cookie_manager.cpp" "CMakeFiles/networking.dir/src/cookie_manager.cpp.o" "gcc" "CMakeFiles/networking.dir/src/cookie_manager.cpp.o.d"
-  "/home/swana/Documents/NEOLYXOS/neolyx-os/apps/zeprabrowser/source/networking/src/dns_resolver.cpp" "CMakeFiles/networking.dir/src/dns_resolver.cpp.o" "gcc" "CMakeFiles/networking.dir/src/dns_resolver.cpp.o.d"
-  "/home/swana/Documents/NEOLYXOS/neolyx-os/apps/zeprabrowser/source/networking/src/http_cache.cpp" "CMakeFiles/networking.dir/src/http_cache.cpp.o" "gcc" "CMakeFiles/networking.dir/src/http_cache.cpp.o.d"
-  "/home/swana/Documents/NEOLYXOS/neolyx-os/apps/zeprabrowser/source/networking/src/http_client.cpp" "CMakeFiles/networking.dir/src/http_client.cpp.o" "gcc" "CMakeFiles/networking.dir/src/http_client.cpp.o.d"
-  "/home/swana/Documents/NEOLYXOS/neolyx-os/apps/zeprabrowser/source/networking/src/http_request.cpp" "CMakeFiles/networking.dir/src/http_request.cpp.o" "gcc" "CMakeFiles/networking.dir/src/http_request.cpp.o.d"
-  "/home/swana/Documents/NEOLYXOS/neolyx-os/apps/zeprabrowser/source/networking/src/http_response.cpp" "CMakeFiles/networking.dir/src/http_response.cpp.o" "gcc" "CMakeFiles/networking.dir/src/http_response.cpp.o.d"
-  "/home/swana/Documents/NEOLYXOS/neolyx-os/apps/zeprabrowser/source/networking/src/resource_loader.cpp" "CMakeFiles/networking.dir/src/resource_loader.cpp.o" "gcc" "CMakeFiles/networking.dir/src/resource_loader.cpp.o.d"
-  "/home/swana/Documents/NEOLYXOS/neolyx-os/apps/zeprabrowser/source/networking/src/ssl_context.cpp" "CMakeFiles/networking.dir/src/ssl_context.cpp.o" "gcc" "CMakeFiles/networking.dir/src/ssl_context.cpp.o.d"
-  "/home/swana/Documents/NEOLYXOS/neolyx-os/apps/zeprabrowser/source/networking/src/websocket_client.cpp" "CMakeFiles/networking.dir/src/websocket_client.cpp.o" "gcc" "CMakeFiles/networking.dir/src/websocket_client.cpp.o.d"
+  "/home/swana/dev/search/zeprabrowser/source/networking/cookie_manager.cpp" "CMakeFiles/networking.dir/cookie_manager.cpp.o" "gcc" "CMakeFiles/networking.dir/cookie_manager.cpp.o.d"
+  "/home/swana/dev/search/zeprabrowser/source/networking/dns_resolver.cpp" "CMakeFiles/networking.dir/dns_resolver.cpp.o" "gcc" "CMakeFiles/networking.dir/dns_resolver.cpp.o.d"
+  "/home/swana/dev/search/zeprabrowser/source/networking/http_cache.cpp" "CMakeFiles/networking.dir/http_cache.cpp.o" "gcc" "CMakeFiles/networking.dir/http_cache.cpp.o.d"
+  "/home/swana/dev/search/zeprabrowser/source/networking/http_client.cpp" "CMakeFiles/networking.dir/http_client.cpp.o" "gcc" "CMakeFiles/networking.dir/http_client.cpp.o.d"
+  "/home/swana/dev/search/zeprabrowser/source/networking/http_request.cpp" "CMakeFiles/networking.dir/http_request.cpp.o" "gcc" "CMakeFiles/networking.dir/http_request.cpp.o.d"
+  "/home/swana/dev/search/zeprabrowser/source/networking/http_response.cpp" "CMakeFiles/networking.dir/http_response.cpp.o" "gcc" "CMakeFiles/networking.dir/http_response.cpp.o.d"
+  "/home/swana/dev/search/zeprabrowser/source/networking/resource_loader.cpp" "CMakeFiles/networking.dir/resource_loader.cpp.o" "gcc" "CMakeFiles/networking.dir/resource_loader.cpp.o.d"
+  "/home/swana/dev/search/zeprabrowser/source/networking/ssl_context.cpp" "CMakeFiles/networking.dir/ssl_context.cpp.o" "gcc" "CMakeFiles/networking.dir/ssl_context.cpp.o.d"
+  "/home/swana/dev/search/zeprabrowser/source/networking/websocket_client.cpp" "CMakeFiles/networking.dir/websocket_client.cpp.o" "gcc" "CMakeFiles/networking.dir/websocket_client.cpp.o.d"
   )
 
 # Targets to which this target links which contain Fortran sources.

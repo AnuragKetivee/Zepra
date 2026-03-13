@@ -5,8 +5,8 @@
  * @brief WebSocket client implementation (RFC 6455)
  */
 
-#include "networking/websocket_client.hpp"
-#include "networking/ssl_context.hpp"
+#include "websocket_client.hpp"
+#include "ssl_context.hpp"
 
 #include <sys/socket.h>
 #include <netinet/in.h>

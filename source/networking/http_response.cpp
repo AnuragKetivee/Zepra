@@ -5,7 +5,7 @@
  * @brief HTTP response implementation
  */
 
-#include "networking/http_response.hpp"
+#include "http_response.hpp"
 
 #include <algorithm>
 #include <sstream>

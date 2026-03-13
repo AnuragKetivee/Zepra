@@ -6,8 +6,8 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
 # Sources
 set(NXJSON_SOURCES
-    src/parser.cpp
-    src/writer.cpp
+    parser.cpp
+    writer.cpp
 )
 
 # Create library

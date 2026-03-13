@@ -8,7 +8,7 @@ set(CMAKE_DEPENDS_LANGUAGES
 
 # The set of dependency files which are needed:
 set(CMAKE_DEPENDS_DEPENDENCY_FILES
-  "/home/swana/Documents/zeprabrowser/source/devtools/src/devtools_window.cpp" "CMakeFiles/devtools.dir/src/devtools_window.cpp.o" "gcc" "CMakeFiles/devtools.dir/src/devtools_window.cpp.o.d"
+  "/home/swana/dev/search/zeprabrowser/source/devtools/devtools_window.cpp" "CMakeFiles/devtools.dir/devtools_window.cpp.o" "gcc" "CMakeFiles/devtools.dir/devtools_window.cpp.o.d"
   )
 
 # Targets to which this target links which contain Fortran sources.

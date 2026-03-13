@@ -142,8 +142,8 @@ add_subdirectory(source/integration)
 include_directories(${CMAKE_SOURCE_DIR}/source/integration/include)
 
 # Build NXAudio (Audio Engine)
-add_subdirectory(source/media/src/audio/nxaudio)
-include_directories(${CMAKE_SOURCE_DIR}/source/media/src/audio/nxaudio/include)
+add_subdirectory(source/media/nxaudio)
+include_directories(${CMAKE_SOURCE_DIR}/source/media/nxaudio/include)
 
 # ============================================================================
 # Custom Zepra Stack (optional - replace system libs)
@@ -168,7 +168,7 @@ if(USE_NXRENDER)
     # NXRENDER native build - no SDL
     set(SOURCES
         source/main.cpp
-        source/integration/src/zepra_browser.cpp
+        source/integration/zepra_browser.cpp
         source/zepraEngine/src/engine/dev_tools.cpp
         source/zepraEngine/src/engine/html_parser_stub.cpp
         source/zepraEngine/src/engine/audio_stub.cpp
@@ -184,31 +184,31 @@ if(USE_NXRENDER)
         source/zepraEngine/src/ui/settings_ui.cpp
         source/sandbox/src/sandbox_manager.cpp
         source/platform/src/config/config_manager.cpp
-        source/networking/src/remote/zep_remote.cpp
-        source/networking/src/network/network_monitor.cpp
-        source/networking/src/network/monitored_http.cpp
+        source/networking/remote/zep_remote.cpp
+        source/networking/network/network_monitor.cpp
+        source/networking/network/monitored_http.cpp
         source/sandbox/src/security/security_checker.cpp
-        source/webCore/src/browser/mouse_handler.cpp
-        source/webCore/src/browser/layout_engine.cpp
-        source/webCore/src/browser/css_utils.cpp
+        source/webCore/browser/mouse_handler.cpp
+        source/webCore/browser/layout_engine.cpp
+        source/webCore/browser/css_utils.cpp
         # New modular architecture
         source/storage/src/bookmark_manager.cpp
         source/storage/src/history_database.cpp
         source/storage/src/settings_store.cpp
-        source/webCore/src/browser/navigation_controller.cpp
-        source/webCore/src/browser/rewards_manager.cpp
+        source/webCore/browser/navigation_controller.cpp
+        source/webCore/browser/rewards_manager.cpp
         source/aiEngine/src/ai_sidebar.cpp
         # Memory optimization
         source/platform/src/memory/memory_pools.cpp
-        # source/webCore/src/browser/tab_suspender.cpp  # DISABLED: ZepraBrowser::Tab vs zepra::Tab mismatch
-        source/webCore/src/browser/lazy_image_loader.cpp
+        # source/webCore/browser/tab_suspender.cpp  # DISABLED: ZepraBrowser::Tab vs zepra::Tab mismatch
+        source/webCore/browser/lazy_image_loader.cpp
         # WebCore integration
-        source/integration/src/webcore_integration.cpp
+        source/integration/webcore_integration.cpp
         # NXRender-Layout bridge
-        source/webCore/src/browser/nxrender_layout_bridge.cpp
+        source/webCore/browser/nxrender_layout_bridge.cpp
         # Stubs for missing WebCore symbols (WebGL, etc.)
-        source/integration/src/stubs/webgl_stubs.cpp
-        source/integration/src/stubs/tab_suspender_stubs.cpp
+        source/integration/stubs/webgl_stubs.cpp
+        source/integration/stubs/tab_suspender_stubs.cpp
     )
     set(EXECUTABLE_NAME "zepra_browser")
     # NXRender-cpp is built as subdirectory, no external lib path needed
@@ -234,7 +234,7 @@ elseif(USE_UNIFIED_SYSTEM)
 else()
     set(SOURCES
         source/main.cpp
-        source/integration/src/zepra_browser.cpp
+        source/integration/zepra_browser.cpp
         source/zepraEngine/src/engine/dev_tools.cpp
         source/zepraEngine/src/engine/audio_stub.cpp
         source/zepraEngine/src/engine/avmedia_stub.cpp
@@ -249,7 +249,7 @@ else()
         source/zepraEngine/src/ui/settings_ui.cpp
         source/sandbox/src/sandbox_manager.cpp
         source/platform/src/config/config_manager.cpp
-        source/networking/src/network/network_monitor.cpp
+        source/networking/network/network_monitor.cpp
     )
 
 
@@ -263,8 +263,8 @@ endif()
 
 # Header files
 set(HEADERS
-    source/integration/include/common/types.h
-    source/integration/include/common/constants.h
+    source/integration/common/types.h
+    source/integration/common/constants.h
     source/zepraEngine/include/engine/core/zepra_core.h
     source/zepraEngine/include/engine/html_parser.h
     source/zepraEngine/include/engine/dev_tools.h
@@ -276,7 +276,7 @@ set(HEADERS
     source/platform/include/auth/zepra_auth.h
     source/zepraEngine/include/engine/ui/auth_ui.h
     source/zepraEngine/include/engine/ui/settings_ui.h
-    source/networking/include/networking/http.h
+    source/networking/http.h
     source/sandbox/include/sandbox/sandbox_manager.h
     source/platform/include/config/dual_config.h
     source/platform/src/config/config_manager.h

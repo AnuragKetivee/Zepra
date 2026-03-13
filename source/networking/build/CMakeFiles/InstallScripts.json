@@ -1,7 +1,7 @@
 {
 	"InstallScripts" : 
 	[
-		"/home/swana/Documents/NEOLYXOS/neolyx-os/apps/zeprabrowser/source/networking/build/cmake_install.cmake"
+		"/home/swana/dev/search/zeprabrowser/source/networking/build/cmake_install.cmake"
 	],
 	"Parallel" : false
 }

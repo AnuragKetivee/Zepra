@@ -5,10 +5,10 @@
 
 #pragma once
 
-#include "networking/http_request.hpp"
-#include "networking/http_response.hpp"
-#include "networking/ssl_context.hpp"
-#include "networking/cookie_manager.hpp"
+#include "http_request.hpp"
+#include "http_response.hpp"
+#include "ssl_context.hpp"
+#include "cookie_manager.hpp"
 
 #include <string>
 #include <memory>

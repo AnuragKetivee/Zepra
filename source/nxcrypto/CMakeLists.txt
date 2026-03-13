@@ -10,9 +10,9 @@ option(NXCRYPTO_USE_MBEDTLS "Use mbedTLS as TLS backend" OFF)
 
 # Sources
 set(NXCRYPTO_SOURCES
-    src/hash.cpp
-    src/base64.cpp
-    src/tls.cpp
+    hash.cpp
+    base64.cpp
+    tls.cpp
 )
 
 # Create library

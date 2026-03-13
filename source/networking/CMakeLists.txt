@@ -8,15 +8,15 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
 # Source files
 set(NETWORKING_SOURCES
-    src/ssl_context.cpp
-    src/cookie_manager.cpp
-    src/http_client.cpp
-    src/http_request.cpp
-    src/http_response.cpp
-    src/http_cache.cpp
-    src/dns_resolver.cpp
-    src/websocket_client.cpp
-    src/resource_loader.cpp
+    ssl_context.cpp
+    cookie_manager.cpp
+    http_client.cpp
+    http_request.cpp
+    http_response.cpp
+    http_cache.cpp
+    dns_resolver.cpp
+    websocket_client.cpp
+    resource_loader.cpp
 )
 
 add_library(networking STATIC ${NETWORKING_SOURCES})

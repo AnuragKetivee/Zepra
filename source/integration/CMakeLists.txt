@@ -6,21 +6,21 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
 # Source files
 set(INTEGRATION_SOURCES
-    src/dom_bridge.cpp
-    src/browser_context.cpp
+    dom_bridge.cpp
+    browser_context.cpp
 )
 
 # Header files
 set(INTEGRATION_HEADERS
-    include/integration/dom_bridge.hpp
-    include/integration/browser_context.hpp
+    integration/dom_bridge.hpp
+    integration/browser_context.hpp
 )
 
 # Library
 add_library(zepra-integration STATIC ${INTEGRATION_SOURCES})
 
 target_include_directories(zepra-integration PUBLIC
-    ${CMAKE_CURRENT_SOURCE_DIR}/include
+    ${CMAKE_CURRENT_SOURCE_DIR}
     ${CMAKE_SOURCE_DIR}/source/zepraScript/include
     ${CMAKE_SOURCE_DIR}/source/webCore/include
 )
@@ -37,4 +37,4 @@ install(TARGETS zepra-integration
     ARCHIVE DESTINATION lib
 )
 
-install(DIRECTORY include/ DESTINATION include)
+# install(DIRECTORY include/ DESTINATION include)

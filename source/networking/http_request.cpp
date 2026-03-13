@@ -5,7 +5,7 @@
  * @brief HTTP request implementation
  */
 
-#include "networking/http_request.hpp"
+#include "http_request.hpp"
 
 #include <algorithm>
 #include <sstream>

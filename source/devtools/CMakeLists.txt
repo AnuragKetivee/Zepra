@@ -12,7 +12,7 @@ pkg_check_modules(SDL2_TTF REQUIRED SDL2_ttf)
 
 # DevTools Sources - standalone window only
 set(DEVTOOLS_SOURCES
-    src/devtools_window.cpp
+    devtools_window.cpp
 )
 
 # DevTools static library

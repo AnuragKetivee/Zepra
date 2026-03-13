@@ -5,7 +5,7 @@
  * @brief HTTP Cookie management implementation
  */
 
-#include "networking/cookie_manager.hpp"
+#include "cookie_manager.hpp"
 
 #include <sstream>
 #include <algorithm>

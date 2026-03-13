@@ -2177,12 +2177,18 @@ std::string VM::getFrameFunctionName(size_t frameIdx) const {
 }
 
 std::string VM::getFrameSourceFile(size_t frameIdx) const {
-    (void)frameIdx;
+    auto* f = VM_getFrame(this, frameIdx, nativeStack_, nativeDepth_, heapStack_, heapDepth_);
+    if (f && f->function) return f->function->sourceFile();
     return "<unknown>";
 }
 
 uint32_t VM::getFrameLine(size_t frameIdx) const {
-    (void)frameIdx;
+    auto* f = VM_getFrame(this, frameIdx, nativeStack_, nativeDepth_, heapStack_, heapDepth_);
+    if (f && f->function && f->function->isCompiled() && f->function->bytecodeChunk()) {
+        size_t ip = (frameIdx == 0) ? ip_ : f->returnAddress;
+        if (ip > 0) ip--; // point to the call instruction, not the return address
+        return f->function->bytecodeChunk()->lineAt(ip);
+    }
     return 0;
 }
 

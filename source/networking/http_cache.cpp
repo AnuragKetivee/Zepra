@@ -5,7 +5,7 @@
  * @brief HTTP cache implementation
  */
 
-#include "networking/http_cache.hpp"
+#include "http_cache.hpp"
 
 #include <fstream>
 #include <sstream>

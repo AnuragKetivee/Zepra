@@ -1,5 +1,3 @@
-// Copyright (c) 2025 KetiveeAI. All rights reserved.
-// Licensed under KPL-2.0. See LICENSE file for details.
 /* This source file must have a .cpp extension so that all C++ compilers
    recognize the extension without flags.  Borland does not know .cxx for
    example.  */
@@ -419,6 +417,7 @@
 #  define COMPILER_VERSION_MINOR DEC(((__VER__) / 1000) % 1000)
 #  define COMPILER_VERSION_PATCH DEC((__VER__) % 1000)
 #  define COMPILER_VERSION_INTERNAL DEC(__IAR_SYSTEMS_ICC__)
+# elif defined(__VER__) && (defined(__ICCAVR__) || defined(__ICCRX__) || defined(__ICCRH850__) || defined(__ICCRL78__) || defined(__ICC430__) || defined(__ICCRISCV__) || defined(__ICCV850__) || defined(__ICC8051__) || defined(__ICCSTM8__))
 #  define COMPILER_VERSION_MAJOR DEC((__VER__) / 100)
 #  define COMPILER_VERSION_MINOR DEC((__VER__) - (((__VER__) / 100)*100))
 #  define COMPILER_VERSION_PATCH DEC(__SUBVERSION__)
@@ -649,6 +648,8 @@ char const *info_cray = "INFO" ":" "compiler_wrapper[CrayPrgEnv]";
 # elif defined(__ICC430__)
 #  define ARCHITECTURE_ID "MSP430"
 
+# elif defined(__ICCV850__)
+#  define ARCHITECTURE_ID "V850"
 
 # elif defined(__ICC8051__)
 #  define ARCHITECTURE_ID "8051"

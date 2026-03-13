@@ -26,6 +26,7 @@ if(EXISTS ${PREBUILT_LIB})
         ${CMAKE_CURRENT_SOURCE_DIR}/../networking/include
         ${CMAKE_SOURCE_DIR}/source/nxrender-cpp/include
         ${CMAKE_SOURCE_DIR}/include
+            ${CMAKE_SOURCE_DIR}/source/integration/include
     )
     
     # Find and link dependencies that the pre-built library needs
@@ -56,7 +57,8 @@ else()
     include_directories(${CMAKE_CURRENT_SOURCE_DIR}/../networking/include)
     
     # Include main include directory for nxsvg.h, nxrender.h, nxfont.h
-    include_directories(${CMAKE_SOURCE_DIR}/include)
+    include_directories(${CMAKE_SOURCE_DIR}/include
+            ${CMAKE_SOURCE_DIR}/source/integration/include)
     
     # Source files - check which ones exist
     set(WEBCORE_SOURCES "")
@@ -87,6 +89,7 @@ else()
             ${CMAKE_CURRENT_SOURCE_DIR}/../networking/include
             ${CMAKE_SOURCE_DIR}/source/nxrender-cpp/include
             ${CMAKE_SOURCE_DIR}/include
+            ${CMAKE_SOURCE_DIR}/source/integration/include
         )
         
         # Link with ZepraScript (if available)

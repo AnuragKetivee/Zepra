@@ -5,7 +5,7 @@
  * @brief SSL/TLS context implementation using OpenSSL
  */
 
-#include "networking/ssl_context.hpp"
+#include "ssl_context.hpp"
 
 #include <openssl/ssl.h>
 #include <openssl/err.h>

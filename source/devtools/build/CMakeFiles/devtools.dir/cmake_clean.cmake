@@ -1,6 +1,6 @@
 file(REMOVE_RECURSE
-  "CMakeFiles/devtools.dir/src/devtools_window.cpp.o"
-  "CMakeFiles/devtools.dir/src/devtools_window.cpp.o.d"
+  "CMakeFiles/devtools.dir/devtools_window.cpp.o"
+  "CMakeFiles/devtools.dir/devtools_window.cpp.o.d"
   "libdevtools.a"
   "libdevtools.pdb"
 )

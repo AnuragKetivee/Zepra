@@ -5,7 +5,7 @@
  * @brief DNS resolution implementation
  */
 
-#include "networking/dns_resolver.hpp"
+#include "dns_resolver.hpp"
 
 #include <sys/socket.h>
 #include <netinet/in.h>

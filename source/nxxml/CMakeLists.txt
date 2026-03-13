@@ -6,7 +6,7 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
 # Sources
 set(NXXML_SOURCES
-    src/parser.cpp
+    parser.cpp
 )
 
 # Create library

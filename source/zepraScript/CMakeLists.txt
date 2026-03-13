@@ -387,11 +387,17 @@ set(ZEPRA_CORE_SOURCES
 # Create core library
 add_library(zepra-core STATIC ${ZEPRA_CORE_SOURCES})
 
-# Determine nxhttp path
+# Determine nxhttp path (supports both flattened and include/ layouts)
 set(ZEPRA_SOURCE_ROOT "${CMAKE_CURRENT_SOURCE_DIR}/..")
-if(EXISTS "${CMAKE_SOURCE_DIR}/source/nxhttp/include")
+if(EXISTS "${CMAKE_SOURCE_DIR}/source/nxhttp/nxhttp.h")
+    set(NXHTTP_INCLUDE_DIR "${CMAKE_SOURCE_DIR}/source/nxhttp")
+    set(NXHTTP_LIB "${CMAKE_SOURCE_DIR}/source/nxhttp/build/libnxhttp.a")
+elseif(EXISTS "${CMAKE_SOURCE_DIR}/source/nxhttp/include")
     set(NXHTTP_INCLUDE_DIR "${CMAKE_SOURCE_DIR}/source/nxhttp/include")
     set(NXHTTP_LIB "${CMAKE_SOURCE_DIR}/source/nxhttp/build/libnxhttp.a")
+elseif(EXISTS "${ZEPRA_SOURCE_ROOT}/nxhttp/nxhttp.h")
+    set(NXHTTP_INCLUDE_DIR "${ZEPRA_SOURCE_ROOT}/nxhttp")
+    set(NXHTTP_LIB "${ZEPRA_SOURCE_ROOT}/nxhttp/build/libnxhttp.a")
 elseif(EXISTS "${ZEPRA_SOURCE_ROOT}/nxhttp/include")
     set(NXHTTP_INCLUDE_DIR "${ZEPRA_SOURCE_ROOT}/nxhttp/include")
     set(NXHTTP_LIB "${ZEPRA_SOURCE_ROOT}/nxhttp/build/libnxhttp.a")

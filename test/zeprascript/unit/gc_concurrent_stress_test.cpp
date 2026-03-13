@@ -348,7 +348,7 @@ TEST(GCConcurrentStress, DeepPrototypeChain) {
 
 TEST(GCConcurrentStress, ResourceMonitorAllocationCycles) {
     ExecutionLimits limits;
-    limits.maxHeapBytes = 100 * 1024 * 1024;  // 100MB
+    limits.maxHeapBytes = 512 * 1024 * 1024;  // 512MB (net alloc: 500 cycles × 500KB = ~244MB)
     ResourceMonitor monitor(limits);
 
     auto start = std::chrono::high_resolution_clock::now();

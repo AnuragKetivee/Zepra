@@ -214,11 +214,11 @@ public:
     
     std::unique_ptr<Generator> build() {
         auto values = std::make_shared<std::vector<IteratorValue>>(std::move(values_));
-        size_t index = 0;
+        auto index = std::make_shared<size_t>(0);
         
-        return std::make_unique<Generator>([values, index](GeneratorContext& ctx) mutable {
-            for (const auto& value : *values) {
-                ctx.yield(value);
+        return std::make_unique<Generator>([values, index](GeneratorContext& ctx) {
+            if (*index < values->size()) {
+                ctx.yield((*values)[(*index)++]);
             }
         });
     }

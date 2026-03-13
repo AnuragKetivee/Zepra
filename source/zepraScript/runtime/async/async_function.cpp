@@ -153,7 +153,6 @@ Value AwaitHandler::await(const Value& value, AsyncExecutionContext* asyncCtx) {
     Promise* promise = toPromise(value);
     
     if (promise->state() == PromiseState::Fulfilled) {
-        // Already resolved - return immediately
         return promise->result();
     }
     
@@ -173,12 +172,15 @@ Value AwaitHandler::await(const Value& value, AsyncExecutionContext* asyncCtx) {
 Promise* AwaitHandler::toPromise(const Value& value) {
     // If already a Promise, return it
     if (value.isObject()) {
-        if (auto* promise = dynamic_cast<Promise*>(value.asObject())) {
+        Object* obj = value.asObject();
+        if (obj->objectType() == ObjectType::Promise) {
+            return static_cast<Promise*>(obj);
+        }
+        if (auto* promise = dynamic_cast<Promise*>(obj)) {
             return promise;
         }
         
         // Check for thenable (has .then method)
-        Object* obj = value.asObject();
         Value thenMethod = obj->get("then");
         if (thenMethod.isObject() && thenMethod.asObject()->isCallable()) {
             // Create a Promise that follows the thenable

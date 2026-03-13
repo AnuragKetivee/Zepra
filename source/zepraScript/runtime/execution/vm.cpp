@@ -6,6 +6,7 @@
  */
 
 #include "runtime/execution/vm.hpp"
+#include <fstream>
 #include "runtime/objects/object.hpp"
 #include "runtime/objects/function.hpp"
 #include "runtime/async/async_function.hpp"
@@ -2194,7 +2195,7 @@ uint32_t VM::getFrameLine(size_t frameIdx) const {
 
 uint32_t VM::getFrameColumn(size_t frameIdx) const {
     (void)frameIdx;
-    return 0;
+    return 0; // BytecodeChunk tracks lines only, not columns
 }
 
 Value VM::getFrameThisValue(size_t frameIdx) const {
@@ -2204,22 +2205,45 @@ Value VM::getFrameThisValue(size_t frameIdx) const {
 }
 
 std::vector<std::string> VM::getFrameLocalNames(size_t frameIdx) const {
-    (void)frameIdx;
+    auto* f = VM_getFrame(this, frameIdx, nativeStack_, nativeDepth_, heapStack_, heapDepth_);
+    if (f && f->function) return f->function->localNames();
     return {};
 }
 
 Value VM::getFrameLocal(size_t frameIdx, const std::string& name) const {
-    (void)frameIdx; (void)name;
+    auto* f = VM_getFrame(this, frameIdx, nativeStack_, nativeDepth_, heapStack_, heapDepth_);
+    if (!f || !f->function) return Value::undefined();
+    const auto& names = f->function->localNames();
+    for (size_t i = 0; i < names.size(); i++) {
+        if (names[i] == name) {
+            size_t stackIdx = f->slotBase + i;
+            if (stackIdx < stack_.size()) return stack_[stackIdx];
+        }
+    }
     return Value::undefined();
 }
 
 std::vector<std::string> VM::getFrameClosureNames(size_t frameIdx) const {
-    (void)frameIdx;
-    return {};
+    auto* f = VM_getFrame(this, frameIdx, nativeStack_, nativeDepth_, heapStack_, heapDepth_);
+    if (!f || !f->function) return {};
+    // Upvalue names are the captured variable names from the enclosing scope
+    // The function's localNames covers params + locals; upvalues are from outer scope
+    std::vector<std::string> names;
+    for (size_t i = 0; i < f->function->upvalueCount(); i++) {
+        names.push_back("upvalue_" + std::to_string(i));
+    }
+    return names;
 }
 
 Value VM::getFrameClosureValue(size_t frameIdx, const std::string& name) const {
-    (void)frameIdx; (void)name;
+    auto* f = VM_getFrame(this, frameIdx, nativeStack_, nativeDepth_, heapStack_, heapDepth_);
+    if (!f || !f->function) return Value::undefined();
+    // Parse upvalue index from name ("upvalue_N")
+    if (name.substr(0, 8) == "upvalue_") {
+        size_t idx = std::stoul(name.substr(8));
+        auto* uv = f->function->upvalue(idx);
+        if (uv) return uv->get();
+    }
     return Value::undefined();
 }
 
@@ -2272,9 +2296,19 @@ void VM::execute(void* compiled) {
 }
 
 std::string VM::loadBundledScript(const std::string& url) {
-    (void)url;
-    // Requires browser resource layer — returns empty until wired to network/cache
-    return "";
+    // File-system-based script loading for workers
+    // Try url as a path relative to current module
+    std::string path = url;
+    if (!currentModulePath_.empty() && url[0] != '/') {
+        size_t lastSlash = currentModulePath_.rfind('/');
+        if (lastSlash != std::string::npos) {
+            path = currentModulePath_.substr(0, lastSlash + 1) + url;
+        }
+    }
+    std::ifstream file(path);
+    if (!file.is_open()) return "";
+    return std::string(std::istreambuf_iterator<char>(file),
+                       std::istreambuf_iterator<char>());
 }
 
 void VM::runEventLoop() {

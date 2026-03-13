@@ -10,7 +10,9 @@ namespace Zepra::Runtime {
 // ============================================================================
 
 Promise::Promise()
-    : state_(PromiseState::Pending), result_(Value::undefined()) {}
+    : state_(PromiseState::Pending), result_(Value::undefined()) {
+    objectType_ = ObjectType::Promise;
+}
 
 void Promise::resolve(const Value& value) {
     if (state_ != PromiseState::Pending) return;

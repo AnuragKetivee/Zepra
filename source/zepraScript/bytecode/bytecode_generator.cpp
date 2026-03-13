@@ -493,6 +493,19 @@ void BytecodeGenerator::compileFunctionDeclaration(const Frontend::FunctionDecl*
     // Create a Function object with the compiled bytecode
     auto* function = new Runtime::Function(decl, nullptr);
     function->setBytecodeChunk(functionChunk.get());
+
+    // Store debug metadata for frame introspection
+    std::vector<std::string> paramNames;
+    std::vector<std::string> localNames;
+    for (const auto& param : decl->params()) {
+        const auto* id = static_cast<const Frontend::IdentifierExpr*>(param.pattern.get());
+        paramNames.push_back(id->name());
+    }
+    for (const auto& local : fnState.locals) {
+        localNames.push_back(local.name);
+    }
+    function->setParamNames(std::move(paramNames));
+    function->setLocalNames(std::move(localNames));
     
     // Store the chunk (transferred ownership to function)
     // Note: In a real implementation, this would be part of the Function object

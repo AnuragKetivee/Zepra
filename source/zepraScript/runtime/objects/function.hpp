@@ -188,7 +188,14 @@ public:
     void setSourceLine(uint32_t line) { sourceLine_ = line; }
     
     // Closure environment access for debugger
-    Environment* getClosureEnvironment() const { return closure_; }    
+    Environment* getClosureEnvironment() const { return closure_; }
+
+    // Debug metadata for frame introspection
+    const std::vector<std::string>& localNames() const { return localNames_; }
+    const std::vector<std::string>& paramNames() const { return paramNames_; }
+    void setLocalNames(std::vector<std::string> names) { localNames_ = std::move(names); }
+    void setParamNames(std::vector<std::string> names) { paramNames_ = std::move(names); }
+
     // Call support
     Value call(Context* ctx, Value thisValue, const std::vector<Value>& args);
     Value construct(Context* ctx, const std::vector<Value>& args);
@@ -227,6 +234,8 @@ private:
     bool isAsync_ = false;
     bool isGenerator_ = false;
     std::string sourceFile_;
+    std::vector<std::string> localNames_;
+    std::vector<std::string> paramNames_;
     uint32_t sourceLine_ = 0;
 };
 

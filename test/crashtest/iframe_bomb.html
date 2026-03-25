@@ -1,0 +1,17 @@
+<!DOCTYPE html>
+<html lang="en"><head><title>IFrame Recursion Bomb</title></head>
+<body>
+  <h1>IFrame Bomb Crash Test</h1>
+  <script>
+    let depth = parseInt(new URLSearchParams(window.location.search).get('d')) || 0;
+    document.write(`<p>Depth: ${depth}</p>`);
+    if(depth < 100) {
+      document.write(`<iframe src="?d=${depth+1}" width="400" height="300"></iframe>`);
+    } else {
+      const out = "IFrame chain survived depth 100.";
+      const a = document.createElement('a'); a.download = 'iframe_survived.txt';
+      a.href = URL.createObjectURL(new Blob([out], {type:'text/plain'})); a.click();
+      console.log(out);
+    }
+  </script>
+</body></html>

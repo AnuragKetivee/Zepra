@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Reflow Thrashing Test</title>
+<style>
+  body { background: #222; color: #ddd; font-family: sans-serif; padding: 20px; }
+  .box { height: 10px; background: #e74c3c; margin: 2px 0; width: 100px; }
+  #status { font-size: 20px; font-weight: bold; margin-bottom: 20px; color: #2ecc71; }
+</style>
+</head>
+<body>
+  <div id="status">Thrashing layout for 7 seconds...</div>
+  <div id="container"></div>
+  <script>
+    const container = document.getElementById('container');
+    const NUM_BOXES = 1000;
+    
+    for (let i = 0; i < NUM_BOXES; i++) {
+      let b = document.createElement('div');
+      b.className = 'box';
+      container.appendChild(b);
+    }
+    
+    const boxes = document.querySelectorAll('.box');
+    const startTime = performance.now();
+    let reflows = 0;
+
+    function thrash() {
+      const now = performance.now();
+      if (now - startTime > 7000) {
+        document.getElementById('status').innerHTML = `Test Complete. Forced ${reflows} synchronous layouts in 7s.<br>Browser engine survived reflow thrashing.`;
+        return;
+      }
+      
+      // Read/Write loop to force synchronous layout recalculations
+      for (let i = 0; i < NUM_BOXES; i++) {
+        let width = boxes[i].offsetWidth; // Read (forces reflow if dirty)
+        boxes[i].style.width = (width === 100 ? 101 : 100) + 'px'; // Write (dirtifies layout)
+        reflows++;
+      }
+      
+      requestAnimationFrame(thrash);
+    }
+
+    requestAnimationFrame(thrash);
+  </script>
+</body>
+</html>

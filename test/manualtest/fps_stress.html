@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>FPS Stress Test</title>
+<style>
+  body { margin: 0; overflow: hidden; background: #111; color: white; font-family: sans-serif; }
+  #fps-counter { position: absolute; top: 10px; left: 10px; padding: 10px; background: rgba(0,0,0,0.8); border: 1px solid #444; font-size: 24px; font-weight: bold; z-index: 9999; }
+  .particle { position: absolute; width: 4px; height: 4px; background: #0f0; border-radius: 50%; will-change: transform; }
+</style>
+</head>
+<body>
+<div id="fps-counter">FPS: 0<br><small>Running for 7 seconds...</small></div>
+<div id="container"></div>
+<script>
+  const NUM_PARTICLES = 10000;
+  const container = document.getElementById('container');
+  const particles = [];
+  
+  for (let i = 0; i < NUM_PARTICLES; i++) {
+    const el = document.createElement('div');
+    el.className = 'particle';
+    const x = Math.random() * window.innerWidth;
+    const y = Math.random() * window.innerHeight;
+    const vx = (Math.random() - 0.5) * 5;
+    const vy = (Math.random() - 0.5) * 5;
+    
+    container.appendChild(el);
+    particles.push({ el, x, y, vx, vy });
+  }
+
+  const fpsCounter = document.getElementById('fps-counter');
+  let startTime = performance.now();
+  let lastTime = startTime;
+  let totalFrames = 0;
+  let intervalFrames = 0;
+  const DURATION_MS = 7000;
+  let running = true;
+
+  function animate() {
+    if (!running) return;
+    
+    const now = performance.now();
+    totalFrames++;
+    intervalFrames++;
+
+    if (now - lastTime >= 1000) {
+      fpsCounter.innerHTML = `FPS: ${intervalFrames}<br><small>Running: ${Math.round((now - startTime)/1000)}s / 7s</small>`;
+      intervalFrames = 0;
+      lastTime = now;
+    }
+
+    if (now - startTime >= DURATION_MS) {
+      running = false;
+      const durationSec = (now - startTime) / 1000;
+      const avgFps = (totalFrames / durationSec).toFixed(2);
+      fpsCounter.innerHTML = `<span style="color: #0f0">Test Complete</span><br>Average FPS: ${avgFps}<br>Browser handled request sequence cleanly.`;
+      const out = `ZEPRA FPS STRESS TEST\n---------------------\nTotal Frames: ${totalFrames}\nAvg FPS: ${avgFps}\nTarget nodes: ${NUM_PARTICLES}\nResult: Engine survived layout repaints cleanly.`;
+      const a = document.createElement('a'); a.download = 'fps_result.txt';
+      a.href = URL.createObjectURL(new Blob([out], {type:'text/plain'})); a.click();
+      return;
+    }
+
+    const width = window.innerWidth;
+    const height = window.innerHeight;
+
+    for (let i = 0; i < NUM_PARTICLES; i++) {
+      let p = particles[i];
+      p.x += p.vx;
+      p.y += p.vy;
+
+      if (p.x <= 0 || p.x >= width) p.vx *= -1;
+      if (p.y <= 0 || p.y >= height) p.vy *= -1;
+
+      p.el.style.transform = `translate(${p.x}px, ${p.y}px)`;
+    }
+
+    requestAnimationFrame(animate);
+  }
+
+  requestAnimationFrame(animate);
+</script>
+</body>
+</html>

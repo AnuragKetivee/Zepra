@@ -10,6 +10,7 @@
 #include <memory>
 #include <chrono>
 #include <algorithm>
+#include <iostream>
 
 namespace NXRender {
 
@@ -98,6 +99,10 @@ static void renderDebugOverlay() {
 }
 
 static void dispatchEvent(const Event& event) {
+    // DEBUG TRACE — remove after diagnosis
+    if (event.type == EventType::MouseDown || event.type == EventType::KeyDown) {
+        std::cout << "[NXRender::dispatch] type=" << (int)event.type << std::endl;
+    }
     if (event.type == EventType::Close) {
         g_quitRequested = true;
         g_running = false;
@@ -110,27 +115,26 @@ static void dispatchEvent(const Event& event) {
         if (newW > 0 && newH > 0 && (newW != g_width || newH != g_height)) {
             resize(newW, newH);
         }
-        return;
+        // Fall through — app handler needs resize too
     }
 
-    // Compositor hit-test for mouse events
+    // Always forward to application event handler first
+    // The browser does its own hit-testing and needs ALL events
+    if (g_eventHandler) {
+        g_eventHandler(event);
+    }
+
+    // Then let compositor widgets handle (for NXRender's own overlay UI if any)
     if (g_compositor && (event.type == EventType::MouseDown ||
                           event.type == EventType::MouseUp ||
                           event.type == EventType::MouseMove)) {
         Widget* target = g_compositor->hitTest(event.mouse.x, event.mouse.y);
         if (target) {
             EventResult result = target->handleEvent(event);
-            if (result != EventResult::Ignored) {
-                if (result == EventResult::NeedsRedraw && g_compositor) {
-                    g_compositor->invalidateAll();
-                }
-                return;
+            if (result == EventResult::NeedsRedraw && g_compositor) {
+                g_compositor->invalidateAll();
             }
         }
-    }
-
-    if (g_eventHandler) {
-        g_eventHandler(event);
     }
 }
 
@@ -297,6 +301,11 @@ void setResizeCallback(ResizeCallback callback) {
 // =========================================================================
 
 void processEvents() {
+    static bool once = false;
+    if (!once) {
+        std::cout << "[DEBUG] processEvents: g_platform=" << (void*)g_platform.get() << std::endl;
+        once = true;
+    }
     if (g_platform) {
         g_platform->pollEvents();
     }
@@ -333,6 +342,18 @@ void run() {
 void requestQuit() {
     g_quitRequested = true;
     g_running = false;
+}
+
+void setCursor(CursorType type) {
+    if (g_platform) {
+        Platform::CursorType ptype;
+        switch (type) {
+            case CursorType::Hand: ptype = Platform::CursorType::Hand; break;
+            case CursorType::Text: ptype = Platform::CursorType::Text; break;
+            default: ptype = Platform::CursorType::Arrow; break;
+        }
+        g_platform->setCursor(ptype);
+    }
 }
 
 bool shouldQuit() {

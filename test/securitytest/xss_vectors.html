@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html lang="en"><head><title>XSS Escaping Test</title></head>
+<body style="background:#000; color:#fff; font-family:sans-serif;">
+  <h2>XSS Escaping & Protocol Sandbox</h2>
+<div id="sandbox"></div>
+<script>
+  let log = "--- ZEPRA Security Test: XSS ---\n";
+  window.xssFired = false;
+  
+  // Test 1: innerHTML script execution (Should NOT execute per HTML5 spec)
+  const sb = document.getElementById('sandbox');
+  sb.innerHTML = "<script>window.xssFired = true;<\/script>";
+  
+  setTimeout(() => {
+    if(window.xssFired) log += "FAIL: innerHTML executed a <script> tag natively.\n";
+    else log += "PASS: innerHTML properly silenced script execution.\n";
+    
+    // Test 2: Data URI iframe isolation
+    const iframe = document.createElement('iframe');
+    iframe.src = "data:text/html,<script>parent.xssFired=true;<\/script>";
+    document.body.appendChild(iframe);
+    
+    setTimeout(() => {
+      if(window.xssFired) log += "FAIL: Data URI iframe accessed parent execution context.\n";
+      else log += "PASS: Data URI iframe context completely isolated.\n";
+      
+      console.log(log);
+      const a = document.createElement('a'); a.download = 'xss_result.txt';
+      a.href = URL.createObjectURL(new Blob([log], {type:'text/plain'})); a.click();
+      document.body.innerHTML += `<pre>${log}</pre><b>Saved to xss_result.txt</b>`;
+    }, 500);
+  }, 500);
+</script></body></html>

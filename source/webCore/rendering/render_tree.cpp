@@ -7,6 +7,7 @@
 #include <algorithm>
 #include <iostream>
 #include <cstdlib>
+#include <cstring>
 
 namespace Zepra::WebCore {
 
@@ -166,7 +167,7 @@ RenderNode* RenderNode::hitTest(float x, float y) {
 
 void RenderNode::dump(int indent) const {
     std::string pad(indent * 2, ' ');
-    auto& bb = boxModel_.borderBox();
+    auto bb = boxModel_.borderBox();
     std::cerr << pad << (isText() ? "TEXT" : "BOX") 
               << " [" << bb.x << "," << bb.y << " " << bb.width << "x" << bb.height << "]"
               << std::endl;

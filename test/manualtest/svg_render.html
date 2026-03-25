@@ -1,0 +1,21 @@
+<!DOCTYPE html>
+<html lang="en"><head><title>SVG nxrender Test</title></head>
+<body style="background:#222; color:white;">
+  <h2>SVG Precision Layout & Render Export</h2>
+  <div id="svg-container"></div>
+<script>
+  let svg = '<svg width="800" height="600" xmlns="http://www.w3.org/2000/svg">';
+  for(let i=0; i<1000; i++) {
+    svg += `<circle cx="${Math.random()*800}" cy="${Math.random()*600}" r="${Math.random()*50}" fill="hsla(${Math.random()*360},100%,50%,0.5)" />`;
+  }
+  svg += '</svg>';
+  document.getElementById('svg-container').innerHTML = svg;
+  
+  setTimeout(() => {
+    const out = `ZEPRA SVG METRICS\n---------------------\nRendered 1000 overlapping DOM SVG circles successfully.\nCompleted without layout crash.`;
+    console.log(out);
+    const a = document.createElement('a'); a.download = 'svg_result.txt';
+    a.href = URL.createObjectURL(new Blob([out], {type:'text/plain'})); a.click();
+    document.body.innerHTML += `<p><b>Saved to svg_result.txt</b></p>`;
+  }, 1000);
+</script></body></html>

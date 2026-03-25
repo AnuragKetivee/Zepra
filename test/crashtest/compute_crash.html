@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Zepra Crash Test - Compute & Memory Exhaustion</title>
+<style>
+  body { background: #111; color: #ff3333; padding: 20px; font-family: monospace; font-size: 16px; }
+  .layer { display: flex; flex-direction: column; padding: 1px; border: 1px solid rgba(255,0,0,0.1); }
+  h1 { border-bottom: 2px solid #ff3333; padding-bottom: 10px; }
+</style>
+</head>
+<body>
+  <h1>CRASH TEST WARNING (Compute & Memory)</h1>
+  <p>This test intentionally attempts to exhaust the DOM tree stack, Javascript Heap, and CPU threads.</p>
+  <p><strong>Pass Criteria:</strong> The browser watchdog interventions kill the script safely, OS OOM killer intervenes, or the tab crashes cleanly <em>without bringing down the whole OS or core dumping in a segfault.</em></p>
+  
+  <div id="status">Initiating exhaustions in 2 seconds...</div>
+  <div id="doom-tree"></div>
+
+  <script>
+    // 1. Stack & Compute Exhaustion (Heap inflation)
+    function computeExhaustion(depth, arr) {
+      if (depth > 50000) return arr;
+      // Allocate continuously without releasing (triggers V8 / JS OOM)
+      arr.push(new Float64Array(1000));
+      
+      // Heavy localized math computation
+      for (let i = 0; i < 50; i++) {
+        arr[0][i] = Math.sin(depth) * Math.cos(depth) * Math.tan(depth);
+      }
+      return computeExhaustion(depth + 1, arr);
+    }
+
+    // 2. DOM/Layout Exhaustion (DOM stack depth crash)
+    function buildDOMLayers(depth, parent) {
+      if (depth > 5000) return; // 5000 levels deep flexbox stack
+      const div = document.createElement('div');
+      div.className = 'layer';
+      parent.appendChild(div);
+      buildDOMLayers(depth + 1, div);
+    }
+
+    setTimeout(() => {
+      document.getElementById('status').textContent = 'Running infinite allocations and stack pushes. If the browser freezes, the test is running...';
+      
+      // Push event to next microtask so the DOM text updates before crash
+      setTimeout(() => {
+        try {
+          // Trigger infinite DOM nesting (Tests Layout Engine Stack Limits)
+          buildDOMLayers(0, document.getElementById('doom-tree'));
+        } catch(e) {
+          console.error("DOM Stack Exceeded:", e);
+        }
+
+        try {
+          // Trigger recursive compute & heap exhaustion (Tests JS Engine Memory/Stack Limits)
+          const giantArray = [];
+          computeExhaustion(0, giantArray);
+        } catch(e) {
+          console.error("Compute Stack/Heap Exceeded:", e);
+        }
+        
+        // Endless memory allocation loop if recursion didn't kill it
+        let infiniteHeap = [];
+        while (true) {
+          infiniteHeap.push(new Array(100000).fill("ZEPRA_CRASH_MEMORY_BLOCK"));
+        }
+      }, 100);
+    }, 2000);
+  </script>
+</body>
+</html>

@@ -1,0 +1,21 @@
+<!DOCTYPE html>
+<html lang="en"><head><title>CORS Security Boundary Test</title></head>
+<body style="background:#000; color:#fff; font-family:sans-serif;">
+  <h2>Cross-Origin Resource Sharing Enforcement</h2>
+<script>
+  async function testCORS() {
+    let log = "--- ZEPRA Security Test: CORS ---\n";
+    try {
+      // Intentionally request a cross origin without CORS headers
+      await fetch('https://example.com/non_existent_cors.json');
+      log += "FAIL: Browser allowed cross-origin fetch without CORS preflight/headers.\n";
+    } catch(e) {
+      log += "PASS: Browser correctly blocked cross-origin request.\nException: " + e.message + "\n";
+    }
+    console.log(log);
+    const a = document.createElement('a'); a.download = 'cors_result.txt';
+    a.href = URL.createObjectURL(new Blob([log], {type:'text/plain'})); a.click();
+    document.body.innerHTML += `<pre>${log}</pre><br><b>Saved to cors_result.txt</b>`;
+  }
+  testCORS();
+</script></body></html>

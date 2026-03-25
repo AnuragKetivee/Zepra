@@ -1,0 +1,22 @@
+<!DOCTYPE html>
+<html lang="en"><head><title>Text Layout Benchmark</title></head>
+<body style="font-family:serif;">
+  <h2>Text Shaping and BiDi Layout Test</h2>
+  <div id="content" style="column-count:3;"></div>
+<script>
+  const txt = "Hello Zepra Engine. This tests complex shaping and wrapping. ";
+  const c = document.getElementById('content');
+  const start = performance.now();
+  c.textContent = txt.repeat(5000); // Massive text node
+  
+  // Wait for layout to flush naturally
+  requestAnimationFrame(() => {
+    requestAnimationFrame(() => {
+        const out = `ZEPRA TEXT METRICS\n---------------------\nRendered 300,000 characters across CSS columns.\nLayout cycle completed in ${(performance.now()-start).toFixed(2)}ms`;
+        console.log(out);
+        const a = document.createElement('a'); a.download = 'text_layout_result.txt';
+        a.href = URL.createObjectURL(new Blob([out], {type:'text/plain'})); a.click();
+        c.innerHTML += `<p style="color:red; background: white; padding: 10px; display: inline-block;"><b>Layout Complete. Saved to text_layout_result.txt</b></p>`;
+    });
+  });
+</script></body></html>

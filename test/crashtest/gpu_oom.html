@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html lang="en"><head><title>WebGL OOM Crash Test</title></head>
+<body style="background:#000; color:#f00; font-family:monospace;">
+  <h2>WebGL Buffer Exhaustion (nxrender / GPU Backend)</h2>
+  <canvas id="c"></canvas>
+<script>
+  const gl = document.getElementById('c').getContext('webgl');
+  let buffers = [];
+  let log = "--- ZEPRA CRASH TEST: GPU OOM ---\nAllocating 100MB buffers...\n";
+  try {
+    for (let i=0; i<100; i++) { // Limit to 10GB attempt
+      let b = gl.createBuffer();
+      gl.bindBuffer(gl.ARRAY_BUFFER, b);
+      gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(25000000), gl.STATIC_DRAW); // 100MB
+      buffers.push(b);
+      log += `Allocated ${buffers.length * 100}MB\n`;
+    }
+    log += `SURVIVED 10GB allocation.\n`;
+  } catch(e) {
+    log += `\nCRASHED/OOM at ${buffers.length * 100}MB: \nException: ` + e.message;
+  }
+  
+  console.log(log);
+  document.body.innerHTML += `<pre style="color:white;">${log}</pre>`;
+  const a = document.createElement('a'); 
+  a.download = 'gpu_oom_result.txt';
+  a.href = URL.createObjectURL(new Blob([log], {type:'text/plain'})); 
+  a.click();
+</script>
+</body></html>

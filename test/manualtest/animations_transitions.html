@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>CSS Animations and Transitions</title>
+<style>
+  body { background: #1a1a2e; color: white; font-family: sans-serif; padding: 2rem; display: grid; gap: 2rem; transition: background 0.5s; }
+  .section { border: 1px solid #16213e; padding: 1rem; border-radius: 8px; background: #0f3460; }
+  /* Test 1: Keyframe Animations */
+  @keyframes spinAndScale {
+    0% { transform: rotate(0deg) scale(1); background: #e94560; }
+    50% { transform: rotate(180deg) scale(1.5); background: #4caf50; }
+    100% { transform: rotate(360deg) scale(1); background: #e94560; }
+  }
+  .anim-box { width: 50px; height: 50px; background: #e94560; margin: 20px; animation: spinAndScale 3s infinite ease-in-out; }
+  /* Test 2: Hover Transitions */
+  .transit-box {
+    width: 100px; height: 50px; background: #2196f3;
+    transition: all 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    display: flex; align-items: center; justify-content: center; cursor: pointer;
+  }
+  .transit-box:hover { transform: translateX(100px) scale(1.1); background: #ffeb3b; color: black; box-shadow: 0 10px 20px rgba(0,0,0,0.5); }
+  /* Test 3: Opacity and Compositing */
+  @keyframes pulseOpacity { 0%, 100% { opacity: 0.1; } 50% { opacity: 1; } }
+  .fade-grid { display: grid; grid-template-columns: repeat(10, 20px); gap: 5px; }
+  .fade-item { width: 20px; height: 20px; background: #fff; animation: pulseOpacity 2s infinite linear; }
+  .stop-anim * { animation: none !important; transition: none !important; }
+  #result-banner { display: none; padding: 15px; background: #4caf50; color: white; text-align: center; font-size: 20px; font-weight: bold; border-radius: 8px; margin-bottom: 20px; }
+</style>
+</head>
+<body>
+  <div id="result-banner">CSS Animation Test Complete. Browser Handled Output.</div>
+  <h1>CSS Rendering Tests (<span id="timer">7</span>s remaining)</h1>
+  <div class="section"><h2>1. Complex Keyframe Transforms</h2><div class="anim-box"></div></div>
+  <div class="section"><h2>2. Interactive Transitions (Hover Me)</h2><div class="transit-box">Hover</div></div>
+  <div class="section">
+    <h2>3. Layer Compositing (Opacity Pulse)</h2>
+    <div class="fade-grid">
+      <script>
+        for(let i=0; i<50; i++) {
+          let div = document.createElement('div');
+          div.className = 'fade-item';
+          div.style.animationDelay = (Math.random() * 2) + 's';
+          document.currentScript.parentNode.insertBefore(div, document.currentScript);
+        }
+      </script>
+    </div>
+  </div>
+  <script>
+    let timeLeft = 7;
+    const timerEl = document.getElementById('timer');
+    const interval = setInterval(() => {
+      timeLeft--;
+      timerEl.textContent = timeLeft;
+      if (timeLeft <= 0) {
+        clearInterval(interval);
+        document.body.classList.add('stop-anim');
+        document.getElementById('result-banner').style.display = 'block';
+      }
+    }, 1000);
+  </script>
+</body>
+</html>

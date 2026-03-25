@@ -110,7 +110,7 @@ void Compositor::updateLayerPositions() {
     std::function<void(CompositorLayer*)> update = [&](CompositorLayer* layer) {
         if (layer->owner()) {
             layer->setBounds(layer->owner()->boxModel().borderBox());
-            auto& bb = layer->bounds();
+            auto bb = layer->bounds();
             layer->setTranslation(bb.x + layer->scrollX(), bb.y + layer->scrollY());
         }
         for (auto& child : layer->children()) {

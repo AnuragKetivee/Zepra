@@ -121,6 +121,11 @@ public:
     }
     
     void pollEvents() override {
+        static int debugCount = 0;
+        if (debugCount < 3 && XPending(display_) > 0) {
+            std::cout << "[X11] pollEvents: events pending" << std::endl;
+            debugCount++;
+        }
         while (XPending(display_) > 0) {
             XEvent ev;
             XNextEvent(display_, &ev);
@@ -168,6 +173,7 @@ public:
                 event.mouse.modifiers = getModifiers(ev.xmotion.state);
                 NXRender::dispatchEvent(event);
             } else if (ev.type == ButtonPress) {
+                std::cout << "[X11] ButtonPress at " << ev.xbutton.x << "," << ev.xbutton.y << " btn=" << ev.xbutton.button << std::endl;
                 Event event;
                 event.type = EventType::MouseDown;
                 event.mouse.x = (float)ev.xbutton.x;
@@ -299,6 +305,19 @@ public:
         if (display_ && window_) {
             XStoreName(display_, window_, title.c_str());
         }
+    }
+    
+    void setCursor(CursorType type) override {
+        if (!display_ || !window_) return;
+        Cursor c = cursorArrow_;
+        switch (type) {
+            case CursorType::Arrow: c = cursorArrow_; break;
+            case CursorType::Hand:  c = cursorHand_;  break;
+            case CursorType::Text:  c = cursorText_;  break;
+            default: break;
+        }
+        XDefineCursor(display_, window_, c);
+        XFlush(display_);
     }
 
 private:

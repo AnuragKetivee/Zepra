@@ -179,6 +179,12 @@ void requestQuit();
  */
 bool shouldQuit();
 
+/**
+ * @brief Set mouse cursor type
+ */
+enum class CursorType { Arrow, Hand, Text };
+void setCursor(CursorType type);
+
 // =========================================================================
 // Debug Overlay
 // =========================================================================

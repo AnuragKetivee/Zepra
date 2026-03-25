@@ -2973,9 +2973,9 @@ void render() {
     
     gfx::present();
     
-#ifdef USE_WEBCORE
     // Update cursor based on hover state
     bool isOverLink = false;
+#ifdef USE_WEBCORE
     for (const auto& linkBox : g_linkHitBoxes) {
         if (g_mouseX >= linkBox.x && g_mouseX <= linkBox.x + linkBox.w &&
             g_mouseY >= linkBox.y && g_mouseY <= linkBox.y + linkBox.h) {
@@ -2983,8 +2983,15 @@ void render() {
             break;
         }
     }
-    
 #endif
+    // Cursor switching based on UI state
+    if (g_addressFocused || g_searchFocused || g_consoleFocused) {
+        NXRender::setCursor(NXRender::CursorType::Text);
+    } else if (g_currentCursorIsHand || isOverLink) {
+        NXRender::setCursor(NXRender::CursorType::Hand);
+    } else {
+        NXRender::setCursor(NXRender::CursorType::Arrow);
+    }
   } catch (const std::exception& e) {
     std::cerr << "[CRASH] render() exception: " << e.what() << std::endl;
   } catch (...) {
@@ -3959,6 +3966,10 @@ bool loadResources() {
 // extern removal
 
 void handleNXEvent(const NXRender::Event& event) {
+    // DEBUG TRACE — remove after diagnosis
+    if (event.type == NXRender::EventType::MouseDown || event.type == NXRender::EventType::KeyDown) {
+        std::cout << "[handleNXEvent] type=" << (int)event.type << " mouse=" << event.mouse.x << "," << event.mouse.y << std::endl;
+    }
     if (event.type == NXRender::EventType::Close) {
         g_running = false;
     } else if (event.type == NXRender::EventType::Resize) {

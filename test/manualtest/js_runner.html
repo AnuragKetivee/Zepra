@@ -1,0 +1,119 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Zepra JS Test Runner</title>
+<style>
+  body { font-family: monospace; background: #111; color: #eee; padding: 20px; max-width: 800px; margin: 0 auto; }
+  .test-case { margin: 10px 0; padding: 15px; border: 1px solid #444; background: #222; border-radius: 6px; }
+  .status-pending { color: #aaa; }
+  .status-running { color: #f39c12; }
+  .status-pass { color: #2ecc71; font-weight: bold; }
+  .status-fail { color: #e74c3c; font-weight: bold; }
+  #summary { font-size: 20px; margin-top: 20px; padding: 15px; background: #333; border-radius: 6px; border: 1px solid #555; }
+  pre { margin: 10px 0 0 0; color: #ccc; white-space: pre-wrap; word-wrap: break-word; font-size: 14px; }
+  button { background: #3498db; color: white; border: none; padding: 12px 24px; font-size: 16px; border-radius: 4px; cursor: pointer; }
+  button:hover { background: #2980b9; }
+  button:disabled { background: #555; cursor: not-allowed; }
+</style>
+</head>
+<body>
+  <h1>Zepra JS Engine Test Runner (Auto-Export)</h1>
+  <p>Executes JS performance validations and automatically downloads a text report.</p>
+  <button id="start-btn">Run All JS Tests</button>
+  
+  <div id="summary">Ready to run tests.</div>
+  <div id="test-list"></div>
+
+  <script>
+    window.ZepraTests = [];
+    window.registerTest = function(name, runFn) {
+      window.ZepraTests.push({ name, runFn, status: 'pending', log: [] });
+    };
+
+    function logTo(test, msg) {
+      test.log.push(msg);
+      render();
+    }
+
+    function render() {
+      const container = document.getElementById('test-list');
+      container.innerHTML = '';
+      let passed = 0, failed = 0, pending = 0, running = 0;
+
+      window.ZepraTests.forEach(t => {
+        if (t.status === 'pass') passed++;
+        else if (t.status === 'fail') failed++;
+        else if (t.status === 'running') running++;
+        else pending++;
+
+        const div = document.createElement('div');
+        div.className = 'test-case';
+        div.innerHTML = `
+          <div style="font-size: 18px;">
+            <strong>${t.name}</strong> - <span class="status-${t.status}">${t.status.toUpperCase()}</span>
+          </div>
+          <pre>${t.log.join('\n')}</pre>
+        `;
+        container.appendChild(div);
+      });
+
+      document.getElementById('summary').innerHTML = `
+        <strong>Test Sequence Summary:</strong><br><br>
+        Total: ${window.ZepraTests.length} | 
+        <span class="status-pass">Passed: ${passed}</span> | 
+        <span class="status-fail">Failed: ${failed}</span> | 
+        <span class="status-running">Running: ${running}</span> | 
+        <span class="status-pending">Pending: ${pending}</span>
+      `;
+    }
+
+    async function runTests() {
+      document.getElementById('start-btn').disabled = true;
+      for (const t of window.ZepraTests) {
+        t.status = 'running';
+        render();
+        try {
+          await new Promise(r => setTimeout(r, 50));
+          await t.runFn((msg) => logTo(t, msg));
+          t.status = 'pass';
+        } catch (e) {
+          logTo(t, 'ERROR: ' + e.stack);
+          t.status = 'fail';
+        }
+        render();
+      }
+      document.getElementById('start-btn').textContent = "Tests Complete (Report Saved)";
+      downloadResults();
+    }
+
+    function downloadResults() {
+      let out = "=== ZEPRA JS TEST SUITE RESULTS ===\nGenerated at: " + new Date().toISOString() + "\n\n";
+      window.ZepraTests.forEach(t => {
+        out += `[${t.status.toUpperCase()}] ${t.name}\n${t.log.join('\n')}\n\n`;
+      });
+      const b = new Blob([out], {type: 'text/plain'});
+      const a = document.createElement('a');
+      a.href = URL.createObjectURL(b);
+      a.download = `zepra_js_results_${Date.now()}.txt`;
+      a.click();
+    }
+
+    document.getElementById('start-btn').addEventListener('click', runTests);
+  </script>
+
+  <script src="js/heavy_computation.js"></script>
+  <script src="js/matrix_math.js"></script>
+  <script src="js/gc_stress.js"></script>
+  <script src="js/dom_api.js"></script>
+  <script src="js/async_fetch.js"></script>
+  <script src="js/regexp_stress.js"></script>
+  <script src="js/json_parse.js"></script>
+  <script src="js/array_methods.js"></script>
+  <script src="js/closure_leak.js"></script>
+  
+  <script>
+    render(); 
+  </script>
+</body>
+</html>

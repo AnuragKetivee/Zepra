@@ -41,6 +41,12 @@ public:
      * @brief Set window title
      */
     virtual void setTitle(const std::string& title) = 0;
+    
+    /**
+     * @brief Set mouse cursor type
+     */
+    enum class CursorType { Arrow, Hand, Text, Crosshair };
+    virtual void setCursor(CursorType type) { (void)type; }
 };
 
 // Factory function implemented by backend

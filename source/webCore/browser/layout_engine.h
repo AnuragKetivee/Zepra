@@ -32,6 +32,38 @@ enum class LayoutType {
 };
 
 // =============================================================================
+// LAYOUT LENGTH — Deferred CSS dimension resolution
+// =============================================================================
+
+struct LayoutLength {
+    enum class Unit { None, Px, Percent, Em, Rem, Vw, Vh, Auto };
+
+    float value = 0;
+    Unit unit = Unit::None;
+
+    bool isAuto() const { return unit == Unit::Auto; }
+    bool isPercent() const { return unit == Unit::Percent; }
+    bool isSet() const { return unit != Unit::None; }
+
+    float resolve(float containerSize, float fontSize, float vpW, float vpH) const {
+        switch (unit) {
+            case Unit::Px:      return value;
+            case Unit::Percent: return value / 100.0f * containerSize;
+            case Unit::Em:      return value * fontSize;
+            case Unit::Rem:     return value * 16.0f;
+            case Unit::Vw:      return value / 100.0f * vpW;
+            case Unit::Vh:      return value / 100.0f * vpH;
+            default:            return 0;
+        }
+    }
+
+    static LayoutLength none()    { return {0, Unit::None}; }
+    static LayoutLength px(float v) { return {v, Unit::Px}; }
+    static LayoutLength pct(float v) { return {v, Unit::Percent}; }
+    static LayoutLength autoVal() { return {0, Unit::Auto}; }
+};
+
+// =============================================================================
 // LAYOUT BOX
 // =============================================================================
 
@@ -61,6 +93,20 @@ struct LayoutBox {
     float paddingTop = 0, paddingRight = 0, paddingBottom = 0, paddingLeft = 0;
     float borderTop = 0, borderRight = 0, borderBottom = 0, borderLeft = 0;
     
+    // Margin auto flags (for centering in layoutBlock)
+    bool marginLeftAuto = false;
+    bool marginRightAuto = false;
+    
+    // Raw CSS dimensions — resolved in layoutBlock() with correct containing width
+    LayoutLength cssWidth;
+    LayoutLength cssHeight;
+    
+    // Min/max dimension constraints
+    LayoutLength cssMinWidth;
+    LayoutLength cssMinHeight;
+    LayoutLength cssMaxWidth;
+    LayoutLength cssMaxHeight;
+    
     // Display type
     LayoutType type = LayoutType::Block;
     int flexDirection = 0; // 0=Row, 1=Column
@@ -89,6 +135,9 @@ struct LayoutBox {
     // Overflow clipping
     bool overflowHidden = false;
     
+    // Visibility: hidden (takes space in layout but not painted)
+    bool visibilityHidden = false;
+    
     // Flex container properties
     int justifyContent = 0; // 0=start, 1=end, 2=center, 3=space-between, 4=space-around, 5=space-evenly
     int alignItems = 0;     // 0=stretch, 1=start, 2=end, 3=center, 4=baseline
@@ -97,6 +146,9 @@ struct LayoutBox {
     
     // Text decoration
     std::string textDecoration;
+    
+    // Text alignment: 0=left, 1=center, 2=right
+    int textAlign = 0;
     
     // Input properties
     bool isInput = false;

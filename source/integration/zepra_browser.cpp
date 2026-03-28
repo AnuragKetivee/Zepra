@@ -138,8 +138,8 @@ static void* g_display = nullptr;
 // static GLXContext g_glContext;
 // static Atom g_wmDeleteMessage;
 static bool g_running = true;
-static int g_width = 1920;
-static int g_height = 1080;
+int g_width = 1920;
+int g_height = 1080;
 static float g_mouseX = 0, g_mouseY = 0;
 
 // Forward Declarations
@@ -798,6 +798,22 @@ static std::string decodeHtmlEntities(const std::string& input) {
 void buildLayoutFromDOM(DOMElement* element, LayoutBox* parentBox, bool inLink = false, 
                         const std::string& linkHref = "", const std::string& linkTarget = "");
 
+// Convert CSS engine CSSLength → layout engine LayoutLength
+static ZepraBrowser::LayoutLength cssToLayout(const Zepra::WebCore::CSSLength& css) {
+    using CU = Zepra::WebCore::CSSLength::Unit;
+    using LL = ZepraBrowser::LayoutLength;
+    switch (css.unit) {
+        case CU::Auto:    return LL::autoVal();
+        case CU::Px:      return LL::px(css.value);
+        case CU::Percent: return LL::pct(css.value);
+        case CU::Em:      return {css.value, LL::Unit::Em};
+        case CU::Rem:     return {css.value, LL::Unit::Rem};
+        case CU::Vw:      return {css.value, LL::Unit::Vw};
+        case CU::Vh:      return {css.value, LL::Unit::Vh};
+        default:          return LL::px(css.value);
+    }
+}
+
 // URL resolution helper - resolve relative URLs against base URL
 std::string resolveUrl(const std::string& base, const std::string& href) {
     if (href.empty()) return "";
@@ -1000,31 +1016,89 @@ void parseWithWebCore(const std::string& html) {
     g_layoutRoot->paddingRight = 8;
     g_layoutRoot->paddingTop = 8;
     g_layoutRoot->paddingBottom = 8;
-    g_layoutRoot->width = (float)g_width; // Initialize width
+    g_layoutRoot->width = (float)g_width;
     
-    // FIX: Apply body CSS styles to layout root
+    // Apply body CSS styles to layout root
     if (g_document->body()) {
         const CSSComputedStyle* bodyStyle = g_cssEngine->getComputedStyle(g_document->body());
         if (bodyStyle) {
-            // Background color
+            // Background
             if (!bodyStyle->backgroundColor.isTransparent()) {
                 g_layoutRoot->bgColor = cssColorToRGB(bodyStyle->backgroundColor);
                 g_layoutRoot->hasBgColor = true;
-                std::cout << "[CSS] Body bgColor: rgb(" << (int)bodyStyle->backgroundColor.r << ","
-                          << (int)bodyStyle->backgroundColor.g << "," << (int)bodyStyle->backgroundColor.b << ")" << std::endl;
             }
-            // Text color
+            if (!bodyStyle->backgroundImage.empty() && bodyStyle->backgroundImage != "none") {
+                g_layoutRoot->backgroundImage = bodyStyle->backgroundImage;
+                g_layoutRoot->hasBgColor = true;
+            }
+            
+            // Typography
             g_layoutRoot->color = cssColorToRGB(bodyStyle->color);
+            g_layoutRoot->fontSize = bodyStyle->fontSize;
+            
             // Margins
-            g_layoutRoot->marginTop = bodyStyle->marginTop.value;
-            g_layoutRoot->marginBottom = bodyStyle->marginBottom.value;
-            g_layoutRoot->marginLeft = bodyStyle->marginLeft.value;
-            g_layoutRoot->marginRight = bodyStyle->marginRight.value;
-            // Padding - override if CSS specifies
-            if (bodyStyle->paddingTop.value > 0) g_layoutRoot->paddingTop = bodyStyle->paddingTop.value;
-            if (bodyStyle->paddingBottom.value > 0) g_layoutRoot->paddingBottom = bodyStyle->paddingBottom.value;
-            if (bodyStyle->paddingLeft.value > 0) g_layoutRoot->paddingLeft = bodyStyle->paddingLeft.value;
-            if (bodyStyle->paddingRight.value > 0) g_layoutRoot->paddingRight = bodyStyle->paddingRight.value;
+            g_layoutRoot->marginTop = bodyStyle->marginTop.isAuto() ? 0 : bodyStyle->marginTop.value;
+            g_layoutRoot->marginBottom = bodyStyle->marginBottom.isAuto() ? 0 : bodyStyle->marginBottom.value;
+            g_layoutRoot->marginLeft = bodyStyle->marginLeft.isAuto() ? 0 : bodyStyle->marginLeft.value;
+            g_layoutRoot->marginRight = bodyStyle->marginRight.isAuto() ? 0 : bodyStyle->marginRight.value;
+            
+            // Padding — always use CSS values when computed style exists
+            g_layoutRoot->paddingTop = bodyStyle->paddingTop.value;
+            g_layoutRoot->paddingBottom = bodyStyle->paddingBottom.value;
+            g_layoutRoot->paddingLeft = bodyStyle->paddingLeft.value;
+            g_layoutRoot->paddingRight = bodyStyle->paddingRight.value;
+            
+            // Dimensions
+            g_layoutRoot->cssWidth = cssToLayout(bodyStyle->width);
+            g_layoutRoot->cssHeight = cssToLayout(bodyStyle->height);
+            g_layoutRoot->cssMinWidth = cssToLayout(bodyStyle->minWidth);
+            g_layoutRoot->cssMinHeight = cssToLayout(bodyStyle->minHeight);
+            g_layoutRoot->cssMaxWidth = cssToLayout(bodyStyle->maxWidth);
+            g_layoutRoot->cssMaxHeight = cssToLayout(bodyStyle->maxHeight);
+            
+            // Border
+            g_layoutRoot->borderTop = bodyStyle->borderTopWidth;
+            g_layoutRoot->borderRight = bodyStyle->borderRightWidth;
+            g_layoutRoot->borderBottom = bodyStyle->borderBottomWidth;
+            g_layoutRoot->borderLeft = bodyStyle->borderLeftWidth;
+            if (bodyStyle->borderTopWidth > 0)
+                g_layoutRoot->borderColor = cssColorToRGB(bodyStyle->borderTopColor);
+            g_layoutRoot->borderRadius = bodyStyle->borderTopLeftRadius;
+            
+            // Visual
+            g_layoutRoot->opacity = bodyStyle->opacity;
+            g_layoutRoot->overflowHidden = (bodyStyle->overflowX == OverflowValue::Hidden ||
+                                            bodyStyle->overflowY == OverflowValue::Hidden);
+            g_layoutRoot->visibilityHidden = (bodyStyle->visibility == Visibility::Hidden);
+            
+            // Text alignment
+            if (bodyStyle->textAlign == TextAlign::Center) g_layoutRoot->textAlign = 1;
+            else if (bodyStyle->textAlign == TextAlign::Right) g_layoutRoot->textAlign = 2;
+            
+            // Display: flex on body
+            if (bodyStyle->display == DisplayValue::Flex || bodyStyle->display == DisplayValue::InlineFlex) {
+                g_layoutRoot->type = LayoutType::Flex;
+                using namespace Zepra::WebCore;
+                if (bodyStyle->flexDirection == FlexDirection::Column ||
+                    bodyStyle->flexDirection == FlexDirection::ColumnReverse)
+                    g_layoutRoot->flexDirection = 1;
+                g_layoutRoot->gap = bodyStyle->gap.value;
+                switch (bodyStyle->justifyContent) {
+                    case JustifyAlign::FlexEnd: case JustifyAlign::End: g_layoutRoot->justifyContent = 1; break;
+                    case JustifyAlign::Center: g_layoutRoot->justifyContent = 2; break;
+                    case JustifyAlign::SpaceBetween: g_layoutRoot->justifyContent = 3; break;
+                    case JustifyAlign::SpaceAround: g_layoutRoot->justifyContent = 4; break;
+                    case JustifyAlign::SpaceEvenly: g_layoutRoot->justifyContent = 5; break;
+                    default: g_layoutRoot->justifyContent = 0; break;
+                }
+                switch (bodyStyle->alignItems) {
+                    case JustifyAlign::FlexStart: case JustifyAlign::Start: g_layoutRoot->alignItems = 1; break;
+                    case JustifyAlign::FlexEnd: case JustifyAlign::End: g_layoutRoot->alignItems = 2; break;
+                    case JustifyAlign::Center: g_layoutRoot->alignItems = 3; break;
+                    case JustifyAlign::Baseline: g_layoutRoot->alignItems = 4; break;
+                    default: g_layoutRoot->alignItems = 0; break;
+                }
+            }
         }
     }
     
@@ -1180,8 +1254,11 @@ void buildLayoutFromDOM(DOMElement* element, LayoutBox* parentBox, bool inLink,
     // Get computed style
     const CSSComputedStyle* style = g_cssEngine ? g_cssEngine->getComputedStyle(element) : nullptr;
     
-    // Skip display:none (enum value 0)
-    if (style && static_cast<int>(style->display) == 0) return;
+    // Skip display:none
+#pragma push_macro("None")
+#undef None
+    if (style && style->display == DisplayValue::None) return;
+#pragma pop_macro("None")
     
     // Check if this is an anchor tag
     bool isAnchor = (tag == "a");
@@ -1314,6 +1391,11 @@ void buildLayoutFromDOM(DOMElement* element, LayoutBox* parentBox, bool inLink,
                     case JustifyAlign::Baseline: box->alignItems = 4; break;
                     default: box->alignItems = 0; break; // stretch
                 }
+                
+                // Text alignment
+                if (style->textAlign == TextAlign::Center) box->textAlign = 1;
+                else if (style->textAlign == TextAlign::Right) box->textAlign = 2;
+                else box->textAlign = 0;
             }
             
             // Link styling
@@ -1324,8 +1406,8 @@ void buildLayoutFromDOM(DOMElement* element, LayoutBox* parentBox, bool inLink,
                 if (box->color == 0x1F2328 || box->color == 0) box->color = 0x0066CC;
             }
             
-            // Fallback margins for common tags (if CSS didnt set them)
-            if (box->marginTop == 0 && box->marginBottom == 0) {
+            // Fallback margins for common tags (only when CSS engine had no computed style)
+            if (!style) {
                 if (tag == "h1") { box->marginTop = 16; box->marginBottom = 16; box->type = LayoutType::Block; }
                 else if (tag == "h2") { box->marginTop = 12; box->marginBottom = 12; box->type = LayoutType::Block; }
                 else if (tag == "h3") { box->marginTop = 10; box->marginBottom = 10; box->type = LayoutType::Block; }
@@ -1784,7 +1866,10 @@ void buildLayoutFromDOM(DOMElement* element, LayoutBox* parentBox, bool inLink,
                 switch (childStyle->display) {
                     case DisplayValue::Block:
                     case DisplayValue::Flex:
+                    case DisplayValue::InlineFlex:
                     case DisplayValue::Grid:
+                    case DisplayValue::InlineGrid:
+                    case DisplayValue::InlineBlock:
                     case DisplayValue::ListItem:
                         isBlockElement = true;
                         break;
@@ -1819,33 +1904,100 @@ void buildLayoutFromDOM(DOMElement* element, LayoutBox* parentBox, bool inLink,
                     blockBox->color = cssColorToRGB(childStyle->color);
                     blockBox->bold = (childStyle->fontWeight >= FontWeight::Bold);
                     blockBox->italic = (childStyle->fontStyle == FontStyle::Italic);
+                    blockBox->textDecoration = childStyle->textDecoration;
                     
                     if (!childStyle->backgroundColor.isTransparent()) {
                         blockBox->bgColor = cssColorToRGB(childStyle->backgroundColor);
                         blockBox->hasBgColor = true;
                     }
+                    if (!childStyle->backgroundImage.empty() && childStyle->backgroundImage != "none") {
+                        blockBox->backgroundImage = childStyle->backgroundImage;
+                        blockBox->hasBgColor = true;
+                    }
                     
-                    // Box model properties
+                    // Margins — transfer values and detect auto for centering
                     blockBox->marginTop = childStyle->marginTop.value;
                     blockBox->marginBottom = childStyle->marginBottom.value;
-                    blockBox->marginLeft = childStyle->marginLeft.value;
-                    blockBox->marginRight = childStyle->marginRight.value;
+                    blockBox->marginLeft = childStyle->marginLeft.isAuto() ? 0 : childStyle->marginLeft.value;
+                    blockBox->marginRight = childStyle->marginRight.isAuto() ? 0 : childStyle->marginRight.value;
+                    blockBox->marginLeftAuto = childStyle->marginLeft.isAuto();
+                    blockBox->marginRightAuto = childStyle->marginRight.isAuto();
+                    
+                    // Padding
                     blockBox->paddingTop = childStyle->paddingTop.value;
                     blockBox->paddingBottom = childStyle->paddingBottom.value;
                     blockBox->paddingLeft = childStyle->paddingLeft.value;
                     blockBox->paddingRight = childStyle->paddingRight.value;
                     
-                    // Flex container properties
-                    if (childStyle->display == DisplayValue::Flex) {
+                    // Dimensions — store raw CSSLength for deferred resolution in layoutBlock
+                    blockBox->cssWidth = cssToLayout(childStyle->width);
+                    blockBox->cssHeight = cssToLayout(childStyle->height);
+                    
+                    // Min/max constraints
+                    blockBox->cssMinWidth = cssToLayout(childStyle->minWidth);
+                    blockBox->cssMinHeight = cssToLayout(childStyle->minHeight);
+                    blockBox->cssMaxWidth = cssToLayout(childStyle->maxWidth);
+                    blockBox->cssMaxHeight = cssToLayout(childStyle->maxHeight);
+                    
+                    // Pre-resolve px-only width/height for backwards compat
+                    if (!childStyle->width.isAuto() && childStyle->width.value > 0 &&
+                        childStyle->width.unit == Zepra::WebCore::CSSLength::Unit::Px)
+                        blockBox->width = childStyle->width.value;
+                    if (!childStyle->height.isAuto() && childStyle->height.value > 0 &&
+                        childStyle->height.unit == Zepra::WebCore::CSSLength::Unit::Px)
+                        blockBox->height = childStyle->height.value;
+                    
+                    // Border
+                    blockBox->borderTop = childStyle->borderTopWidth;
+                    blockBox->borderRight = childStyle->borderRightWidth;
+                    blockBox->borderBottom = childStyle->borderBottomWidth;
+                    blockBox->borderLeft = childStyle->borderLeftWidth;
+                    if (childStyle->borderTopWidth > 0 || childStyle->borderRightWidth > 0 ||
+                        childStyle->borderBottomWidth > 0 || childStyle->borderLeftWidth > 0)
+                        blockBox->borderColor = cssColorToRGB(childStyle->borderTopColor);
+                    blockBox->borderRadius = childStyle->borderTopLeftRadius;
+                    
+                    // Visual
+                    blockBox->opacity = childStyle->opacity;
+                    blockBox->overflowHidden = (childStyle->overflowX == OverflowValue::Hidden || 
+                                                childStyle->overflowY == OverflowValue::Hidden);
+                    blockBox->visibilityHidden = (childStyle->visibility == Visibility::Hidden);
+                    
+                    // Text alignment
+                    if (childStyle->textAlign == TextAlign::Center) blockBox->textAlign = 1;
+                    else if (childStyle->textAlign == TextAlign::Right) blockBox->textAlign = 2;
+                    else blockBox->textAlign = 0;
+                    
+                    // Display type overrides
+                    if (childStyle->display == DisplayValue::Flex || childStyle->display == DisplayValue::InlineFlex) {
                         blockBox->type = LayoutType::Flex;
                         using namespace Zepra::WebCore;
                         if (childStyle->flexDirection == FlexDirection::Column || 
-                            childStyle->flexDirection == FlexDirection::ColumnReverse) {
-                            blockBox->flexDirection = 1; // Column
+                            childStyle->flexDirection == FlexDirection::ColumnReverse)
+                            blockBox->flexDirection = 1;
+                        blockBox->flexWrap = childStyle->flexWrap;
+                        blockBox->gap = childStyle->gap.value;
+                        switch (childStyle->justifyContent) {
+                            case JustifyAlign::FlexEnd: case JustifyAlign::End: blockBox->justifyContent = 1; break;
+                            case JustifyAlign::Center: blockBox->justifyContent = 2; break;
+                            case JustifyAlign::SpaceBetween: blockBox->justifyContent = 3; break;
+                            case JustifyAlign::SpaceAround: blockBox->justifyContent = 4; break;
+                            case JustifyAlign::SpaceEvenly: blockBox->justifyContent = 5; break;
+                            default: blockBox->justifyContent = 0; break;
                         }
+                        switch (childStyle->alignItems) {
+                            case JustifyAlign::FlexStart: case JustifyAlign::Start: blockBox->alignItems = 1; break;
+                            case JustifyAlign::FlexEnd: case JustifyAlign::End: blockBox->alignItems = 2; break;
+                            case JustifyAlign::Center: blockBox->alignItems = 3; break;
+                            case JustifyAlign::Baseline: blockBox->alignItems = 4; break;
+                            default: blockBox->alignItems = 0; break;
+                        }
+                    } else if (childStyle->display == DisplayValue::InlineBlock ||
+                               childStyle->display == DisplayValue::InlineGrid) {
+                        blockBox->type = LayoutType::InlineBlock;
                     }
                 } else {
-                    // Fallback margins for common block tags
+                    // Fallback margins for common block tags (no CSS engine available)
                     if (childTag == "h1") { blockBox->marginTop = 16; blockBox->marginBottom = 16; blockBox->fontSize = 32; blockBox->bold = true; }
                     else if (childTag == "h2") { blockBox->marginTop = 12; blockBox->marginBottom = 12; blockBox->fontSize = 24; blockBox->bold = true; }
                     else if (childTag == "h3") { blockBox->marginTop = 10; blockBox->marginBottom = 10; blockBox->fontSize = 20; blockBox->bold = true; }
@@ -1856,8 +2008,47 @@ void buildLayoutFromDOM(DOMElement* element, LayoutBox* parentBox, bool inLink,
                 // Recurse into this block container (children become its children)
                 buildLayoutFromDOM(childElement, blockBox, nowInLink, href, target);
             } else {
-                // Inline elements: add children to parent box directly (preserves horizontal flow)
-                buildLayoutFromDOM(childElement, parentBox, nowInLink, href, target);
+                // Inline element: create its own LayoutBox for proper style containment
+                LayoutBox* inlineBox = addChild(parentBox);
+                inlineBox->type = LayoutType::Inline;
+                
+                if (childStyle) {
+                    inlineBox->fontSize = childStyle->fontSize;
+                    inlineBox->color = cssColorToRGB(childStyle->color);
+                    inlineBox->bold = (childStyle->fontWeight >= FontWeight::Bold);
+                    inlineBox->italic = (childStyle->fontStyle == FontStyle::Italic);
+                    inlineBox->textDecoration = childStyle->textDecoration;
+                    
+                    if (!childStyle->backgroundColor.isTransparent()) {
+                        inlineBox->bgColor = cssColorToRGB(childStyle->backgroundColor);
+                        inlineBox->hasBgColor = true;
+                    }
+                    
+                    inlineBox->paddingTop = childStyle->paddingTop.value;
+                    inlineBox->paddingBottom = childStyle->paddingBottom.value;
+                    inlineBox->paddingLeft = childStyle->paddingLeft.value;
+                    inlineBox->paddingRight = childStyle->paddingRight.value;
+                    
+                    inlineBox->borderTop = childStyle->borderTopWidth;
+                    inlineBox->borderRight = childStyle->borderRightWidth;
+                    inlineBox->borderBottom = childStyle->borderBottomWidth;
+                    inlineBox->borderLeft = childStyle->borderLeftWidth;
+                    if (childStyle->borderTopWidth > 0)
+                        inlineBox->borderColor = cssColorToRGB(childStyle->borderTopColor);
+                    inlineBox->borderRadius = childStyle->borderTopLeftRadius;
+                    inlineBox->opacity = childStyle->opacity;
+                    inlineBox->visibilityHidden = (childStyle->visibility == Visibility::Hidden);
+                }
+                
+                // Link styling on the inline box itself
+                if (nowInLink && !href.empty()) {
+                    inlineBox->isLink = true;
+                    inlineBox->href = href;
+                    inlineBox->target = target;
+                }
+                
+                // Recurse into this inline box (children become its children)
+                buildLayoutFromDOM(childElement, inlineBox, nowInLink, href, target);
             }
         }
     }
@@ -2846,16 +3037,18 @@ void render() {
         renderStartPage(contentX, contentY, contentW, contentH);
     } else if (isStart && g_layoutRoot) {
         // Start page rendered through layout engine (DOM-based)
-        gfx::rect(contentX, contentY, contentW, contentH, 0xFFFFFF);
         g_linkHitBoxes.clear();
         g_cursorIsPointer = false;
-        float layoutWidth = contentW - 40;
-        ZepraBrowser::layoutBlock(*g_layoutRoot, layoutWidth, 0);
+        // Layout uses full content width — body CSS controls margins/padding
+        ZepraBrowser::layoutBlock(*g_layoutRoot, contentW, 0);
+        // Ensure root covers at least the visible content area for gradient
+        if (g_layoutRoot->height < contentH)
+            g_layoutRoot->height = contentH;
         float scrollY = 0;
         for (const auto& tab : g_tabs) {
             if (tab.id == g_activeTabId) { scrollY = tab.scrollY; break; }
         }
-        ZepraBrowser::paintBox(*g_layoutRoot, contentX + 20, contentY + 20, contentY + contentH - 20, scrollY);
+        ZepraBrowser::paintBox(*g_layoutRoot, contentX, contentY, contentY + contentH, scrollY);
         for (const auto& hitBox : g_linkHitBoxes) {
             if (g_mouseX >= hitBox.x && g_mouseX < hitBox.x + hitBox.w &&
                 g_mouseY >= hitBox.y && g_mouseY < hitBox.y + hitBox.h) {

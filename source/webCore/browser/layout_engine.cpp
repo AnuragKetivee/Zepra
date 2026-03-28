@@ -7,6 +7,11 @@
 #include "layout_engine.h"
 #include <algorithm>
 #include <iostream>
+#include <cfloat>
+
+// Viewport dimensions (defined in zepra_browser.cpp)
+extern int g_width;
+extern int g_height;
 
 namespace ZepraBrowser {
 
@@ -62,9 +67,42 @@ void setLayoutCallbacks2(
 // =============================================================================
 
 void layoutBlock(LayoutBox& box, float containingWidth, float startY) {
-    // Calculate width (block elements take full containing width)
-    if (box.type == LayoutType::Block) {
+    float vpW = (float)g_width;
+    float vpH = (float)g_height;
+    
+    // Resolve deferred CSS width
+    if (box.cssWidth.isSet() && !box.cssWidth.isAuto()) {
+        box.width = box.cssWidth.resolve(containingWidth, box.fontSize, vpW, vpH);
+    } else if (box.type == LayoutType::Block) {
         box.width = containingWidth - box.marginLeft - box.marginRight;
+    }
+    
+    // Resolve deferred CSS height (container height is 0 for now — auto)
+    if (box.cssHeight.isSet() && !box.cssHeight.isAuto()) {
+        box.height = box.cssHeight.resolve(0, box.fontSize, vpW, vpH);
+    }
+    
+    // Apply min/max width constraints
+    if (box.cssMinWidth.isSet() && !box.cssMinWidth.isAuto()) {
+        float minW = box.cssMinWidth.resolve(containingWidth, box.fontSize, vpW, vpH);
+        if (box.width < minW) box.width = minW;
+    }
+    if (box.cssMaxWidth.isSet() && !box.cssMaxWidth.isAuto()) {
+        float maxW = box.cssMaxWidth.resolve(containingWidth, box.fontSize, vpW, vpH);
+        if (box.width > maxW) box.width = maxW;
+    }
+    
+    // Resolve margin: auto (horizontal centering for block elements with explicit width)
+    if (box.marginLeftAuto && box.marginRightAuto && box.width > 0 && box.width < containingWidth) {
+        float remaining = containingWidth - box.width;
+        box.marginLeft = remaining / 2.0f;
+        box.marginRight = remaining / 2.0f;
+    } else if (box.marginLeftAuto && box.width > 0) {
+        box.marginLeft = containingWidth - box.width - box.marginRight;
+        if (box.marginLeft < 0) box.marginLeft = 0;
+    } else if (box.marginRightAuto && box.width > 0) {
+        box.marginRight = containingWidth - box.width - box.marginLeft;
+        if (box.marginRight < 0) box.marginRight = 0;
     }
     
     // Position
@@ -77,6 +115,7 @@ void layoutBlock(LayoutBox& box, float containingWidth, float startY) {
     float lineHeight = 0;
     float lineWidth = 0;
     float contentWidth = box.width - box.paddingLeft - box.paddingRight - box.borderLeft - box.borderRight;
+    if (contentWidth < 0) contentWidth = 0;
     
     // Flex containers: pre-loop pass handles all children at once
     if (box.type == LayoutType::Flex) {
@@ -211,13 +250,22 @@ void layoutBlock(LayoutBox& box, float containingWidth, float startY) {
             // Measure width/height
             if (child.isInput) {
                 // Input defaults
-                if (child.width == 0) child.width = 200; // Default input width
+                if (child.width == 0) child.width = 200;
                 if (child.height == 0) child.height = std::max(24.0f, child.fontSize + 8);
-                
-                // Add placeholder if text is empty
-                if (child.text.empty() && !child.placeholder.empty()) {
-                     // We don't change child.text to keep value clean, but paint will use placeholder
+            } else if (!child.children.empty()) {
+                // Inline element with children — recursive layout
+                float availWidth = contentWidth > 0 ? contentWidth : containingWidth;
+                child.width = availWidth;
+                layoutBlock(child, availWidth, 0);
+                // Shrink-to-fit: compute content width from children
+                float maxChildRight = 0;
+                for (const auto& gc : child.children) {
+                    float right = gc.x + gc.width + gc.marginRight;
+                    maxChildRight = std::max(maxChildRight, right);
                 }
+                float contentW = maxChildRight + child.paddingRight + child.borderRight;
+                if (contentW > 0 && contentW < availWidth)
+                    child.width = contentW;
             } else {
                 float textW = measureTextWidth(child.text, child.fontSize);
                 child.width = textW;
@@ -246,16 +294,26 @@ void layoutBlock(LayoutBox& box, float containingWidth, float startY) {
     }
     
     // Calculate height from children (auto height)
-    box.height = childY + box.paddingBottom + box.borderBottom;
+    float computedHeight = childY + box.paddingBottom + box.borderBottom;
+    if (box.height <= 0 || (box.cssHeight.isAuto() || !box.cssHeight.isSet())) {
+        box.height = computedHeight;
+    }
     
-    // If block has no children but has text (leaf block), measure text height
+    // Apply min/max height constraints
+    float vpW2 = (float)g_width;
+    float vpH2 = (float)g_height;
+    if (box.cssMinHeight.isSet() && !box.cssMinHeight.isAuto()) {
+        float minH = box.cssMinHeight.resolve(0, box.fontSize, vpW2, vpH2);
+        if (box.height < minH) box.height = minH;
+    }
+    if (box.cssMaxHeight.isSet() && !box.cssMaxHeight.isAuto()) {
+        float maxH = box.cssMaxHeight.resolve(0, box.fontSize, vpW2, vpH2);
+        if (box.height > maxH) box.height = maxH;
+    }
+    
+    // If block has no children but has text (leaf block), ensure minimum height
     if (box.type == LayoutType::Block && box.children.empty() && (!box.text.empty() || box.isInput)) {
         box.height = std::max(box.height, box.fontSize + box.paddingTop + box.paddingBottom + 4);
-    } else {
-         if (box.height < box.fontSize + box.paddingTop + box.paddingBottom) {
-            // Ensure min height for empty blocks? Maybe not.
-            // box.height = box.fontSize + box.paddingTop + box.paddingBottom + 4;
-         }
     }
 }
 
@@ -267,6 +325,20 @@ void paintBox(const LayoutBox& box, float offsetX, float offsetY,
               float viewportHeight, float scrollY) {
     if (box.type == LayoutType::None) return;
     if (box.opacity <= 0.001f) return;
+    if (box.visibilityHidden) {
+        // visibility:hidden — skip painting this box but still paint children
+        // (children inherit visibility but can override to visible)
+        float screenX2 = offsetX + box.x;
+        float screenY2 = offsetY + box.y - scrollY;
+        box.screenX = screenX2;
+        box.screenY = screenY2;
+        for (const auto& child : box.children) {
+            paintBox(child, screenX2 + box.paddingLeft + box.borderLeft,
+                     screenY2 + box.paddingTop + box.borderTop,
+                     viewportHeight, 0);
+        }
+        return;
+    }
     
     float screenX = offsetX + box.x;
     float screenY = offsetY + box.y - scrollY;
@@ -357,6 +429,14 @@ void paintBox(const LayoutBox& box, float offsetX, float offsetY,
         if (box.isInput && drawText.empty() && !box.placeholder.empty()) {
             drawText = box.placeholder;
             drawColor = 0x999999;
+        }
+        
+        // Apply text-align offset
+        if (box.textAlign > 0 && s_text_width && !drawText.empty()) {
+            float textW = s_text_width(drawText, box.fontSize);
+            float availW = box.width - box.paddingLeft - box.paddingRight;
+            if (box.textAlign == 1) textX = screenX + (box.width - textW) / 2.0f;
+            else if (box.textAlign == 2) textX = screenX + box.width - box.paddingRight - textW;
         }
         
         if (s_text_render && !drawText.empty()) s_text_render(drawText, textX, textY, drawColor, box.fontSize);

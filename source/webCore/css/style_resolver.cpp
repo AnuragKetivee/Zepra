@@ -22,6 +22,20 @@
 namespace Zepra::WebCore {
 
 // ============================================================================
+// Helpers
+// ============================================================================
+
+static std::vector<std::string> splitValues(const std::string& value) {
+    std::vector<std::string> parts;
+    std::istringstream ss(value);
+    std::string token;
+    while (ss >> token) {
+        if (!token.empty()) parts.push_back(token);
+    }
+    return parts;
+}
+
+// ============================================================================
 // Properties that inherit (per CSS spec)
 // ============================================================================
 
@@ -336,9 +350,27 @@ void StyleResolver::applyProperty(CSSComputedStyle& style,
     // Margin
     // =====================================================================
     else if (property == "margin") {
-        CSSLength len = parseLength(value);
-        style.marginTop = len; style.marginRight = len;
-        style.marginBottom = len; style.marginLeft = len;
+        auto parts = splitValues(value);
+        if (parts.size() == 1) {
+            CSSLength len = parseLength(parts[0]);
+            style.marginTop = len; style.marginRight = len;
+            style.marginBottom = len; style.marginLeft = len;
+        } else if (parts.size() == 2) {
+            style.marginTop = parseLength(parts[0]);
+            style.marginRight = parseLength(parts[1]);
+            style.marginBottom = parseLength(parts[0]);
+            style.marginLeft = parseLength(parts[1]);
+        } else if (parts.size() == 3) {
+            style.marginTop = parseLength(parts[0]);
+            style.marginRight = parseLength(parts[1]);
+            style.marginBottom = parseLength(parts[2]);
+            style.marginLeft = parseLength(parts[1]);
+        } else if (parts.size() >= 4) {
+            style.marginTop = parseLength(parts[0]);
+            style.marginRight = parseLength(parts[1]);
+            style.marginBottom = parseLength(parts[2]);
+            style.marginLeft = parseLength(parts[3]);
+        }
     }
     else if (property == "margin-top") { style.marginTop = parseLength(value); }
     else if (property == "margin-right") { style.marginRight = parseLength(value); }
@@ -349,9 +381,27 @@ void StyleResolver::applyProperty(CSSComputedStyle& style,
     // Padding
     // =====================================================================
     else if (property == "padding") {
-        CSSLength len = parseLength(value);
-        style.paddingTop = len; style.paddingRight = len;
-        style.paddingBottom = len; style.paddingLeft = len;
+        auto parts = splitValues(value);
+        if (parts.size() == 1) {
+            CSSLength len = parseLength(parts[0]);
+            style.paddingTop = len; style.paddingRight = len;
+            style.paddingBottom = len; style.paddingLeft = len;
+        } else if (parts.size() == 2) {
+            style.paddingTop = parseLength(parts[0]);
+            style.paddingRight = parseLength(parts[1]);
+            style.paddingBottom = parseLength(parts[0]);
+            style.paddingLeft = parseLength(parts[1]);
+        } else if (parts.size() == 3) {
+            style.paddingTop = parseLength(parts[0]);
+            style.paddingRight = parseLength(parts[1]);
+            style.paddingBottom = parseLength(parts[2]);
+            style.paddingLeft = parseLength(parts[1]);
+        } else if (parts.size() >= 4) {
+            style.paddingTop = parseLength(parts[0]);
+            style.paddingRight = parseLength(parts[1]);
+            style.paddingBottom = parseLength(parts[2]);
+            style.paddingLeft = parseLength(parts[3]);
+        }
     }
     else if (property == "padding-top") { style.paddingTop = parseLength(value); }
     else if (property == "padding-right") { style.paddingRight = parseLength(value); }

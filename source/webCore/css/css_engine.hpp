@@ -60,6 +60,12 @@ public:
         const std::vector<CSSStyleSheet*>& stylesheets,
         StyleOrigin origin = StyleOrigin::Author
     );
+    
+    /// Collect matching rules with per-sheet origins (correct cascade)
+    std::vector<MatchedRule> collectMatchingRulesWithOrigins(
+        DOMElement* element,
+        const std::vector<std::pair<CSSStyleSheet*, StyleOrigin>>& sheets
+    );
 
     /// Sort by cascade order
     void sortByCascade(std::vector<MatchedRule>& rules);

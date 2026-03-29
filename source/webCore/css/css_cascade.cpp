@@ -89,6 +89,38 @@ std::vector<MatchedRule> CSSCascade::collectMatchingRules(
     return matched;
 }
 
+std::vector<MatchedRule> CSSCascade::collectMatchingRulesWithOrigins(
+    DOMElement* element,
+    const std::vector<std::pair<CSSStyleSheet*, StyleOrigin>>& sheets
+) {
+    std::vector<MatchedRule> matched;
+    size_t ruleOrder = 0;
+    
+    if (!element) return matched;
+    
+    for (const auto& [sheet, origin] : sheets) {
+        if (!sheet || !sheet->cssRules()) continue;
+        
+        CSSRuleList* rules = sheet->cssRules();
+        for (size_t i = 0; i < rules->length(); i++) {
+            const CSSRule* rule = rules->item(i);
+            const CSSStyleRule* styleRule = dynamic_cast<const CSSStyleRule*>(rule);
+            if (!styleRule) continue;
+            
+            if (selectorMatches(element, styleRule->selectorText())) {
+                MatchedRule match;
+                match.rule = styleRule;
+                match.origin = origin;
+                match.specificity = calculateSpecificity(styleRule->selectorText());
+                match.order = ruleOrder++;
+                matched.push_back(match);
+            }
+        }
+    }
+    
+    return matched;
+}
+
 void CSSCascade::sortByCascade(std::vector<MatchedRule>& rules) {
     // Sort using operator< which implements cascade ordering
     std::sort(rules.begin(), rules.end());

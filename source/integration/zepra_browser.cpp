@@ -61,6 +61,7 @@
 #include "html_parser.hpp"
 #include "browser/dom.hpp"
 #include "css/css_engine.hpp"
+#include "css/ua_stylesheet.h"
 #include "scripting/script_context.hpp"
 using namespace Zepra::WebCore;
 
@@ -902,30 +903,9 @@ void parseWithWebCore(const std::string& html) {
     g_cssEngine = std::make_unique<CSSEngine>();
     g_cssEngine->initialize(g_document.get());
     
-    // Add user-agent stylesheet (browser defaults with proper display values)
+    // Load user-agent stylesheet (browser defaults)
     g_cssEngine->addStyleSheet(
-        // Block elements
-        "html, body, div, section, article, aside, header, footer, nav, main, form { display: block; }\n"
-        "h1, h2, h3, h4, h5, h6 { display: block; }\n"
-        "p, pre, blockquote, ul, ol, dl, table, figure { display: block; }\n"
-        // Inline elements  
-        "span, a, strong, b, em, i, small, code, label { display: inline; }\n"
-        // Common styles
-        "body { margin: 8px; font-family: sans-serif; font-size: 16px; color: #1f2328; }\n"
-        "h1 { font-size: 32px; font-weight: bold; margin: 16px 0; color: #1a1a1a; }\n"
-        "h2 { font-size: 24px; font-weight: bold; margin: 12px 0; color: #1a1a1a; }\n"
-        "h3 { font-size: 20px; font-weight: bold; margin: 10px 0; color: #1a1a1a; }\n"
-        "h4 { font-size: 16px; font-weight: bold; margin: 8px 0; }\n"
-        "p { margin: 8px 0; line-height: 1.5; }\n"
-        "a { color: #0066cc; text-decoration: underline; }\n"
-        "a:visited { color: #551a8b; }\n"
-        "strong, b { font-weight: bold; }\n"
-        "em, i { font-style: italic; }\n"
-        "ul, ol { margin: 8px 0; padding-left: 40px; }\n"
-        "li { display: list-item; margin: 4px 0; }\n"
-        // Hide these completely
-        "script, style, head, meta, link, title { display: none; }\n"
-        "[hidden] { display: none !important; }\n",
+        Zepra::WebCore::ZepraUAStylesheet::getStylesheet(),
         StyleOrigin::UserAgent
     );
     
@@ -1099,6 +1079,26 @@ void parseWithWebCore(const std::string& html) {
                     default: g_layoutRoot->alignItems = 0; break;
                 }
             }
+            
+            // Debug: body computed style
+            std::cout << "[Body CSS Debug] display=" << (int)bodyStyle->display
+                      << " bgImage='" << bodyStyle->backgroundImage << "'"
+                      << " flexDir=" << (int)bodyStyle->flexDirection
+                      << " justifyContent=" << (int)bodyStyle->justifyContent
+                      << " alignItems=" << (int)bodyStyle->alignItems
+                      << " minHeight=" << bodyStyle->minHeight.value << "(" << (int)bodyStyle->minHeight.unit << ")"
+                      << " padding=" << bodyStyle->paddingTop.value << "," << bodyStyle->paddingLeft.value
+                      << " margin=" << bodyStyle->marginTop.value << "," << bodyStyle->marginLeft.value
+                      << std::endl;
+            std::cout << "[LayoutRoot Debug] type=" << (int)g_layoutRoot->type
+                      << " bgImage='" << g_layoutRoot->backgroundImage << "'"
+                      << " hasBgColor=" << g_layoutRoot->hasBgColor
+                      << " flex=" << g_layoutRoot->flexDirection
+                      << " justify=" << g_layoutRoot->justifyContent
+                      << " align=" << g_layoutRoot->alignItems
+                      << " minH=" << g_layoutRoot->cssMinHeight.value << "(" << (int)g_layoutRoot->cssMinHeight.unit << ")"
+                      << " w=" << g_layoutRoot->width
+                      << std::endl;
         }
     }
     
@@ -1108,11 +1108,27 @@ void parseWithWebCore(const std::string& html) {
         buildLayoutFromDOM(g_document->body(), g_layoutRoot.get(), false, "", "");
     }
     
-    // Save to tab cache immediately after load
-    g_tabContentCache[g_activeTabId] = g_styledLines;
+    // Count all boxes recursively
+    std::function<int(const LayoutBox&)> countBoxes = [&](const LayoutBox& b) -> int {
+        int n = 1;
+        for (const auto& c : b.children) n += countBoxes(c);
+        return n;
+    };
+    int totalBoxes = countBoxes(*g_layoutRoot);
+    std::cout << "[Layout] Built layout tree: " << totalBoxes << " total boxes, "
+              << g_layoutRoot->children.size() << " direct children" << std::endl;
     
-    std::cout << "[Layout] Built layout tree with " << g_layoutRoot->children.size() << " boxes (direct DOM)" << std::endl;
-    std::cout << "[Cache] Saved " << g_styledLines.size() << " lines for tab " << g_activeTabId << std::endl;
+    // Debug DOM children
+    if (g_document->body()) {
+        std::cout << "[DOM] body has " << g_document->body()->childNodes().size() << " children" << std::endl;
+        for (size_t i = 0; i < g_document->body()->childNodes().size(); i++) {
+            if (auto* el = dynamic_cast<DOMElement*>(g_document->body()->childNodes()[i].get())) {
+                std::cout << "[DOM]   child: <" << el->tagName() << " class=\"" 
+                          << el->getAttribute("class") << "\"> children=" 
+                          << el->childNodes().size() << std::endl;
+            }
+        }
+    }
     
     // Initialize ScriptContext and execute inline <script> tags
     g_scriptContext = std::make_unique<ScriptContext>();
@@ -2441,11 +2457,9 @@ void renderNavBar() {
 // ============================================================================
 
 void renderTopBar() {
-    // Full width top bar with LEFT sidebar offset
-    float sidebarOffset = g_leftSidebarVisible ? 
-        (g_leftSidebarExpanded ? LEFT_SIDEBAR_EXPANDED : LEFT_SIDEBAR_WIDTH) : 0;
-    float barX = sidebarOffset;
-    float barWidth = g_width - sidebarOffset;
+    // Top bar spans full width, independent of the floating sidebar
+    float barX = 0;
+    float barWidth = g_width;
     
     // Background - lavender theme like reference
     gfx::gradient(barX, 0, barWidth, TOPBAR_HEIGHT, 0xE6D5E8, 0xD8C8DA);
@@ -3023,10 +3037,10 @@ void render() {
     // Bottom shadow
     gfx::gradient(0, g_height - shadowSize, g_width, shadowSize, 0x00000000, shadowColor);
     
-    // Content area MUST start below tab bar and nav bar
+    // Content area MUST start below the unified top bar
     // Use left sidebar offset for proper content positioning
     float contentX = getSidebarOffset();
-    float contentY = TAB_HEIGHT + NAV_HEIGHT;  // FIXED: Always 96px from top
+    float contentY = TOPBAR_HEIGHT;  // FIXED: Adjusted for unified Safari-style top bar
     float contentW = g_width - contentX;
     float contentH = g_height - contentY;
     
@@ -4193,7 +4207,7 @@ void handleClick(float mx, float my) {
         float contentW = g_width - contentX;
         float centerX = contentX + contentW / 2;
         float barX = centerX - 250;
-        float barY = TAB_HEIGHT + NAV_HEIGHT + (g_height - TAB_HEIGHT - NAV_HEIGHT) / 2 + 20;
+        float barY = TOPBAR_HEIGHT + (g_height - TOPBAR_HEIGHT) / 2 + 20;
         if (hit(barX, barY, 500, 56)) {
             clickedSearchBox = true;
         }

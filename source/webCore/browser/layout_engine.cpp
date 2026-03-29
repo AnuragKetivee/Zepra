@@ -73,7 +73,8 @@ void layoutBlock(LayoutBox& box, float containingWidth, float startY) {
     // Resolve deferred CSS width
     if (box.cssWidth.isSet() && !box.cssWidth.isAuto()) {
         box.width = box.cssWidth.resolve(containingWidth, box.fontSize, vpW, vpH);
-    } else if (box.type == LayoutType::Block) {
+    } else if (box.type == LayoutType::Block || box.type == LayoutType::Flex) {
+        // Block and Flex containers fill their containing block width (CSS2 §10.3.3)
         box.width = containingWidth - box.marginLeft - box.marginRight;
     }
     
@@ -121,6 +122,21 @@ void layoutBlock(LayoutBox& box, float containingWidth, float startY) {
     if (box.type == LayoutType::Flex) {
         float flexGap = box.gap;
         
+        // Pre-resolve container height for column flex (needed for justify-content centering)
+        // Without this, mainAxisSpace is 0 and centering has no effect
+        if (box.flexDirection == 1) {
+            float vpW_f = (float)g_width;
+            float vpH_f = (float)g_height;
+            if (box.cssHeight.isSet() && !box.cssHeight.isAuto()) {
+                float h = box.cssHeight.resolve(0, box.fontSize, vpW_f, vpH_f);
+                if (h > box.height) box.height = h;
+            }
+            if (box.cssMinHeight.isSet() && !box.cssMinHeight.isAuto()) {
+                float minH = box.cssMinHeight.resolve(0, box.fontSize, vpW_f, vpH_f);
+                if (box.height < minH) box.height = minH;
+            }
+        }
+        
         // Pass 1: Measure all flex children
         struct FlexChild {
             LayoutBox* ptr;
@@ -156,10 +172,11 @@ void layoutBlock(LayoutBox& box, float containingWidth, float startY) {
         }
         
         float totalGap = (childCount > 1) ? flexGap * (childCount - 1) : 0;
-        float mainAxisSpace = (box.flexDirection == 1)
-            ? (box.height > 0 ? box.height - box.paddingTop - box.paddingBottom - box.borderTop - box.borderBottom : 0)
+        float containerMainSize = (box.flexDirection == 1)
+            ? (box.height - box.paddingTop - box.paddingBottom - box.borderTop - box.borderBottom)
             : contentWidth;
-        float freeSpace = mainAxisSpace - totalMainSize - totalGap;
+        if (containerMainSize < 0) containerMainSize = 0;
+        float freeSpace = containerMainSize - totalMainSize - totalGap;
         if (freeSpace < 0) freeSpace = 0;
         
         // Pass 2: Distribute space per justify-content
@@ -211,10 +228,9 @@ void layoutBlock(LayoutBox& box, float containingWidth, float startY) {
             
             if (box.flexDirection == 1) {
                 child.x = childX + child.marginLeft + crossOffset;
-                child.y = childY + cursor + child.marginTop;
+                child.y = box.paddingTop + box.borderTop + cursor + child.marginTop;
                 cursor += fc.mainSize;
                 if (i < flexChildren.size() - 1) cursor += itemSpacing;
-                childY = child.y + child.height + child.marginBottom;
             } else {
                 child.x = childX + cursor + child.marginLeft;
                 child.y = childY + child.marginTop + crossOffset;

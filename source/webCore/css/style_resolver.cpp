@@ -57,8 +57,8 @@ static const std::unordered_set<std::string> INHERITED_PROPERTIES = {
 // ============================================================================
 
 StyleResolver::StyleResolver() {
-    // Add default user-agent stylesheet
-    addUserAgentStyleSheet();
+    // UA stylesheet now loaded externally via CSSEngine::addStyleSheet()
+    // with StyleOrigin::UserAgent — no duplicate needed here
 }
 
 StyleResolver::~StyleResolver() = default;
@@ -126,13 +126,13 @@ CSSComputedStyle StyleResolver::computeStyle(DOMElement* element, const CSSCompu
         computed = CSSComputedStyle::inherit(*parentStyle);
     }
     
-    // Step 2: Collect all matching rules
-    std::vector<CSSStyleSheet*> sheets;
+    // Step 2: Collect all matching rules WITH correct per-sheet origins
+    std::vector<std::pair<CSSStyleSheet*, StyleOrigin>> sheetPairs;
     for (const auto& entry : stylesheets_) {
-        sheets.push_back(entry.sheet.get());
+        sheetPairs.push_back({entry.sheet.get(), entry.origin});
     }
     
-    auto matchedRules = cascade_.collectMatchingRules(element, sheets, StyleOrigin::Author);
+    auto matchedRules = cascade_.collectMatchingRulesWithOrigins(element, sheetPairs);
     
     // Step 3: Sort by cascade order
     cascade_.sortByCascade(matchedRules);

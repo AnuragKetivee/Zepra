@@ -86,6 +86,19 @@ ScriptResult ScriptContext::evaluate(const std::string& code, const std::string&
         return result;
     }
     
+    // Skip oversized scripts — framework bundles (Next.js, React) are 100KB+
+    // and contain hydration/reconciler logic our VM can't handle efficiently.
+    static constexpr size_t MAX_SCRIPT_SIZE = 65536; // 64KB
+    if (code.size() > MAX_SCRIPT_SIZE) {
+        result.success = true;
+        result.value = "undefined";
+        std::cout << "[JS] Skipped large script (" << code.size() 
+                  << " bytes > " << MAX_SCRIPT_SIZE << " limit)" << std::endl;
+        return result;
+    }
+    
+    auto t0 = std::chrono::steady_clock::now();
+    
     try {
         // Full compile pipeline: source → AST → bytecode → execute
         auto sourceCode = Zepra::Frontend::SourceCode::fromString(
@@ -93,6 +106,18 @@ ScriptResult ScriptContext::evaluate(const std::string& code, const std::string&
         
         Zepra::Frontend::Parser parser(sourceCode.get());
         auto ast = parser.parseProgram();
+        
+        auto t1 = std::chrono::steady_clock::now();
+        auto parseMs = std::chrono::duration_cast<std::chrono::milliseconds>(t1 - t0).count();
+        
+        // Abort if parsing alone exceeded budget
+        if (parseMs > 50) {
+            result.success = true;
+            result.value = "undefined";
+            std::cout << "[JS] Parse timeout (" << parseMs << "ms > 50ms) for " 
+                      << code.size() << " byte script" << std::endl;
+            return result;
+        }
         
         if (parser.hasErrors()) {
             result.success = false;
@@ -127,6 +152,13 @@ ScriptResult ScriptContext::evaluate(const std::string& code, const std::string&
         
         // Execute bytecode on VM
         auto execResult = vm_->execute(chunk.get());
+        
+        auto t2 = std::chrono::steady_clock::now();
+        auto totalMs = std::chrono::duration_cast<std::chrono::milliseconds>(t2 - t0).count();
+        if (totalMs > 10) {
+            std::cout << "[JS] Script took " << totalMs << "ms (" 
+                      << code.size() << " bytes)" << std::endl;
+        }
         
         if (execResult.status == Zepra::Runtime::ExecutionResult::Status::Success) {
             result.success = true;

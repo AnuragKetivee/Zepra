@@ -209,10 +209,10 @@ void StyleResolver::applyDeclarations(CSSComputedStyle& style,
 
 void StyleResolver::applyProperty(CSSComputedStyle& style,
                                    const std::string& property,
-                                   const std::string& value,
+                                   const std::string& rawValue,
                                    const CSSComputedStyle* parentStyle) {
     // Handle 'inherit' keyword
-    if (value == "inherit" && parentStyle) {
+    if (rawValue == "inherit" && parentStyle) {
         if (property == "color") style.color = parentStyle->color;
         else if (property == "font-family") style.fontFamily = parentStyle->fontFamily;
         else if (property == "font-size") style.fontSize = parentStyle->fontSize;
@@ -229,7 +229,7 @@ void StyleResolver::applyProperty(CSSComputedStyle& style,
     }
     
     // Handle 'initial' keyword
-    if (value == "initial") {
+    if (rawValue == "initial") {
         if (property == "color") style.color = CSSColor::black();
         else if (property == "font-size") style.fontSize = 16.0f;
         else if (property == "font-weight") style.fontWeight = FontWeight::Normal;
@@ -238,6 +238,39 @@ void StyleResolver::applyProperty(CSSComputedStyle& style,
         else if (property == "opacity") style.opacity = 1.0f;
         return;
     }
+    
+    // Handle CSS custom properties: var(--name) or var(--name, fallback)
+    // We don't track custom property values yet, so extract the fallback.
+    // If no fallback, skip — leave inherited/default value intact.
+    std::string resolvedValue = rawValue;
+    if (rawValue.find("var(") != std::string::npos) {
+        // Extract fallback from var(--name, fallback)
+        size_t varStart = rawValue.find("var(");
+        size_t commaPos = rawValue.find(',', varStart);
+        size_t closePos = rawValue.rfind(')');
+        
+        if (commaPos != std::string::npos && closePos != std::string::npos && commaPos < closePos) {
+            // Has fallback: var(--x, red) → "red"
+            resolvedValue = rawValue.substr(commaPos + 1, closePos - commaPos - 1);
+            // Trim whitespace
+            size_t s = resolvedValue.find_first_not_of(" \t");
+            size_t e = resolvedValue.find_last_not_of(" \t");
+            if (s != std::string::npos) {
+                resolvedValue = resolvedValue.substr(s, e - s + 1);
+            }
+            // If fallback itself contains var(), give up
+            if (resolvedValue.find("var(") != std::string::npos) return;
+        } else {
+            // No fallback: var(--x) — skip this property entirely
+            return;
+        }
+    }
+    
+    // Handle calc() with var() — skip (can't resolve)
+    if (resolvedValue.find("var(") != std::string::npos) return;
+    
+    // Use resolved value for all property checks below
+    const std::string& value = resolvedValue;
 
     // =====================================================================
     // Display

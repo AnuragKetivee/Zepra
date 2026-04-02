@@ -98,11 +98,22 @@ std::vector<MatchedRule> CSSCascade::collectMatchingRulesWithOrigins(
     
     if (!element) return matched;
     
+    static constexpr size_t MAX_RULES_PER_SHEET = 10000;
+    static constexpr size_t MAX_MATCHED_RULES = 500;
+    
     for (const auto& [sheet, origin] : sheets) {
         if (!sheet || !sheet->cssRules()) continue;
         
         CSSRuleList* rules = sheet->cssRules();
-        for (size_t i = 0; i < rules->length(); i++) {
+        size_t ruleCount = rules->length();
+        
+        // Skip sheets with too many rules — O(n) matching becomes too expensive
+        if (ruleCount > MAX_RULES_PER_SHEET) {
+            // Still match first 2000 rules (usually the base/reset layer)
+            ruleCount = 2000;
+        }
+        
+        for (size_t i = 0; i < ruleCount; i++) {
             const CSSRule* rule = rules->item(i);
             const CSSStyleRule* styleRule = dynamic_cast<const CSSStyleRule*>(rule);
             if (!styleRule) continue;
@@ -114,6 +125,8 @@ std::vector<MatchedRule> CSSCascade::collectMatchingRulesWithOrigins(
                 match.specificity = calculateSpecificity(styleRule->selectorText());
                 match.order = ruleOrder++;
                 matched.push_back(match);
+                
+                if (matched.size() >= MAX_MATCHED_RULES) return matched;
             }
         }
     }

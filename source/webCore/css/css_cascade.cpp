@@ -296,11 +296,20 @@ bool CSSCascade::compoundSelectorMatches(DOMElement* element, const std::string&
             if (element->getAttribute("id") != id) return false;
         }
         else if (compound[i] == '.') {
-            // Class selector
+            // Class selector — handle CSS escapes (e.g. Tailwind .hover\:bg-blue-500)
             i++;
-            size_t s = i;
-            while (i < len && (std::isalnum(compound[i]) || compound[i] == '-' || compound[i] == '_')) i++;
-            std::string className = compound.substr(s, i - s);
+            std::string className;
+            while (i < len) {
+                if (compound[i] == '\\' && i + 1 < len) {
+                    className += compound[i + 1]; // Escaped character is literal
+                    i += 2;
+                } else if (std::isalnum(compound[i]) || compound[i] == '-' || compound[i] == '_') {
+                    className += compound[i];
+                    i++;
+                } else {
+                    break;
+                }
+            }
             std::string classes = element->getAttribute("class");
             // Word boundary match
             size_t pos = 0;

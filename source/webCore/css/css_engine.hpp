@@ -166,6 +166,7 @@ private:
     std::unique_ptr<CSSFontFaceRule> parseFontFaceRule();
     std::unique_ptr<CSSKeyframesRule> parseKeyframesRule();
     std::unique_ptr<CSSImportRule> parseImportRule();
+    void parseRulesInto(CSSStyleSheet* sheet, int depth);
 
     std::string parseSelector_();
     std::string parseDeclarationBlock();

@@ -67,6 +67,11 @@ void setLayoutCallbacks2(
 // =============================================================================
 
 void layoutBlock(LayoutBox& box, float containingWidth, float startY) {
+    // Guard against deep recursion (complex pages like github.com with 1800+ boxes)
+    static thread_local int s_depth = 0;
+    if (++s_depth > 64) { --s_depth; return; }
+    struct DepthGuard { ~DepthGuard() { --s_depth; } } guard;
+    
     float vpW = (float)g_width;
     float vpH = (float)g_height;
     
@@ -75,7 +80,8 @@ void layoutBlock(LayoutBox& box, float containingWidth, float startY) {
         box.width = box.cssWidth.resolve(containingWidth, box.fontSize, vpW, vpH);
     } else if (box.type == LayoutType::Block || box.type == LayoutType::Flex) {
         // Block and Flex containers fill their containing block width (CSS2 §10.3.3)
-        box.width = containingWidth - box.marginLeft - box.marginRight;
+        float w = containingWidth - box.marginLeft - box.marginRight;
+        box.width = w > 0 ? w : containingWidth;
     }
     
     // Resolve deferred CSS height (container height is 0 for now — auto)
@@ -390,6 +396,14 @@ void layoutBlock(LayoutBox& box, float containingWidth, float startY) {
 
 void paintBox(const LayoutBox& box, float offsetX, float offsetY,
               float viewportHeight, float scrollY) {
+    // Budget: limit total painted boxes per frame to prevent UI hang on complex pages
+    static thread_local int s_paintCount = 0;
+    static thread_local int s_paintDepth = 0;
+    if (s_paintDepth == 0) s_paintCount = 0;  // Reset at top-level call
+    if (s_paintCount++ > 4000 || s_paintDepth > 64) return;
+    s_paintDepth++;
+    struct PaintGuard { ~PaintGuard() { --s_paintDepth; } } pg;
+    
     if (box.type == LayoutType::None) return;
     if (box.opacity <= 0.001f) return;
     if (box.visibilityHidden) {

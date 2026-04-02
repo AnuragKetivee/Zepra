@@ -1017,11 +1017,11 @@ void parseWithWebCore(const std::string& html) {
             g_layoutRoot->color = cssColorToRGB(bodyStyle->color);
             g_layoutRoot->fontSize = bodyStyle->fontSize;
             
-            // Margins
-            g_layoutRoot->marginTop = bodyStyle->marginTop.isAuto() ? 0 : bodyStyle->marginTop.value;
-            g_layoutRoot->marginBottom = bodyStyle->marginBottom.isAuto() ? 0 : bodyStyle->marginBottom.value;
-            g_layoutRoot->marginLeft = bodyStyle->marginLeft.isAuto() ? 0 : bodyStyle->marginLeft.value;
-            g_layoutRoot->marginRight = bodyStyle->marginRight.isAuto() ? 0 : bodyStyle->marginRight.value;
+            // Margins (clamp negative body margins — root is the viewport ICB)
+            g_layoutRoot->marginTop = std::max(0.0f, bodyStyle->marginTop.isAuto() ? 0.0f : bodyStyle->marginTop.value);
+            g_layoutRoot->marginBottom = std::max(0.0f, bodyStyle->marginBottom.isAuto() ? 0.0f : bodyStyle->marginBottom.value);
+            g_layoutRoot->marginLeft = std::max(0.0f, bodyStyle->marginLeft.isAuto() ? 0.0f : bodyStyle->marginLeft.value);
+            g_layoutRoot->marginRight = std::max(0.0f, bodyStyle->marginRight.isAuto() ? 0.0f : bodyStyle->marginRight.value);
             
             // Padding — always use CSS values when computed style exists
             g_layoutRoot->paddingTop = bodyStyle->paddingTop.value;
@@ -4232,16 +4232,14 @@ void handleClick(float mx, float my) {
     bool clickedAddressBar = false;
     bool clickedSearchBox = false;
     
-    // Calculate address bar bounds - MUST match renderNavBar() line 1657-1659
-    float navY = TAB_HEIGHT;
-    float btnX = g_sidebarVisible ? SIDEBAR_WIDTH + 12 : 12;
-    // After sidebar toggle (36) + back (36) + forward (36) + refresh (44) = 152, then address bar starts
-    float addrX = btnX + 36 + 36 + 36 + 44;  // Same as render: x += 36; x += 36; x += 36; x += 44;
-    float addrW = g_width - addrX - 100;
+    // Calculate address bar bounds - MUST match renderNavBar() search pill
+    float barWidth = (float)g_width;
+    float searchBarWidth = std::min(500.0f, barWidth - 280);
+    float searchBarX = (barWidth - searchBarWidth) / 2;
+    float searchBarY = (TOPBAR_HEIGHT - 28) / 2 - 4;
     
-    if (hit(addrX, navY + 8, addrW, 32)) {
+    if (hit(searchBarX, searchBarY, searchBarWidth, 36)) {
         clickedAddressBar = true;
-        std::cout << "[DEBUG] Address bar clicked at: " << g_mouseX << ", " << g_mouseY << std::endl;
     }
     
     // Calculate search box bounds (on start page)
@@ -4282,7 +4280,7 @@ void handleClick(float mx, float my) {
     g_focusedBox = nullptr;
     
     // Check web content layout tree for inputs
-    if (my > TAB_HEIGHT && g_layoutRoot) {
+    if (my > TOPBAR_HEIGHT && g_layoutRoot) {
         LayoutBox* clicked = findBoxAt(g_layoutRoot.get(), mx, my);
         if (clicked && clicked->isInput) {
             g_focusedBox = clicked;
@@ -4314,11 +4312,7 @@ void handleClick(float mx, float my) {
         return;
     }
     
-    // Sidebar toggle
-    if (hit(btnX, navY + 10, 28, 28)) {
-        g_sidebarVisible = !g_sidebarVisible;
-        return;
-    }
+    
     
 #ifdef USE_WEBCORE
     // Check for link clicks in content area

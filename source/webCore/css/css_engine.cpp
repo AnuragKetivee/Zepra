@@ -293,20 +293,30 @@ std::unique_ptr<CSSRule> CSSParser::parseRule() {
         if (atWord == "font-face") return parseFontFaceRule();
         if (atWord == "keyframes" || atWord == "-webkit-keyframes") return parseKeyframesRule();
         if (atWord == "import") return parseImportRule();
-        if (atWord == "supports") {
-            // Skip @supports block
-            while (!eof() && peek() != '{') consume();
-            if (match('{')) {
-                int depth = 1;
-                while (!eof() && depth > 0) {
-                    if (peek() == '{') depth++;
-                    if (peek() == '}') depth--;
-                    if (depth > 0) consume();
-                }
-                if (peek() == '}') consume();
+        
+        // @layer, @supports — contain normal style rules, parse them
+        // (Firefox/Servo: collect_rules_in_list, WebKit: collectMatchingRules)
+        if (atWord == "layer" || atWord == "supports") {
+            // Skip name/condition until opening brace or semicolon
+            while (!eof() && peek() != '{' && peek() != ';') consume();
+            if (peek() == ';') {
+                consume(); // @layer name; declaration — no block
+                return nullptr;
             }
+            // Handled by parse() which will re-enter the loop for inner rules
+            // We return nullptr here; the caller (parse/parseLayerBlock) handles it
             return nullptr;
         }
+        
+        // @property, @theme (Tailwind v4) — contain variable definitions
+        // Parse as :root style rules so var() fallbacks at least get the values
+        if (atWord == "property" || atWord == "theme") {
+            while (!eof() && peek() != '{' && peek() != ';') consume();
+            if (peek() == ';') { consume(); return nullptr; }
+            // Handled by parse() which will re-enter for inner rules
+            return nullptr;
+        }
+
         // Unknown at-rule — skip to next semicolon or block
         while (!eof() && peek() != ';' && peek() != '{') consume();
         if (peek() == ';') consume();
@@ -330,18 +340,52 @@ std::unique_ptr<CSSStyleSheet> CSSParser::parse(const std::string& css) {
     pos_ = 0;
     
     auto sheet = std::make_unique<CSSStyleSheet>();
-    
+    parseRulesInto(sheet.get(), 0);
+    return sheet;
+}
+
+// Recursively parse rules, handling nested @layer/@supports blocks
+void CSSParser::parseRulesInto(CSSStyleSheet* sheet, int depth) {
     while (!eof()) {
         skipWhitespace();
         if (eof()) break;
+        
+        // If we're inside a block (depth > 0), check for closing brace
+        if (depth > 0 && peek() == '}') {
+            consume();
+            return;
+        }
+        
+        // Check for @layer/@supports/@theme/@property — they need recursive descent
+        if (peek() == '@') {
+            size_t savedPos = pos_;
+            consume();
+            std::string atWord = parseIdentifier();
+            
+            if (atWord == "layer" || atWord == "supports" || 
+                atWord == "theme" || atWord == "property") {
+                // Skip name/condition
+                while (!eof() && peek() != '{' && peek() != ';') consume();
+                if (peek() == ';') {
+                    consume(); // Forward declaration: @layer name;
+                    continue;
+                }
+                if (peek() == '{') {
+                    consume(); // Enter the block
+                    parseRulesInto(sheet, depth + 1); // Recursively parse inner rules
+                    continue;
+                }
+            }
+            
+            // Not a recursive at-rule — restore position and use normal parseRule
+            pos_ = savedPos;
+        }
         
         auto rule = parseRule();
         if (rule && sheet->cssRules()) {
             sheet->cssRules()->add(std::move(rule));
         }
     }
-    
-    return sheet;
 }
 
 std::unique_ptr<CSSStyleDeclaration> CSSParser::parseInlineStyle(const std::string& style) {

@@ -328,6 +328,24 @@ public:
     std::string filter;
     std::string cursor = "auto";
     std::string pointerEvents = "auto";
+    
+    // Tailwind/modern CSS properties
+    std::string textOverflow;       // ellipsis, clip
+    std::string objectFit;          // cover, contain, fill, etc.
+    std::string objectPosition;     // center, top left, etc.
+    std::string aspectRatio;        // auto, 16/9, 1, etc.
+    std::string backdropFilter;     // blur(), brightness(), etc.
+    std::string placeItems;         // center, stretch, etc.
+    std::string placeContent;       // center, space-between, etc.
+    std::string isolation;          // auto, isolate
+    std::string willChange;         // auto, transform, opacity
+    std::string content;            // for ::before/::after
+    std::string userSelect;         // none, auto, text
+    std::string appearance;         // none, auto
+    std::string outlineStyle;       // none, solid, dashed
+    float outlineWidth = 0;
+    CSSColor outlineColor;
+    float outlineOffset = 0;
 
     // =========================================================================
     // Methods

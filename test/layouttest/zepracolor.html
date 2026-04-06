@@ -1,0 +1,559 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Zepra Color & Render Test</title>
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+
+body {
+  font-family: sans-serif;
+  background: #111;
+  color: #fff;
+  padding: 24px;
+}
+
+h1 {
+  font-size: 22px;
+  font-weight: 700;
+  margin-bottom: 4px;
+  color: #fff;
+}
+.meta {
+  font-size: 12px;
+  color: #888;
+  margin-bottom: 32px;
+  font-family: monospace;
+}
+
+/* ─── SECTION LABEL ─── */
+.section {
+  margin-bottom: 36px;
+}
+.section-label {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 1.5px;
+  text-transform: uppercase;
+  color: #555;
+  margin-bottom: 12px;
+  padding-bottom: 6px;
+  border-bottom: 1px solid #222;
+}
+
+/* ─── COLOR SWATCHES ─── */
+.swatches {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.swatch {
+  width: 80px;
+  height: 64px;
+  border-radius: 8px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: flex-end;
+  padding-bottom: 6px;
+  font-size: 9px;
+  font-family: monospace;
+  color: rgba(0,0,0,0.6);
+  font-weight: 700;
+  letter-spacing: 0.3px;
+}
+.swatch.light-text { color: rgba(255,255,255,0.7); }
+
+/* ─── GRADIENTS ─── */
+.gradients {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.grad-box {
+  height: 60px;
+  border-radius: 8px;
+  flex: 1;
+  min-width: 140px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.5px;
+  color: rgba(255,255,255,0.8);
+}
+
+/* ─── TEXT RENDERING ─── */
+.text-samples { display: flex; flex-direction: column; gap: 10px; }
+.ts { line-height: 1.4; }
+
+/* ─── OPACITY / ALPHA ─── */
+.alpha-row {
+  display: flex;
+  gap: 6px;
+}
+.alpha-box {
+  flex: 1;
+  height: 48px;
+  border-radius: 6px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 10px;
+  font-weight: 700;
+  font-family: monospace;
+}
+
+/* ─── BORDER & SHADOW ─── */
+.border-samples {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+.border-box {
+  width: 110px;
+  height: 56px;
+  border-radius: 8px;
+  background: #1a1a1a;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 10px;
+  color: #aaa;
+  font-family: monospace;
+  text-align: center;
+  padding: 4px;
+}
+
+/* ─── BLEND / COMPOSITE ─── */
+.blend-grid {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+.blend-box {
+  width: 120px;
+  height: 80px;
+  border-radius: 8px;
+  position: relative;
+  overflow: hidden;
+}
+.blend-bg {
+  position: absolute;
+  inset: 0;
+}
+.blend-fg {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 10px;
+  font-weight: 700;
+  color: #fff;
+  font-family: monospace;
+}
+
+/* ─── CHECKERBOARD (transparency test) ─── */
+.checker {
+  width: 100%;
+  height: 60px;
+  border-radius: 8px;
+  background-image:
+    linear-gradient(45deg, #333 25%, transparent 25%),
+    linear-gradient(-45deg, #333 25%, transparent 25%),
+    linear-gradient(45deg, transparent 75%, #333 75%),
+    linear-gradient(-45deg, transparent 75%, #333 75%);
+  background-size: 16px 16px;
+  background-position: 0 0, 0 8px, 8px -8px, -8px 0px;
+  background-color: #1a1a1a;
+  position: relative;
+  overflow: hidden;
+}
+.checker-overlay {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(90deg,
+    rgba(255,0,0,0) 0%,
+    rgba(255,0,0,0.3) 20%,
+    rgba(0,255,0,0.5) 40%,
+    rgba(0,0,255,0.7) 60%,
+    rgba(255,255,0,0.9) 80%,
+    rgba(255,255,255,1) 100%
+  );
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  padding-right: 12px;
+  font-size: 10px;
+  font-weight: 700;
+  color: #000;
+  font-family: monospace;
+}
+
+/* ─── FONT TEST ─── */
+.font-families { display: flex; flex-direction: column; gap: 8px; }
+.ff { font-size: 16px; color: #eee; }
+
+/* ─── EMOJI / UNICODE ─── */
+.emoji-row {
+  font-size: 28px;
+  letter-spacing: 6px;
+  line-height: 1.5;
+}
+
+/* ─── SYSTEM INFO ─── */
+.info-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 8px;
+}
+.info-card {
+  background: #1a1a1a;
+  border-radius: 8px;
+  padding: 10px 14px;
+  font-family: monospace;
+  font-size: 11px;
+}
+.info-card .k { color: #666; margin-bottom: 3px; }
+.info-card .v { color: #0f0; font-weight: 700; font-size: 12px; word-break: break-all; }
+
+/* ─── HSL SPECTRUM ─── */
+.hsl-bar {
+  height: 32px;
+  border-radius: 6px;
+  background: linear-gradient(90deg,
+    hsl(0,100%,50%), hsl(30,100%,50%), hsl(60,100%,50%),
+    hsl(90,100%,50%), hsl(120,100%,50%), hsl(150,100%,50%),
+    hsl(180,100%,50%), hsl(210,100%,50%), hsl(240,100%,50%),
+    hsl(270,100%,50%), hsl(300,100%,50%), hsl(330,100%,50%),
+    hsl(360,100%,50%)
+  );
+  margin-bottom: 6px;
+}
+.hsl-dark {
+  height: 32px;
+  border-radius: 6px;
+  background: linear-gradient(90deg,
+    hsl(0,100%,20%), hsl(30,100%,20%), hsl(60,100%,20%),
+    hsl(90,100%,20%), hsl(120,100%,20%), hsl(150,100%,20%),
+    hsl(180,100%,20%), hsl(210,100%,20%), hsl(240,100%,20%),
+    hsl(270,100%,20%), hsl(300,100%,20%), hsl(330,100%,20%),
+    hsl(360,100%,20%)
+  );
+  margin-bottom: 6px;
+}
+.hsl-light {
+  height: 32px;
+  border-radius: 6px;
+  background: linear-gradient(90deg,
+    hsl(0,100%,80%), hsl(30,100%,80%), hsl(60,100%,80%),
+    hsl(90,100%,80%), hsl(120,100%,80%), hsl(150,100%,80%),
+    hsl(180,100%,80%), hsl(210,100%,80%), hsl(240,100%,80%),
+    hsl(270,100%,80%), hsl(300,100%,80%), hsl(330,100%,80%),
+    hsl(360,100%,80%)
+  );
+}
+
+/* ─── GRAYSCALE ─── */
+.gray-row {
+  display: flex;
+  gap: 4px;
+}
+.gray-box {
+  flex: 1;
+  height: 40px;
+  border-radius: 4px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 8px;
+  font-family: monospace;
+  font-weight: 700;
+}
+
+/* ─── CSS NAMED COLORS ─── */
+.named-colors {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5px;
+}
+.nc {
+  padding: 5px 10px;
+  border-radius: 4px;
+  font-size: 9px;
+  font-weight: 700;
+  font-family: monospace;
+}
+</style>
+</head>
+<body>
+
+<h1>Zepra Browser — Color &amp; Render Test</h1>
+<div class="meta" id="meta">Loading system info...</div>
+
+<!-- 1. GRAYSCALE -->
+<div class="section">
+  <div class="section-label">1 · Grayscale (0% → 100%)</div>
+  <div class="gray-row" id="gray-row"></div>
+</div>
+
+<!-- 2. HSL SPECTRUM -->
+<div class="section">
+  <div class="section-label">2 · HSL Spectrum — Full / Dark / Light</div>
+  <div class="hsl-bar"></div>
+  <div class="hsl-dark"></div>
+  <div class="hsl-light"></div>
+</div>
+
+<!-- 3. PRIMARY SWATCHES -->
+<div class="section">
+  <div class="section-label">3 · Primary & Web-safe Colors</div>
+  <div class="swatches" id="swatches"></div>
+</div>
+
+<!-- 4. CSS NAMED COLORS -->
+<div class="section">
+  <div class="section-label">4 · CSS Named Colors</div>
+  <div class="named-colors" id="named-colors"></div>
+</div>
+
+<!-- 5. GRADIENTS -->
+<div class="section">
+  <div class="section-label">5 · Gradients</div>
+  <div class="gradients">
+    <div class="grad-box" style="background:linear-gradient(90deg,#ff0000,#ff7700,#ffff00,#00ff00,#0000ff,#8b00ff)">RGB Rainbow</div>
+    <div class="grad-box" style="background:linear-gradient(135deg,#DEBCEE,#EBC8FA,#7c3aed)">Zepra Purple</div>
+    <div class="grad-box" style="background:linear-gradient(90deg,#000,#fff)">Black → White</div>
+    <div class="grad-box" style="background:radial-gradient(circle,#ff6b6b,#4ecdc4,#45b7d1)">Radial</div>
+    <div class="grad-box" style="background:conic-gradient(red,yellow,lime,cyan,blue,magenta,red)">Conic</div>
+  </div>
+</div>
+
+<!-- 6. ALPHA / TRANSPARENCY -->
+<div class="section">
+  <div class="section-label">6 · Alpha Transparency (Red)</div>
+  <div class="alpha-row" id="alpha-row"></div>
+</div>
+
+<!-- 7. TRANSPARENCY OVER CHECKERBOARD -->
+<div class="section">
+  <div class="section-label">7 · Transparency over Checkerboard</div>
+  <div class="checker">
+    <div class="checker-overlay">solid →</div>
+  </div>
+</div>
+
+<!-- 8. BORDERS & SHADOWS -->
+<div class="section">
+  <div class="section-label">8 · Borders & Box Shadows</div>
+  <div class="border-samples">
+    <div class="border-box" style="border:1px solid #ff0000">1px red</div>
+    <div class="border-box" style="border:2px dashed #00ff00">2px dashed green</div>
+    <div class="border-box" style="border:3px dotted #0088ff">3px dotted blue</div>
+    <div class="border-box" style="box-shadow:0 4px 16px rgba(255,100,0,0.7)">orange shadow</div>
+    <div class="border-box" style="box-shadow:inset 0 0 12px #7c3aed">inset purple</div>
+    <div class="border-box" style="outline:2px solid #ff00ff">outline magenta</div>
+    <div class="border-box" style="border-radius:50%;width:56px;height:56px;background:#1a1a1a;border:2px solid #0ff">circle border</div>
+    <div class="border-box" style="border-image:linear-gradient(90deg,#f00,#0f0,#00f) 1">gradient border</div>
+  </div>
+</div>
+
+<!-- 9. TEXT RENDERING -->
+<div class="section">
+  <div class="section-label">9 · Text Rendering & Colors</div>
+  <div class="text-samples">
+    <div class="ts" style="font-size:32px;font-weight:900;color:#fff">The quick brown fox — 32px 900</div>
+    <div class="ts" style="font-size:18px;font-weight:400;color:#aaa">The quick brown fox — 18px 400 gray</div>
+    <div class="ts" style="font-size:14px;color:#ff4444">Red text #ff4444 — lorem ipsum dolor sit amet</div>
+    <div class="ts" style="font-size:14px;color:#44ff44">Green text #44ff44 — lorem ipsum dolor sit amet</div>
+    <div class="ts" style="font-size:14px;color:#4488ff">Blue text #4488ff — lorem ipsum dolor sit amet</div>
+    <div class="ts" style="font-size:14px;color:#ffff00;background:#222;padding:4px 8px;border-radius:4px">Yellow on dark #ffff00</div>
+    <div class="ts" style="font-size:12px;font-family:monospace;color:#0f0">monospace 12px green: 0123456789 abcdefghijklmnopqrstuvwxyz</div>
+    <div class="ts" style="font-size:14px;background:linear-gradient(90deg,#ff0080,#7c3aed,#00bfff);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;font-weight:900;font-size:28px">Gradient Text Test</div>
+  </div>
+</div>
+
+<!-- 10. FONT FAMILIES -->
+<div class="section">
+  <div class="section-label">10 · Font Family Rendering</div>
+  <div class="font-families">
+    <div class="ff" style="font-family:sans-serif">sans-serif — The quick brown fox 0123</div>
+    <div class="ff" style="font-family:serif">serif — The quick brown fox 0123</div>
+    <div class="ff" style="font-family:monospace">monospace — The quick brown fox 0123</div>
+    <div class="ff" style="font-family:cursive">cursive — The quick brown fox 0123</div>
+    <div class="ff" style="font-family:fantasy">fantasy — The quick brown fox 0123</div>
+  </div>
+</div>
+
+<!-- 11. EMOJI & UNICODE -->
+<div class="section">
+  <div class="section-label">11 · Emoji & Unicode</div>
+  <div class="emoji-row">🔴🟠🟡🟢🔵🟣⚫⚪🟤</div>
+  <div class="emoji-row" style="font-size:20px;margin-top:8px">★☆♠♣♥♦ α β γ δ ε ∞ ∑ ∂ √ π ∫</div>
+</div>
+
+<!-- 12. BLEND MODES -->
+<div class="section">
+  <div class="section-label">12 · CSS Mix Blend Modes</div>
+  <div class="blend-grid" id="blend-grid"></div>
+</div>
+
+<!-- 13. SYSTEM INFO -->
+<div class="section">
+  <div class="section-label">13 · Browser & System Info</div>
+  <div class="info-grid" id="info-grid"></div>
+</div>
+
+<script>
+(function() {
+
+  // META
+  document.getElementById('meta').textContent =
+    'Generated: ' + new Date().toISOString() + '  |  Load this via file:// or zepra://';
+
+  // GRAYSCALE
+  var gr = document.getElementById('gray-row');
+  for (var i = 0; i <= 20; i++) {
+    var v = Math.round(i / 20 * 255);
+    var hex = v.toString(16).padStart(2,'0');
+    var b = document.createElement('div');
+    b.className = 'gray-box';
+    b.style.background = '#' + hex + hex + hex;
+    b.style.color = v > 128 ? '#000' : '#fff';
+    b.textContent = v;
+    gr.appendChild(b);
+  }
+
+  // PRIMARY SWATCHES
+  var colors = [
+    ['#FF0000','red','light-text'],['#FF4500','orangered','light-text'],
+    ['#FF7700','orange','light-text'],['#FFFF00','yellow',''],
+    ['#00FF00','lime',''],['#00CC44','green','light-text'],
+    ['#00FFFF','cyan',''],['#0088FF','dodgerblue','light-text'],
+    ['#0000FF','blue','light-text'],['#8800FF','violet','light-text'],
+    ['#FF00FF','magenta','light-text'],['#FF007F','hotpink','light-text'],
+    ['#FFFFFF','white',''],['#AAAAAA','#aaa',''],
+    ['#555555','#555','light-text'],['#000000','black','light-text'],
+    ['#7c3aed','zepra','light-text'],['#DEBCEE','zepra-lite',''],
+  ];
+  var sw = document.getElementById('swatches');
+  colors.forEach(function(c) {
+    var d = document.createElement('div');
+    d.className = 'swatch ' + c[2];
+    d.style.background = c[0];
+    d.textContent = c[1] + '\n' + c[0];
+    d.style.whiteSpace = 'pre';
+    d.style.textAlign = 'center';
+    sw.appendChild(d);
+  });
+
+  // NAMED CSS COLORS
+  var named = ['aliceblue','antiquewhite','aqua','aquamarine','azure','beige',
+    'bisque','blanchedalmond','burlywood','cadetblue','chartreuse','chocolate',
+    'coral','cornflowerblue','cornsilk','crimson','cyan','darkblue','darkcyan',
+    'darkgoldenrod','darkgray','darkgreen','darkkhaki','darkorange','darkorchid',
+    'darkred','darksalmon','darkseagreen','darkslateblue','darkviolet','deeppink',
+    'deepskyblue','dodgerblue','firebrick','forestgreen','fuchsia','gainsboro',
+    'gold','goldenrod','greenyellow','hotpink','indianred','indigo','khaki',
+    'lavender','lawngreen','lemonchiffon','lightblue','lightcoral','lightcyan',
+    'lightgreen','lightpink','lightsalmon','limegreen','magenta','mediumaquamarine',
+    'mediumblue','mediumpurple','mediumseagreen','mediumturquoise','mediumvioletred',
+    'midnightblue','mintcream','mistyrose','moccasin','navy','olive','olivedrab',
+    'orange','orangered','orchid','palegoldenrod','palegreen','paleturquoise',
+    'palevioletred','papayawhip','peachpuff','peru','pink','plum','powderblue',
+    'purple','rebeccapurple','rosybrown','royalblue','saddlebrown','salmon',
+    'sandybrown','seagreen','seashell','sienna','skyblue','slateblue','slategray',
+    'springgreen','steelblue','tan','teal','thistle','tomato','turquoise','violet',
+    'wheat','yellow','yellowgreen'];
+  var nc = document.getElementById('named-colors');
+  named.forEach(function(name) {
+    var d = document.createElement('div');
+    d.className = 'nc';
+    d.style.background = name;
+    var tmp = document.createElement('canvas');
+    var ctx = tmp.getContext('2d');
+    ctx.fillStyle = name;
+    ctx.fillRect(0,0,1,1);
+    var px = ctx.getImageData(0,0,1,1).data;
+    var brightness = (px[0]*299 + px[1]*587 + px[2]*114) / 1000;
+    d.style.color = brightness > 140 ? '#000' : '#fff';
+    d.textContent = name;
+    nc.appendChild(d);
+  });
+
+  // ALPHA
+  var ar = document.getElementById('alpha-row');
+  [0,0.1,0.2,0.3,0.4,0.5,0.6,0.7,0.8,0.9,1].forEach(function(a) {
+    var d = document.createElement('div');
+    d.className = 'alpha-box';
+    d.style.background = 'rgba(255,0,0,' + a + ')';
+    d.style.border = '1px solid #333';
+    d.style.color = a > 0.5 ? '#fff' : '#888';
+    d.textContent = a.toFixed(1);
+    ar.appendChild(d);
+  });
+
+  // BLEND MODES
+  var blends = ['normal','multiply','screen','overlay','darken','lighten',
+    'color-dodge','color-burn','hard-light','soft-light','difference','exclusion',
+    'hue','saturation','color','luminosity'];
+  var bg_colors = ['#ff6b6b','#4ecdc4','#45b7d1','#f7dc6f'];
+  var bgg = document.getElementById('blend-grid');
+  blends.forEach(function(mode, i) {
+    var wrap = document.createElement('div');
+    wrap.className = 'blend-box';
+    var bg = document.createElement('div');
+    bg.className = 'blend-bg';
+    bg.style.background = 'linear-gradient(135deg, ' + bg_colors[i % bg_colors.length] + ', ' + bg_colors[(i+1) % bg_colors.length] + ')';
+    var fg = document.createElement('div');
+    fg.className = 'blend-fg';
+    fg.style.background = 'rgba(100,50,200,0.7)';
+    fg.style.mixBlendMode = mode;
+    fg.textContent = mode;
+    wrap.appendChild(bg);
+    wrap.appendChild(fg);
+    bgg.appendChild(wrap);
+  });
+
+  // SYSTEM INFO
+  var info = {
+    'UserAgent': navigator.userAgent,
+    'Platform': navigator.platform || 'n/a',
+    'Language': navigator.language,
+    'Screen': screen.width + 'x' + screen.height,
+    'Color Depth': screen.colorDepth + '-bit',
+    'Pixel Ratio': window.devicePixelRatio || 1,
+    'Viewport': window.innerWidth + 'x' + window.innerHeight,
+    'Cookies': navigator.cookieEnabled,
+    'JS Engine': (function(){
+      try { eval('(x=>x)'); return 'Arrow fn OK'; } catch(e) { return 'No arrow fn'; }
+    })(),
+    'Fetch API': typeof fetch !== 'undefined' ? 'Yes' : 'No',
+    'WebGL': (function(){
+      try {
+        var c = document.createElement('canvas');
+        var g = c.getContext('webgl') || c.getContext('experimental-webgl');
+        return g ? g.getParameter(g.RENDERER) : 'No';
+      } catch(e){ return 'No'; }
+    })(),
+    'Canvas 2D': (function(){
+      try { document.createElement('canvas').getContext('2d'); return 'Yes'; } catch(e){ return 'No'; }
+    })(),
+    'CSS Grid': CSS.supports('display','grid') ? 'Yes' : 'No',
+    'CSS Vars': CSS.supports('color','var(--x)') ? 'Yes' : 'No',
+    'CSS Backdrop': CSS.supports('backdrop-filter','blur(1px)') ? 'Yes' : 'No',
+  };
+  var ig = document.getElementById('info-grid');
+  Object.keys(info).forEach(function(k) {
+    var d = document.createElement('div');
+    d.className = 'info-card';
+    d.innerHTML = '<div class="k">' + k + '</div><div class="v">' + info[k] + '</div>';
+    ig.appendChild(d);
+  });
+
+})();
+</script>
+</body>
+</html>

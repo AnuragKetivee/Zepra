@@ -78,6 +78,9 @@ void layoutBlock(LayoutBox& box, float containingWidth, float startY) {
     // Resolve deferred CSS width
     if (box.cssWidth.isSet() && !box.cssWidth.isAuto()) {
         box.width = box.cssWidth.resolve(containingWidth, box.fontSize, vpW, vpH);
+        if (box.boxSizing == BoxSizing::ContentBox) {
+            box.width += box.paddingLeft + box.paddingRight + box.borderLeft + box.borderRight;
+        }
     } else if (box.type == LayoutType::Block || box.type == LayoutType::Flex) {
         // Block and Flex containers fill their containing block width (CSS2 §10.3.3)
         float w = containingWidth - box.marginLeft - box.marginRight;
@@ -87,6 +90,9 @@ void layoutBlock(LayoutBox& box, float containingWidth, float startY) {
     // Resolve deferred CSS height (container height is 0 for now — auto)
     if (box.cssHeight.isSet() && !box.cssHeight.isAuto()) {
         box.height = box.cssHeight.resolve(0, box.fontSize, vpW, vpH);
+        if (box.boxSizing == BoxSizing::ContentBox) {
+            box.height += box.paddingTop + box.paddingBottom + box.borderTop + box.borderBottom;
+        }
     }
     
     // Apply min/max width constraints
@@ -138,7 +144,6 @@ void layoutBlock(LayoutBox& box, float containingWidth, float startY) {
         float flexGap = box.gap;
         
         // Pre-resolve container height for column flex (needed for justify-content centering)
-        // Without this, mainAxisSpace is 0 and centering has no effect
         if (box.flexDirection == 1) {
             float vpW_f = (float)g_width;
             float vpH_f = (float)g_height;
@@ -152,22 +157,40 @@ void layoutBlock(LayoutBox& box, float containingWidth, float startY) {
             }
         }
         
-        // Pass 1: Measure all flex children
         struct FlexChild {
             LayoutBox* ptr;
             float mainSize;
             float crossSize;
         };
-        std::vector<FlexChild> flexChildren;
-        float totalMainSize = 0;
-        float maxCrossSize = 0;
-        int childCount = 0;
         
+        struct FlexLine {
+            std::vector<FlexChild> items;
+            float mainSize = 0;
+            float crossSize = 0;
+            float freeSpace = 0;
+        };
+        std::vector<FlexLine> lines;
+        lines.push_back(FlexLine());
+        
+        float containerMainSize = (box.flexDirection == 1)
+            ? (box.height - box.paddingTop - box.paddingBottom - box.borderTop - box.borderBottom)
+            : contentWidth;
+        if (containerMainSize < 0) containerMainSize = 0;
+        
+        // Pass 1: Measure all flex children and partition into lines
         for (auto& child : box.children) {
             if (child.type == LayoutType::None) continue;
             
             float childAvailableWidth = contentWidth > 0 ? contentWidth : 200;
+            
+            // Flex items in a row normally shrink-to-fit unless width is set
+            LayoutType oldType = child.type;
+            if (box.flexDirection == 0 && child.type == LayoutType::Block && (!child.cssWidth.isSet() || child.cssWidth.isAuto())) {
+                 child.type = LayoutType::InlineBlock; // Force shrink-to-fit measurement
+            }
+            
             layoutBlock(child, childAvailableWidth, 0);
+            child.type = oldType;
             
             if (child.width == 0 && !child.text.empty())
                 child.width = measureTextWidth(child.text, child.fontSize) + 8;
@@ -180,102 +203,133 @@ void layoutBlock(LayoutBox& box, float containingWidth, float startY) {
                 ? (child.width + child.marginLeft + child.marginRight)
                 : (child.height + child.marginTop + child.marginBottom);
             
-            flexChildren.push_back({&child, mainSize, crossSize});
-            totalMainSize += mainSize;
-            maxCrossSize = std::max(maxCrossSize, crossSize);
-            childCount++;
-        }
-        
-        float totalGap = (childCount > 1) ? flexGap * (childCount - 1) : 0;
-        float containerMainSize = (box.flexDirection == 1)
-            ? (box.height - box.paddingTop - box.paddingBottom - box.borderTop - box.borderBottom)
-            : contentWidth;
-        if (containerMainSize < 0) containerMainSize = 0;
-        float freeSpace = containerMainSize - totalMainSize - totalGap;
-        if (freeSpace < 0) freeSpace = 0;
-        
-        
-        
-        // Pass 2: Distribute space per justify-content
-        float mainOffset = 0;
-        float itemSpacing = flexGap;
-        
-        switch (box.justifyContent) {
-            case 1: mainOffset = freeSpace; break; // flex-end
-            case 2: mainOffset = freeSpace / 2.0f; break; // center
-            case 3: // space-between
-                if (childCount > 1) itemSpacing = flexGap + freeSpace / (childCount - 1);
-                break;
-            case 4: // space-around
-                if (childCount > 0) {
-                    float pad = freeSpace / (childCount * 2);
-                    mainOffset = pad;
-                    itemSpacing = flexGap + pad * 2;
-                }
-                break;
-            case 5: // space-evenly
-                if (childCount > 0) {
-                    float pad = freeSpace / (childCount + 1);
-                    mainOffset = pad;
-                    itemSpacing = flexGap + pad;
-                }
-                break;
-            default: break;
-        }
-        
-        // Pass 3: Position children
-        float cursor = mainOffset;
-        for (size_t i = 0; i < flexChildren.size(); i++) {
-            auto& fc = flexChildren[i];
-            LayoutBox& child = *fc.ptr;
+            FlexLine& currentLine = lines.back();
+            float gapRequired = currentLine.items.empty() ? 0 : flexGap;
             
-            float crossOffset = 0;
-            float crossSpace = (box.flexDirection == 1) ? contentWidth : maxCrossSize;
-            switch (box.alignItems) {
-                case 1: crossOffset = 0; break;
-                case 2: crossOffset = crossSpace - fc.crossSize; break;
-                case 3: crossOffset = (crossSpace - fc.crossSize) / 2.0f; break;
-                default:
-                    if (box.flexDirection == 1)
-                        child.width = contentWidth - child.marginLeft - child.marginRight;
-                    else
-                        child.height = maxCrossSize - child.marginTop - child.marginBottom;
-                    break;
-            }
-            
-            if (box.flexDirection == 1) {
-                child.x = childX + child.marginLeft + crossOffset;
-                child.y = box.paddingTop + box.borderTop + cursor + child.marginTop;
-                cursor += fc.mainSize;
-                if (i < flexChildren.size() - 1) cursor += itemSpacing;
+            // Check if we need to wrap
+            if (box.flexWrap && !currentLine.items.empty() && 
+                currentLine.mainSize + gapRequired + mainSize > containerMainSize) {
+                lines.push_back(FlexLine());
+                FlexLine& newLine = lines.back();
+                newLine.items.push_back({&child, mainSize, crossSize});
+                newLine.mainSize = mainSize;
+                newLine.crossSize = crossSize;
             } else {
-                child.x = childX + cursor + child.marginLeft;
-                child.y = childY + child.marginTop + crossOffset;
-                cursor += fc.mainSize;
-                if (i < flexChildren.size() - 1) cursor += itemSpacing;
-                lineHeight = std::max(lineHeight, fc.crossSize);
+                currentLine.items.push_back({&child, mainSize, crossSize});
+                currentLine.mainSize += gapRequired + mainSize;
+                currentLine.crossSize = std::max(currentLine.crossSize, crossSize);
             }
-            child.type = LayoutType::FlexItem;
+        }
+        
+        // Pass 2 & 3: Iterate over lines, distribute main-axis space, position items
+        float crossCursor = 0; // Tracks vertical progression of wrapped lines (or horizontal if column)
+        
+        for (auto& line : lines) {
+            if (line.items.empty()) continue;
+            
+            line.freeSpace = containerMainSize - line.mainSize;
+            if (line.freeSpace < 0) line.freeSpace = 0;
+            
+            float mainOffset = 0;
+            float itemSpacing = flexGap;
+            int childCount = line.items.size();
+            
+            switch (box.justifyContent) {
+                case 1: mainOffset = line.freeSpace; break; // flex-end
+                case 2: mainOffset = line.freeSpace / 2.0f; break; // center
+                case 3: // space-between
+                    if (childCount > 1) itemSpacing = flexGap + line.freeSpace / (childCount - 1);
+                    break;
+                case 4: // space-around
+                    if (childCount > 0) {
+                        float pad = line.freeSpace / (childCount * 2);
+                        mainOffset = pad;
+                        itemSpacing = flexGap + pad * 2;
+                    }
+                    break;
+                case 5: // space-evenly
+                    if (childCount > 0) {
+                        float pad = line.freeSpace / (childCount + 1);
+                        mainOffset = pad;
+                        itemSpacing = flexGap + pad;
+                    }
+                    break;
+                default: break;
+            }
+            
+            float cursor = mainOffset;
+            for (size_t i = 0; i < line.items.size(); i++) {
+                auto& fc = line.items[i];
+                LayoutBox& child = *fc.ptr;
+                
+                float crossOffset = 0;
+                float crossSpace = (box.flexDirection == 1) ? contentWidth : line.crossSize;
+                switch (box.alignItems) {
+                    case 1: crossOffset = 0; break;
+                    case 2: crossOffset = crossSpace - fc.crossSize; break;
+                    case 3: crossOffset = (crossSpace - fc.crossSize) / 2.0f; break;
+                    default:
+                        if (box.flexDirection == 1)
+                            child.width = contentWidth - child.marginLeft - child.marginRight;
+                        else
+                            child.height = line.crossSize - child.marginTop - child.marginBottom;
+                        break;
+                }
+                
+                if (box.flexDirection == 1) {
+                    child.x = childX + child.marginLeft + crossOffset + crossCursor;
+                    child.y = box.paddingTop + box.borderTop + cursor + child.marginTop;
+                    cursor += fc.mainSize;
+                    if (i < line.items.size() - 1) cursor += itemSpacing;
+                } else {
+                    child.x = childX + cursor + child.marginLeft;
+                    child.y = childY + child.marginTop + crossOffset + crossCursor;
+                    cursor += fc.mainSize;
+                    if (i < line.items.size() - 1) cursor += itemSpacing;
+                }
+                child.type = LayoutType::FlexItem;
+            }
+            
+            // Advance cross cursor for next line
+            crossCursor += line.crossSize + flexGap;
+        }
+        
+        if (box.flexDirection == 0) {
+            lineHeight = std::max(lineHeight, crossCursor > 0 ? crossCursor - flexGap : 0);
         }
     } else {
     // Block/Inline flow layout
+    float prevBlockMarginBottom = 0; // For margin collapsing (CSS2 §8.3.1)
     for (auto& child : box.children) {
         if (child.type == LayoutType::None) continue;
         
         if (child.type == LayoutType::Block || child.type == LayoutType::Flex) {
-            // Block elements: stack vertically
             // Flush any inline content first
             if (lineHeight > 0) {
                 childY += lineHeight;
                 lineHeight = 0;
                 lineWidth = 0;
+                prevBlockMarginBottom = 0;
             }
             
-            // Layout child block
+            // Margin collapsing: adjacent block margins collapse to max(prev_bottom, cur_top)
+            // instead of summing (CSS2 §8.3.1, WebKit RenderBlockFlow::MarginValues)
+            float effectiveMarginTop = child.marginTop;
+            if (prevBlockMarginBottom > 0 && effectiveMarginTop > 0) {
+                float collapsed = std::max(prevBlockMarginBottom, effectiveMarginTop);
+                childY -= prevBlockMarginBottom; // undo prev bottom margin
+                child.marginTop = collapsed;     // apply collapsed margin
+            } else if (prevBlockMarginBottom < 0 && effectiveMarginTop < 0) {
+                float collapsed = std::min(prevBlockMarginBottom, effectiveMarginTop);
+                childY -= prevBlockMarginBottom;
+                child.marginTop = collapsed;
+            }
+            
             layoutBlock(child, contentWidth, childY);
             child.x += box.paddingLeft + box.borderLeft;
             
-            childY = child.y + child.totalHeight();
+            childY = child.y + child.height + child.marginBottom;
+            prevBlockMarginBottom = child.marginBottom;
             
         } else if (child.type == LayoutType::Inline || child.type == LayoutType::Text || child.type == LayoutType::InlineBlock) {
             // Inline/Text/InlineBlock: flow horizontally with wrapping
@@ -397,6 +451,11 @@ void layoutBlock(LayoutBox& box, float containingWidth, float startY) {
     if (box.type == LayoutType::Block && box.children.empty() && (!box.text.empty() || box.isInput)) {
         box.height = std::max(box.height, box.fontSize + box.paddingTop + box.paddingBottom + 4);
     }
+    
+    if (box.type == LayoutType::Inline || box.type == LayoutType::InlineBlock) {
+        printf("[Layout Debug] Inline element id=%d width=%f height=%f x=%f y=%f\n", 
+            box.type, box.width, box.height, (double)box.x, (double)box.y);
+    }
 }
 
 // =============================================================================
@@ -447,36 +506,67 @@ void paintBox(const LayoutBox& box, float offsetX, float offsetY,
     // Draw background (gradient or solid)
     if (box.hasBgColor) {
         if (!box.backgroundImage.empty() && box.backgroundImage.find("gradient") != std::string::npos && s_gfx_gradient) {
-            // Parse simple linear-gradient: extract two colors
-            // e.g. "linear-gradient(to bottom, #1a1a2e, #16213e)"
-            uint32_t c1 = box.bgColor;
-            uint32_t c2 = box.bgColor;
-            auto extractColors = [](const std::string& grad, uint32_t& out1, uint32_t& out2) {
-                // Find hex colors in gradient string
-                std::vector<uint32_t> colors;
-                size_t pos = 0;
-                while (pos < grad.size() && colors.size() < 2) {
-                    if (grad[pos] == '#') {
-                        pos++;
-                        std::string hex;
-                        while (pos < grad.size() && std::isxdigit(grad[pos])) {
-                            hex += grad[pos++];
+            std::string grad = box.backgroundImage;
+            bool isConic = grad.find("conic-gradient") != std::string::npos;
+            
+            std::vector<uint32_t> colors;
+            
+            // Simple robust linear parser allowing any CSS color
+            size_t startPos = grad.find('(');
+            size_t endPos = grad.rfind(')');
+            if (startPos != std::string::npos && endPos != std::string::npos && endPos > startPos) {
+                std::string inner = grad.substr(startPos + 1, endPos - startPos - 1);
+                
+                size_t p = 0;
+                while (p < inner.length()) {
+                    while (p < inner.length() && std::isspace(inner[p])) p++;
+                    size_t nextComma = inner.find(',', p);
+                    
+                    // Skip commas inside rgb() or hsl()
+                    size_t scope = 0;
+                    for (size_t i = p; i < inner.length(); i++) {
+                        if (inner[i] == '(') scope++;
+                        else if (inner[i] == ')') scope--;
+                        else if (inner[i] == ',' && scope == 0) {
+                            nextComma = i;
+                            break;
                         }
-                        if (hex.size() == 3) {
-                            hex = std::string(1,hex[0]) + hex[0] + hex[1] + hex[1] + hex[2] + hex[2];
-                        }
-                        if (hex.size() >= 6) {
-                            colors.push_back((uint32_t)std::stoul(hex.substr(0,6), nullptr, 16));
-                        }
-                    } else {
-                        pos++;
                     }
+                    if (scope != 0 || nextComma == std::string::npos) nextComma = inner.length();
+                    
+                    std::string token = inner.substr(p, nextComma - p);
+                    
+                    // Trim token
+                    while (!token.empty() && std::isspace(token.back())) token.pop_back();
+                    while (!token.empty() && std::isspace(token.front())) token.erase(token.begin());
+                    
+                    if (!token.empty() && token.find("to ") == std::string::npos && token.find("deg") == std::string::npos) {
+                        Zepra::WebCore::CSSColor col = Zepra::WebCore::CSSColor::parse(token);
+                        uint32_t c = (col.r << 16) | (col.g << 8) | col.b; // Assuming BGR or RGB depending on gfx
+                        // Actually Zepra colors are RGB in UI but s_gfx uses 0xRRGGBB
+                        colors.push_back((col.r << 16) | (col.g << 8) | col.b);
+                    }
+                    p = nextComma + 1;
                 }
-                if (colors.size() >= 2) { out1 = colors[0]; out2 = colors[1]; }
-                else if (colors.size() == 1) { out1 = colors[0]; out2 = colors[0]; }
-            };
-            extractColors(box.backgroundImage, c1, c2);
-            s_gfx_gradient(screenX, screenY, box.width, box.height, c1, c2);
+            }
+            
+            if (isConic) {
+                // Fallback for conic gradients (not natively supported by s_gfx)
+                s_gfx_rect(screenX, screenY, box.width, box.height, colors.empty() ? box.bgColor : colors[0]);
+            } else {
+                if (colors.size() >= 2) {
+                    float chunkW = box.width / (colors.size() - 1);
+                    float curX = screenX;
+                    for (size_t i = 0; i < colors.size() - 1; i++) {
+                         s_gfx_gradient(curX, screenY, chunkW + 1, box.height, colors[i], colors[i+1]);
+                         curX += chunkW;
+                    }
+                } else if (colors.size() == 1) {
+                    s_gfx_rect(screenX, screenY, box.width, box.height, colors[0]);
+                } else {
+                    s_gfx_rect(screenX, screenY, box.width, box.height, box.bgColor);
+                }
+            }
         } else if (box.borderRadius > 0 && s_gfx_rrect) {
             s_gfx_rrect(screenX, screenY, box.width, box.height, box.borderRadius, box.bgColor, alpha);
         } else if (s_gfx_rect) {

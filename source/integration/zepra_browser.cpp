@@ -105,10 +105,12 @@ using ZepraBrowser::stripOuterTags;
 
 // ===========================================================================
 // SECTION 6: UI COMPONENTS
-// Group: Tab manager, DevTools panel, WebView
-// Location: include/ui/, src/ui/
+// Group: Tab manager, DevTools panel, WebView, Start page, Error pages
 // ===========================================================================
 #include "browser/tab_manager.h"
+#include "browser/start_page.h"
+#include "browser/error_pages.h"
+#include "browser/svg_extract.h"
 #include "panels/zepra_webview_panel.h"
 
 // ===========================================================================
@@ -135,7 +137,7 @@ using ZepraBrowser::stripOuterTags;
 
 // Platform globals managed by NXRender
 // // X11 Global stub for legacy font compatibility (if needed)
-static void* g_display = nullptr;
+// static void* g_display = nullptr; // Reserved for X11 cursor API
 // static Window g_window;
 // static GLXContext g_glContext;
 // static Atom g_wmDeleteMessage;
@@ -215,6 +217,12 @@ struct Tab {
     
     // Per-tab network monitor (Tab A/B isolation for DevTools Network panel)
     std::unique_ptr<zepra::NetworkMonitor> networkMonitor;
+    
+    // Per-tab DOM/CSS/Layout isolation
+    std::unique_ptr<DOMDocument> document;
+    std::unique_ptr<CSSEngine> cssEngine;
+    std::unique_ptr<ZepraBrowser::LayoutBox> layoutRoot;
+    bool hasRenderedContent = false;  // true if tab has been through parseWithWebCore
     
     // Default constructor
     Tab() = default;
@@ -311,7 +319,7 @@ static bool g_consoleVisible = false;            // Developer console (F12)
 static bool g_alertVisible = false;
 static std::string g_alertMessage;
 static bool g_alertIsConfirm = false;
-static bool g_alertResult = false;
+// static bool g_alertResult = false; // Reserved for confirm dialog
 static bool g_uiHoverHand = false;                // UI element hover (buttons, tabs, links)
 
 // =============================================================================
@@ -333,10 +341,10 @@ static DevToolsTab g_devToolsTab = DevToolsTab::Elements;
 static float g_devToolsHeight = 280.0f;          // Panel height
 static std::string g_consoleInput = "";          // Console input field
 static bool g_consoleFocused = false;            // Console input focused
-static int g_selectedDOMNodeId = -1;             // Selected DOM node for inspection
+// static int g_selectedDOMNodeId = -1;          // Reserved: DevTools DOM inspector
 // Console log is now per-tab (see Tab::consoleLog)
 static std::map<int, bool> g_domNodeExpanded;    // Track expanded nodes in tree
-static int g_domNodeCounter = 0;                 // For assigning IDs to nodes
+// static int g_domNodeCounter = 0;              // Reserved: DevTools DOM inspector
 
 // Mouse handler instance
 ZepraBrowser::MouseHandler g_mouseHandler;
@@ -446,7 +454,7 @@ struct HttpResponse {
 };
 
 // Helper to configure client matching previous curl settings
-static NxHttpClient* createClient() {
+[[maybe_unused]] static NxHttpClient* createClient() {
     NxHttpClientConfig config = {0};
     config.connect_timeout_ms = 10000; // 10s
     config.read_timeout_ms = 10000;
@@ -968,27 +976,7 @@ void parseWithWebCore(const std::string& html) {
     
     // Compute styles
     g_cssEngine->computeStyles();
-    
-    // DEBUG: Show computed styles for first few elements
-    std::cout << "[CSS Debug] Stylesheets loaded, computing styles..." << std::endl;
-    int debugCount = 0;
-    auto debugStyle = [&](DOMElement* el) {
-        if (debugCount++ > 10) return;
-        const CSSComputedStyle* s = g_cssEngine->getComputedStyle(el);
-        if (s) {
-            std::cout << "  <" << el->tagName() << "> fontSize=" << s->fontSize
-                      << std::endl;
-        }
-    };
-    
-    // Debug first few body elements
-    if (g_document->body()) {
-        for (size_t i = 0; i < std::min((size_t)5, g_document->body()->childNodes().size()); i++) {
-            if (auto* el = dynamic_cast<DOMElement*>(g_document->body()->childNodes()[i].get())) {
-                debugStyle(el);
-            }
-        }
-    }
+    std::cout << "[CSS] Styles computed" << std::endl;
     
     // Create layout root (Modular LayoutBox)
     g_focusedBox = nullptr;
@@ -1158,7 +1146,7 @@ void parseWithWebCore(const std::string& html) {
     // Set location globals from current URL
     g_scriptContext->setGlobal("__pageUrl__", g_currentUrl);
     
-    // Execute inline scripts
+    // Execute page scripts (inline + external)
     std::function<void(DOMElement*)> executePageScripts = [&](DOMElement* el) {
         if (!el) return;
         for (size_t i = 0; i < el->childNodes().size(); i++) {
@@ -1166,6 +1154,13 @@ void parseWithWebCore(const std::string& html) {
                 std::string tag = child->tagName();
                 std::transform(tag.begin(), tag.end(), tag.begin(), ::tolower);
                 if (tag == "script") {
+                    // Check type attribute — skip non-JS types (JSON-LD, module preloads, etc.)
+                    std::string type = child->getAttribute("type");
+                    if (!type.empty() && type != "text/javascript" && type != "application/javascript"
+                        && type != "module") {
+                        continue;
+                    }
+                    
                     std::string src = child->getAttribute("src");
                     if (src.empty()) {
                         // Inline script
@@ -1174,8 +1169,19 @@ void parseWithWebCore(const std::string& html) {
                             std::cout << "[JS] Executing inline script (" << code.size() << " bytes)" << std::endl;
                             g_scriptContext->evaluate(code, g_currentUrl);
                         }
+                    } else {
+                        // External script — resolve URL and fetch
+                        std::string scriptUrl = resolveUrl(g_currentUrl, src);
+                        std::cout << "[JS] Fetching external script: " << scriptUrl << std::endl;
+                        HttpResponse scriptResp = httpGet(scriptUrl);
+                        if (scriptResp.success && !scriptResp.data.empty()) {
+                            std::cout << "[JS] Executing external script (" 
+                                      << scriptResp.data.size() << " bytes)" << std::endl;
+                            g_scriptContext->evaluate(scriptResp.data, scriptUrl);
+                        } else {
+                            std::cerr << "[JS] Failed to load: " << scriptUrl << std::endl;
+                        }
                     }
-                    // External scripts (src=) would need httpGet — skip for beta
                 } else {
                     executePageScripts(child);
                 }
@@ -1193,7 +1199,12 @@ void parseWithWebCore(const std::string& html) {
     
     // Fire DOMContentLoaded
     g_scriptContext->fireDOMContentLoaded();
-    std::cout << "[JS] DOMContentLoaded fired" << std::endl;
+    if (g_scriptContext) {
+        g_scriptContext->evaluate("if (typeof document !== 'undefined' && typeof document.onDOMContentLoaded === 'function') { document.onDOMContentLoaded(); }", "zepra://internal/dom_loaded");
+        g_scriptContext->fireLoadEvent();
+        g_scriptContext->evaluate("if (typeof window !== 'undefined' && typeof window.onload === 'function') { window.onload(); }", "zepra://internal/onload");
+    }
+    std::cout << "[JS] DOMContentLoaded and Window Load fired" << std::endl;
 }
 
 // =============================================================================
@@ -1365,51 +1376,16 @@ void buildLayoutFromDOM(DOMElement* element, LayoutBox* parentBox, bool inLink,
                 box->overflowHidden = (style->overflowX == OverflowValue::Hidden || 
                                        style->overflowY == OverflowValue::Hidden);
                 
-                // Display type from CSS
+                // Text nodes always stay LayoutType::Inline — display type from CSS
+                // only applies to element nodes (containers), not text runs.
+                // Only check for display:none to hide text in hidden parents.
 #pragma push_macro("None")
 #undef None
                 if (style->display == DisplayValue::None)
                     box->type = LayoutType::None;
 #pragma pop_macro("None")
-                else if (style->display == DisplayValue::Flex || style->display == DisplayValue::InlineFlex)
-                    box->type = LayoutType::Flex;
-                else if (style->display == DisplayValue::Block || style->display == DisplayValue::Grid ||
-                         style->display == DisplayValue::ListItem || style->display == DisplayValue::Table)
-                    box->type = LayoutType::Block;
-                else if (style->display == DisplayValue::InlineBlock || style->display == DisplayValue::InlineGrid)
-                    box->type = LayoutType::InlineBlock;
-                else
-                    box->type = LayoutType::Inline;
                 
-                // Flex container properties
-                using namespace Zepra::WebCore;
-                if (style->flexDirection == FlexDirection::Column || 
-                    style->flexDirection == FlexDirection::ColumnReverse) {
-                    box->flexDirection = 1; // Column
-                } else {
-                    box->flexDirection = 0; // Row
-                }
-                box->flexWrap = style->flexWrap;
-                box->gap = style->gap.value;
-                
-                // Justify/Align → int mapping
-                switch (style->justifyContent) {
-                    case JustifyAlign::FlexEnd: case JustifyAlign::End: box->justifyContent = 1; break;
-                    case JustifyAlign::Center: box->justifyContent = 2; break;
-                    case JustifyAlign::SpaceBetween: box->justifyContent = 3; break;
-                    case JustifyAlign::SpaceAround: box->justifyContent = 4; break;
-                    case JustifyAlign::SpaceEvenly: box->justifyContent = 5; break;
-                    default: box->justifyContent = 0; break;
-                }
-                switch (style->alignItems) {
-                    case JustifyAlign::FlexStart: case JustifyAlign::Start: box->alignItems = 1; break;
-                    case JustifyAlign::FlexEnd: case JustifyAlign::End: box->alignItems = 2; break;
-                    case JustifyAlign::Center: box->alignItems = 3; break;
-                    case JustifyAlign::Baseline: box->alignItems = 4; break;
-                    default: box->alignItems = 0; break; // stretch
-                }
-                
-                // Text alignment
+                // Text alignment (inherited from parent)
                 if (style->textAlign == TextAlign::Center) box->textAlign = 1;
                 else if (style->textAlign == TextAlign::Right) box->textAlign = 2;
                 else box->textAlign = 0;
@@ -1888,24 +1864,38 @@ void buildLayoutFromDOM(DOMElement* element, LayoutBox* parentBox, bool inLink,
                 std::string src = childElement->getAttribute("src");
                 std::cout << "[Layout] processing img src=" << src << std::endl;
                 if (!src.empty()) {
-                    // Resolve URL using shared helper
                     src = resolveUrl(g_currentUrl, src);
 
                     LayoutBox* imgBox = addChild(parentBox);
-                    imgBox->type = LayoutType::InlineBlock; // Images are inline-block by default
+                    imgBox->type = LayoutType::InlineBlock;
                     imgBox->isImage = true;
-                    imgBox->text = "[IMG: Loading...]"; // Placeholder text
+                    imgBox->text = "[IMG: Loading...]";
                     imgBox->color = 0xAAAAAA;
                     imgBox->bgColor = 0xEEEEEE;
                     imgBox->hasBgColor = true;
-                    imgBox->width = 100; // Default placeholder size
+                    imgBox->width = 100;
                     imgBox->height = 100;
                     imgBox->marginTop = 5;
                     imgBox->marginBottom = 5;
 
-                    // LAZY LOADING: Queue image for background loading
-                    // std::list ensures stable pointers even as tree grows
                     ZepraBrowser::g_lazyImageLoader.queueImage(imgBox, src, 0, g_activeTabId);
+                }
+                continue;
+            }
+            // Embedded <svg> — extract and render via nxsvg
+            if (childTag == "svg") {
+                auto dim = ZepraBrowser::UI::getSvgDimensions(childElement);
+                std::string svgStr = ZepraBrowser::UI::extractSvgString(childElement);
+                
+                if (!svgStr.empty()) {
+                    LayoutBox* svgBox = addChild(parentBox);
+                    svgBox->type = LayoutType::InlineBlock;
+                    svgBox->isImage = true;
+                    svgBox->svgData = svgStr;
+                    svgBox->width = dim.width;
+                    svgBox->height = dim.height;
+                    svgBox->marginTop = 2;
+                    svgBox->marginBottom = 2;
                 }
                 continue;
             }
@@ -3033,34 +3023,47 @@ void render() {
         if (loadedError.empty()) {
             g_pageTitle = loadedTitle;
             
-            // Check if it's a PDF payload
+            // Detect file type from URL extension
             bool isPdf = false;
-            if (loadedUrl.length() > 4) {
-                std::string ext = loadedUrl.substr(loadedUrl.length() - 4);
-                std::transform(ext.begin(), ext.end(), ext.begin(), ::tolower);
-                if (ext == ".pdf") isPdf = true;
+            bool isImage = false;
+            std::string ext;
+            {
+                size_t dotPos = loadedUrl.rfind('.');
+                size_t slashPos = loadedUrl.rfind('/');
+                if (dotPos != std::string::npos && (slashPos == std::string::npos || dotPos > slashPos)) {
+                    ext = loadedUrl.substr(dotPos);
+                    std::transform(ext.begin(), ext.end(), ext.begin(), ::tolower);
+                    // Strip query string
+                    size_t qPos = ext.find('?');
+                    if (qPos != std::string::npos) ext = ext.substr(0, qPos);
+                    
+                    if (ext == ".pdf") isPdf = true;
+                    else if (ext == ".png" || ext == ".jpg" || ext == ".jpeg" || ext == ".gif" ||
+                             ext == ".webp" || ext == ".bmp" || ext == ".ico" || ext == ".svg") isImage = true;
+                }
             }
             
-            if (isPdf) {
+            if (isImage) {
+                std::string imgHtml = ZepraBrowser::UI::getImageViewerHTML(loadedTitle, loadedUrl);
+                g_pageContent = imgHtml;
+#ifdef USE_WEBCORE
+                parseWithWebCore(imgHtml);
+#endif
+            } else if (isPdf) {
                 std::cout << "[Browser] PDF Document intercepted. Processing natively..." << std::endl;
                 auto pdfDoc = nxrender::pdf::Document::OpenFromMemory(loadedContent);
                 if (pdfDoc && pdfDoc->GetPageCount() > 0) {
-                    std::string extractedText = "";
-                    for (int i = 0; i < pdfDoc->GetPageCount(); i++) {
-                        extractedText += pdfDoc->ExtractText(i) + "\n\n";
-                    }
-                    
-                    // Inject isolated extracted text directly as an HTML interface view natively resolving WebCore bound cleanly
-                    std::string pdfHtml = "<html><head><title>" + loadedTitle + "</title></head><body><h1>PDF Extracted View</h1><pre style='white-space: pre-wrap; word-wrap: break-word;'>";
-                    pdfHtml += decodeHtmlEntities(extractedText); // encode natively
-                    pdfHtml += "</pre></body></html>";
+                    int pageCount = pdfDoc->GetPageCount();
+                    auto pdfDocPtr = pdfDoc.get();
+                    std::string pdfHtml = ZepraBrowser::UI::getPdfViewerHTML(loadedTitle, pageCount,
+                        [pdfDocPtr](int page) { return pdfDocPtr->ExtractText(page); });
                     
                     g_pageContent = pdfHtml;
 #ifdef USE_WEBCORE
                     parseWithWebCore(pdfHtml);
 #endif
                 } else {
-                    g_pageContent = "<html><body><h2>Failed to parse native PDF.</h2></body></html>";
+                    g_pageContent = "<html><body><h2>Failed to parse PDF document.</h2></body></html>";
 #ifdef USE_WEBCORE
                     parseWithWebCore(g_pageContent);
 #endif
@@ -3197,25 +3200,15 @@ void render() {
                 }
             }
             
-            if (!g_layoutRoot || g_layoutRoot->children.empty()) {
-                // Styled "Nothing Found" page (modern design)
-                float centerX = contentX + contentW / 2;
-                float centerY = contentY + contentH / 2 - 60;
-                
-                // Large search icon placeholder (using box)
-                gfx::rrect(centerX - 40, centerY - 60, 80, 80, 16, 0xE8E8E8);
-                svg("search.svg", centerX - 24, centerY - 44, 48, 0xBBBBBB);
-                
-                // Title
-                text("Nothing Found", centerX - 70, centerY + 50, 0x333333, 24);
-                
-                // Subtitle
-                text("We couldn't find what you're looking for.", centerX - 130, centerY + 80, 0x888888);
-                text("Try searching for something else or check the URL.", centerX - 150, centerY + 100, 0x888888);
-                
-                // Suggestions
-                gfx::rrect(centerX - 100, centerY + 130, 200, 40, 8, g_theme.bg_elevated);
-                text("Go back to previous page", centerX - 75, centerY + 156, g_theme.accent);
+            if (!g_layoutRoot || !ZepraBrowser::UI::hasVisibleContent(*g_layoutRoot)) {
+                auto nf = ZepraBrowser::UI::NothingFoundLayout::compute(contentX, contentY, contentW, contentH);
+                gfx::rrect(nf.iconX, nf.iconY, nf.iconW, nf.iconH, 16, 0xE8E8E8);
+                svg("search.svg", nf.searchIconX, nf.searchIconY, nf.searchIconSize, 0xBBBBBB);
+                text("Nothing Found", nf.titleX, nf.titleY, 0x333333, 24);
+                text("We couldn't find what you're looking for.", nf.sub1X, nf.sub1Y, 0x888888);
+                text("Try searching for something else or check the URL.", nf.sub2X, nf.sub2Y, 0x888888);
+                gfx::rrect(nf.btnX, nf.btnY, nf.btnW, nf.btnH, 8, g_theme.bg_elevated);
+                text("Go back to previous page", nf.btnTextX, nf.btnTextY, g_theme.accent);
             }
 #else
             // Fallback rendering
@@ -3227,6 +3220,31 @@ void render() {
              text("Empty page", contentX + 20, contentY + 40, 0x999999);
         }
     }
+    
+    // Draw scrollbar
+    if (g_layoutRoot) {
+        float viewportHeight = contentH;
+        float pageHeight = g_layoutRoot->height + 40; // Add padding at the bottom
+        if (pageHeight > viewportHeight) {
+            float scrollY = 0;
+            for (const auto& tab : g_tabs) {
+                if (tab.id == g_activeTabId) { scrollY = tab.scrollY; break; }
+            }
+            float thumbHeight = std::max(40.0f, (viewportHeight / pageHeight) * viewportHeight);
+            float maxScroll = pageHeight - viewportHeight;
+            float scrollPercent = maxScroll > 0 ? (scrollY / maxScroll) : 0;
+            if (scrollPercent > 1.0f) scrollPercent = 1.0f;
+            if (scrollPercent < 0.0f) scrollPercent = 0.0f;
+            
+            float thumbY = contentY + scrollPercent * (viewportHeight - thumbHeight);
+            
+            // Track
+            gfx::rect(contentX + contentW - 14, contentY, 14, viewportHeight, 0xF5F5F5);
+            // Thumb
+            gfx::rrect(contentX + contentW - 12, thumbY, 10, thumbHeight, 5, 0xCCCCCC);
+        }
+    }
+    
     // UI overlays - Reference design layout
     renderTopBar();          // Top bar with centered search, left/right controls
     renderLeftSidebar();     // Floating sidebar on LEFT with dashboard, bookmarks, history
@@ -3885,19 +3903,32 @@ std::string parseSmartUrl(const std::string& input) {
 // ============================================================================
 
 void onNewTab() {
+    // Save current tab's state before switching
+    for (Tab& t : g_tabs) {
+        if (t.id == g_activeTabId) {
+            t.document = std::move(g_document);
+            t.cssEngine = std::move(g_cssEngine);
+            t.layoutRoot = std::move(g_layoutRoot);
+            t.hasRenderedContent = true;
+            break;
+        }
+    }
+    
     Tab tab;
     tab.id = g_nextTabId++;
     tab.title = "New Tab";
     tab.url = "zepra://start";
     tab.isStart = true;
+    int newId = tab.id;
     g_tabs.push_back(std::move(tab));
-    g_activeTabId = tab.id;
+    g_activeTabId = newId;
     g_currentUrl = "zepra://start";
     g_searchQuery = "";
     
-    // Clear layout cache to force fresh render of start page
+    // Fresh state for new tab
     g_layoutRoot = nullptr;
     g_document = nullptr;
+    g_cssEngine = nullptr;
 }
 
 void onCloseTab(int tabId) {
@@ -3918,18 +3949,29 @@ void onCloseTab(int tabId) {
 void onSelectTab(int tabId) {
     if (tabId == g_activeTabId) return;  // Already on this tab
     
-    // Save current tab's content to cache
+    // Save current tab's DOM/CSS/Layout state
+    for (Tab& t : g_tabs) {
+        if (t.id == g_activeTabId) {
+            t.document = std::move(g_document);
+            t.cssEngine = std::move(g_cssEngine);
+            t.layoutRoot = std::move(g_layoutRoot);
+            t.hasRenderedContent = true;
+            break;
+        }
+    }
+    
+    // Save current tab's styled lines to cache
     g_tabContentCache[g_activeTabId] = g_styledLines;
     
     // Switch to new tab
     int oldTabId = g_activeTabId;
     g_activeTabId = tabId;
     
-    // Restore new tab's content from cache
+    // Restore new tab's styled lines from cache
     if (g_tabContentCache.find(tabId) != g_tabContentCache.end()) {
         g_styledLines = g_tabContentCache[tabId];
     } else {
-        g_styledLines.clear();  // No cached content
+        g_styledLines.clear();
     }
     
     // Check if tab has pending load (background tab that wasn't loaded yet)
@@ -3944,16 +3986,35 @@ void onSelectTab(int tabId) {
         }
     }
     
-    // Restore URL and title
-    for (const Tab& tab : g_tabs) {
+    // Restore URL, title, and DOM/CSS/Layout from the target tab
+    for (Tab& tab : g_tabs) {
         if (tab.id == tabId) {
             g_currentUrl = tab.url;
             g_pageTitle = tab.title;
+            
+            // Restore per-tab DOM and CSS engine
+            if (tab.document) {
+                g_document = std::move(tab.document);
+                g_cssEngine = std::move(tab.cssEngine);
+                g_layoutRoot = std::move(tab.layoutRoot);
+            } else {
+                g_document = nullptr;
+                g_cssEngine = nullptr;
+                g_layoutRoot = nullptr;
+            }
             break;
         }
     }
+    // If layout was restored from per-tab state, just re-layout it at current width
+    if (g_layoutRoot) {
+        g_focusedBox = nullptr;
+        float contentWidth = g_width - getSidebarOffset();
+        ZepraBrowser::layoutBlock(*g_layoutRoot, contentWidth, 0);
+        std::cout << "[Tab] Switched to tab " << tabId << " (restored DOM layout)" << std::endl;
+        return;
+    }
     
-    // Rebuild layout root from cached styled lines
+    // Fallback: Rebuild layout root from cached styled lines
     g_focusedBox = nullptr;
     g_layoutRoot = std::make_unique<LayoutBox>();
     g_layoutRoot->type = LayoutType::Block;
@@ -3961,7 +4022,6 @@ void onSelectTab(int tabId) {
     
     for (const auto& line : g_styledLines) {
         LayoutBox* child = addChild(g_layoutRoot.get());
-        // Use explicit block status or fallback to margin-based detection
         child->type = (line.isBlock || line.marginTop > 0 || line.marginBottom > 0) ? LayoutType::Block : LayoutType::Inline;
         child->text = line.text;
         child->color = line.color;
@@ -3970,22 +4030,17 @@ void onSelectTab(int tabId) {
         child->bgColor = line.bgColor;
         child->hasBgColor = line.hasBgColor;
         child->isLink = line.isLink;
-        child->isLink = line.isLink;
         child->href = line.href;
         
-        // Input properties
         child->isInput = line.isInput;
         child->inputType = line.inputType;
         child->placeholder = line.placeholder;
         
-        // If it's an input, ensure it has dimensions even if empty
         if (child->isInput) {
             child->type = LayoutType::InlineBlock;
-            // Width set later by style or default
         }
     }
     
-    // Layout the rebuilt tree
     if (g_layoutRoot) {
         float contentWidth = g_width - getSidebarOffset();
         ZepraBrowser::layoutBlock(*g_layoutRoot, contentWidth, 0);
@@ -4019,131 +4074,8 @@ void onNavigate(const std::string& input) {
         }
         
 #ifdef USE_WEBCORE
-        // Generate start page HTML and build DOM for DevTools
         if (url == "zepra://start") {
-            std::string startHtml = R"(
-<!DOCTYPE html>
-<html lang="en">
-<head>
-<meta charset="UTF-8">
-<title>New Tab - Zepra</title>
-<style>
-* { margin: 0; padding: 0; box-sizing: border-box; }
-body {
-  background: linear-gradient(135deg, #DEBCEE, #EBC8FA, #DFBDF0); /* Smooth purple/pink like screenshot */
-  font-family: sans-serif;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  min-height: 100vh;
-  color: #000;
-}
-.center {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  width: 100%;
-}
-.logo-container {
-  width: 100%;
-  margin-bottom: 24px;
-}
-.logo-text {
-  text-align: center;
-  width: 100%;
-}
-.logo-text img {
-  width: 86px;
-  height: 86px;
-  border-radius: 20px;
-}
-.search-pill {
-  display: flex;
-  flex-direction: row;
-  align-items: center;
-  justify-content: space-between;
-  background: #fff;
-  border-radius: 32px;
-  height: 54px;
-  width: 700px;
-  max-width: 90vw;
-  padding: 0 16px;
-  box-shadow: 0 4px 12px rgba(0,0,0,0.08); /* Soft shadow */
-}
-.pill-left, .pill-right {
-  display: flex;
-  flex-direction: row;
-  align-items: center;
-  width: 80px;
-}
-.pill-right {
-  justify-content: flex-end;
-}
-.action-btn {
-  width: 24px;
-  height: 24px;
-  border-radius: 12px;
-  background: #F0F0F0;
-  color: #555;
-  font-size: 11px;
-  font-weight: bold;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  margin-right: 8px;
-}
-.search-input {
-  width: 480px; /* Explicit width instead of flex: 1 */
-  border: none;
-  outline: none;
-  background: transparent;
-  font-size: 14px;
-  font-weight: 700;
-  color: #000; /* Bold black text */
-  text-align: center;
-  padding: 0;
-}
-.search-input::placeholder {
-  color: #000;
-  font-weight: 700;
-}
-.waveform { font-size: 16px; font-weight: bold; margin-right: 12px; color: #555; }
-.arrow-up {
-  width: 28px;
-  height: 28px;
-  background: #000;
-  color: #fff;
-  border-radius: 14px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 14px;
-  font-weight: bold;
-}
-</style>
-</head>
-<body>
-<div class="center">
-  <div class="logo-container">
-    <div class="logo-text"><img src="file://resources/icons/zepra.svg" /></div>
-  </div>
-  <div class="search-pill">
-    <div class="pill-left">
-      <div class="action-btn">+</div>
-      <div class="action-btn">T</div>
-    </div>
-    <input class="search-input" type="text" placeholder="Let's give your dream life. What you create today?" autofocus />
-    <div class="pill-right">
-      <span class="waveform">|||</span>
-      <div class="arrow-up">^</div>
-    </div>
-  </div>
-</div>
-</body>
-</html>
-)";
+            std::string startHtml = ZepraBrowser::UI::getStartPageHTML();
             g_pageContent = startHtml;
             parseWithWebCore(startHtml);
             std::cout << "[Browser] Start page DOM built" << std::endl;
@@ -4833,7 +4765,13 @@ void handleNXEvent(const NXRender::Event& event) {
                  g_mouseDown = false;
              }
         } else if (event.type == NXRender::EventType::MouseWheel) {
-             // ::g_mouseHandler.handleScroll(event.mouse.wheelDelta * 20.0f); // TODO: Add scroll support to MouseHandler
+             for (auto& tab : g_tabs) {
+                 if (tab.id == g_activeTabId) {
+                     tab.scrollY -= event.mouse.wheelDelta * 40.0f;
+                     if (tab.scrollY < 0) tab.scrollY = 0;
+                     break;
+                 }
+             }
         }
     }
 }

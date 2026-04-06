@@ -173,6 +173,65 @@ CSSColor CSSColor::parse(const std::string& str) {
         }
         return {(uint8_t)r, (uint8_t)g, (uint8_t)b, (uint8_t)a};
     }
+    
+    // hsl()/hsla()
+    if (str.substr(0, 4) == "hsl(" || str.substr(0, 5) == "hsla(") {
+        size_t start = str.find('(') + 1;
+        size_t end = str.find(')');
+        if (start != std::string::npos && end != std::string::npos) {
+            std::string inner = str.substr(start, end - start);
+            size_t pos = 0;
+            auto nextNum = [&]() -> float {
+                while (pos < inner.length() && !std::isdigit(inner[pos]) && inner[pos] != '.' && inner[pos] != '-') pos++;
+                if (pos >= inner.length()) return 0;
+                size_t numPos;
+                float val = std::stof(inner.substr(pos), &numPos);
+                pos += numPos;
+                while (pos < inner.length() && inner[pos] == ' ') pos++;
+                if (pos < inner.length() && inner[pos] == '%') { pos++; }
+                return val;
+            };
+            
+            float h = nextNum();
+            float s = nextNum() / 100.0f;
+            float l = nextNum() / 100.0f;
+            int a = 255;
+            
+            if (str.substr(0, 5) == "hsla(") {
+                float alpha = nextNum();
+                if (alpha > 1.0f && std::to_string(alpha).find('.') == std::string::npos) alpha /= 255.0f;
+                if (alpha <= 1.0f) a = (int)(alpha * 255.0f);
+                else a = (int)alpha;
+            }
+            
+            // Normalize hue to 0-360
+            while (h < 0) h += 360.0f;
+            while (h >= 360.0f) h -= 360.0f;
+            h /= 360.0f;
+            
+            auto hue2rgb = [](float p, float q, float t) -> float {
+                if (t < 0.0f) t += 1.0f;
+                if (t > 1.0f) t -= 1.0f;
+                if (t < 1.0f/6.0f) return p + (q - p) * 6.0f * t;
+                if (t < 1.0f/2.0f) return q;
+                if (t < 2.0f/3.0f) return p + (q - p) * (2.0f/3.0f - t) * 6.0f;
+                return p;
+            };
+            
+            float r_f, g_f, b_f;
+            if (s == 0) {
+                r_f = g_f = b_f = l; // achromatic
+            } else {
+                float q = l < 0.5f ? l * (1.0f + s) : l + s - l * s;
+                float p = 2.0f * l - q;
+                r_f = hue2rgb(p, q, h + 1.0f/3.0f);
+                g_f = hue2rgb(p, q, h);
+                b_f = hue2rgb(p, q, h - 1.0f/3.0f);
+            }
+            
+            return {(uint8_t)(r_f * 255.0f), (uint8_t)(g_f * 255.0f), (uint8_t)(b_f * 255.0f), (uint8_t)a};
+        }
+    }
 
     // Named colors (most common)
     static const std::unordered_map<std::string, CSSColor> named = {

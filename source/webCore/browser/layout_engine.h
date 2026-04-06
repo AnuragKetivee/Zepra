@@ -93,6 +93,9 @@ struct LayoutBox {
     float paddingTop = 0, paddingRight = 0, paddingBottom = 0, paddingLeft = 0;
     float borderTop = 0, borderRight = 0, borderBottom = 0, borderLeft = 0;
     
+    // Box sizing context
+    int boxSizing = 0; // 0=ContentBox, 1=BorderBox
+    
     // Margin auto flags (for centering in layoutBlock)
     bool marginLeftAuto = false;
     bool marginRightAuto = false;

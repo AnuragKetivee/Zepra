@@ -127,6 +127,7 @@ target_link_libraries(nxrender_tests
     GL
     X11
     Freetype::Freetype
+    z
 )
 add_test(NAME NxRenderTests COMMAND nxrender_tests)
 

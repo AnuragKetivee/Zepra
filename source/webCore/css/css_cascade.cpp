@@ -421,6 +421,26 @@ bool CSSCascade::selectorGroupMatches(DOMElement* element, const std::string& se
             DOMNode* parentNode = current->parentNode();
             current = parentNode ? dynamic_cast<DOMElement*>(parentNode) : nullptr;
             if (!current || !compoundSelectorMatches(current, parts[p])) return false;
+        } else if (comb == '+') {
+            // Adjacent sibling combinator — previous element sibling must match
+            DOMNode* prev = current->previousSibling();
+            while (prev && !dynamic_cast<DOMElement*>(prev)) prev = prev->previousSibling();
+            current = prev ? dynamic_cast<DOMElement*>(prev) : nullptr;
+            if (!current || !compoundSelectorMatches(current, parts[p])) return false;
+        } else if (comb == '~') {
+            // General sibling combinator — any preceding element sibling must match
+            DOMNode* sib = current->previousSibling();
+            bool found = false;
+            while (sib) {
+                auto* sibEl = dynamic_cast<DOMElement*>(sib);
+                if (sibEl && compoundSelectorMatches(sibEl, parts[p])) {
+                    current = sibEl;
+                    found = true;
+                    break;
+                }
+                sib = sib->previousSibling();
+            }
+            if (!found) return false;
         } else {
             // Descendant combinator — any ancestor must match
             DOMNode* parentNode = current->parentNode();
@@ -524,19 +544,91 @@ bool CSSCascade::compoundSelectorMatches(DOMElement* element, const std::string&
             }
         }
         else if (compound[i] == ':') {
-            // Pseudo-class/element — skip for now (matches anything)
             i++;
-            if (i < len && compound[i] == ':') i++;
+            bool isPseudoElement = false;
+            if (i < len && compound[i] == ':') { isPseudoElement = true; i++; }
+            
+            // Extract pseudo name
+            size_t nameStart = i;
             while (i < len && (std::isalnum(compound[i]) || compound[i] == '-')) i++;
+            std::string pseudoName = compound.substr(nameStart, i - nameStart);
+            
+            // Extract argument if present
+            std::string pseudoArg;
             if (i < len && compound[i] == '(') {
                 int depth = 1;
                 i++;
+                size_t argStart = i;
                 while (i < len && depth > 0) {
                     if (compound[i] == '(') depth++;
                     else if (compound[i] == ')') depth--;
-                    i++;
+                    if (depth > 0) i++; else break;
                 }
+                pseudoArg = compound.substr(argStart, i - argStart);
+                if (i < len) i++; // skip ')'
             }
+            
+            // Pseudo-elements (::before, ::after) — skip (not rendered)
+            if (isPseudoElement) continue;
+            
+            // Fast-path: UI state pseudo-classes — no DOM walk needed
+            // These are the most common in stylesheets (Tailwind, Bootstrap, etc.)
+            if (pseudoName == "hover" || pseudoName == "focus" || 
+                pseudoName == "active" || pseudoName == "visited" ||
+                pseudoName == "link" || pseudoName == "enabled" ||
+                pseudoName == "disabled" || pseudoName == "checked" ||
+                pseudoName == "placeholder-shown" || pseudoName == "focus-within" ||
+                pseudoName == "focus-visible" || pseudoName == "target" ||
+                pseudoName == "default" || pseudoName == "indeterminate" ||
+                pseudoName == "placeholder" || pseudoName == "selection" ||
+                pseudoName == "read-only" || pseudoName == "read-write") {
+                continue; // Match true for static rendering
+            }
+            
+            // Structural pseudo-classes — require DOM tree walks
+            if (pseudoName == "first-child") {
+                DOMNode* sib = element->previousSibling();
+                while (sib && !dynamic_cast<DOMElement*>(sib)) sib = sib->previousSibling();
+                if (sib) return false;
+            } else if (pseudoName == "last-child") {
+                DOMNode* sib = element->nextSibling();
+                while (sib && !dynamic_cast<DOMElement*>(sib)) sib = sib->nextSibling();
+                if (sib) return false;
+            } else if (pseudoName == "only-child") {
+                DOMNode* sib = element->previousSibling();
+                while (sib && !dynamic_cast<DOMElement*>(sib)) sib = sib->previousSibling();
+                if (sib) return false;
+                sib = element->nextSibling();
+                while (sib && !dynamic_cast<DOMElement*>(sib)) sib = sib->nextSibling();
+                if (sib) return false;
+            } else if (pseudoName == "nth-child" && !pseudoArg.empty()) {
+                int idx = 1;
+                DOMNode* sib = element->previousSibling();
+                while (sib) {
+                    if (dynamic_cast<DOMElement*>(sib)) idx++;
+                    sib = sib->previousSibling();
+                }
+                if (pseudoArg == "odd") { if (idx % 2 == 0) return false; }
+                else if (pseudoArg == "even") { if (idx % 2 != 0) return false; }
+                else {
+                    try { int n = std::stoi(pseudoArg); if (idx != n) return false; } catch (...) {}
+                }
+            } else if (pseudoName == "root") {
+                std::string tag = element->tagName();
+                std::transform(tag.begin(), tag.end(), tag.begin(), ::tolower);
+                if (tag != "html") return false;
+            } else if (pseudoName == "empty") {
+                if (element->firstChild()) return false;
+            } else if (pseudoName == "not" && !pseudoArg.empty()) {
+                if (compoundSelectorMatches(element, pseudoArg)) return false;
+            } else if (pseudoName == "is" || pseudoName == "matches" || pseudoName == "any") {
+                if (!pseudoArg.empty() && !selectorMatches(element, pseudoArg)) return false;
+            } else if (pseudoName == "where") {
+                // :where(sel) — same as :is() but zero specificity
+                if (!pseudoArg.empty() && !selectorMatches(element, pseudoArg)) return false;
+            }
+            // :hover, :focus, :active, :visited, :link — UI state, match true for now
+            // :placeholder, :disabled, :checked — form state, skip
         }
         else if (std::isalnum(compound[i]) || compound[i] == '-' || compound[i] == '_') {
             // Tag selector
@@ -565,7 +657,6 @@ Selector::Specificity CSSCascade::calculateSpecificity(const std::string& select
         char c = selector[i];
         
         if (c == '#') {
-            // ID selector (a)
             spec.a++;
             i++;
             while (i < selector.length() && 
@@ -573,33 +664,58 @@ Selector::Specificity CSSCascade::calculateSpecificity(const std::string& select
                 i++;
             }
         } else if (c == '.') {
-            // Class selector (b)
             spec.b++;
             i++;
-            while (i < selector.length() && 
-                   (std::isalnum(selector[i]) || selector[i] == '-' || selector[i] == '_')) {
-                i++;
+            while (i < selector.length()) {
+                if (selector[i] == '\\' && i + 1 < selector.length()) { i += 2; continue; }
+                if (std::isalnum(selector[i]) || selector[i] == '-' || selector[i] == '_') { i++; continue; }
+                break;
             }
         } else if (c == '[') {
-            // Attribute selector (counts as b)
             spec.b++;
             while (i < selector.length() && selector[i] != ']') i++;
             if (i < selector.length()) i++;
         } else if (c == ':') {
-            // Pseudo-class or pseudo-element
             i++;
-            if (i < selector.length() && selector[i] == ':') {
-                // Pseudo-element (counts as c)
-                spec.c++;
+            bool isPseudoElement = false;
+            if (i < selector.length() && selector[i] == ':') { isPseudoElement = true; i++; }
+            
+            size_t nameStart = i;
+            while (i < selector.length() && (std::isalnum(selector[i]) || selector[i] == '-')) i++;
+            std::string pseudoName = selector.substr(nameStart, i - nameStart);
+            
+            std::string pseudoArg;
+            if (i < selector.length() && selector[i] == '(') {
+                int depth = 1;
                 i++;
+                size_t argStart = i;
+                while (i < selector.length() && depth > 0) {
+                    if (selector[i] == '(') depth++;
+                    else if (selector[i] == ')') depth--;
+                    if (depth > 0) i++; else break;
+                }
+                pseudoArg = selector.substr(argStart, i - argStart);
+                if (i < selector.length()) i++;
+            }
+            
+            if (isPseudoElement) {
+                spec.c++;
+            } else if (pseudoName == "where") {
+                // :where() contributes zero specificity (CSS Selectors L4)
+            } else if (pseudoName == "not" || pseudoName == "is" || pseudoName == "matches") {
+                // Specificity = max specificity of arguments
+                if (!pseudoArg.empty()) {
+                    auto argSpec = calculateSpecificity(pseudoArg);
+                    spec.a += argSpec.a;
+                    spec.b += argSpec.b;
+                    spec.c += argSpec.c;
+                }
             } else {
-                // Pseudo-class (counts as b, except :not, :is, :where)
                 spec.b++;
             }
-            while (i < selector.length() && std::isalpha(selector[i])) i++;
-        } else if (std::isalpha(c)) {
-            // Element selector (c)
-            spec.c++;
+        } else if (std::isalpha(c) || c == '*') {
+            if (c != '*') spec.c++;
+            i++; // consume the first character ('*' or alpha)
             while (i < selector.length() && 
                    (std::isalnum(selector[i]) || selector[i] == '-')) {
                 i++;

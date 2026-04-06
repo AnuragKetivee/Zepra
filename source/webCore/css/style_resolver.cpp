@@ -133,10 +133,13 @@ CSSComputedStyle StyleResolver::computeStyle(DOMElement* element, const CSSCompu
         sheetPairs.push_back({entry.sheet.get(), entry.origin});
     }
     
+    std::cerr << " [collect]" << std::flush;
     auto matchedRules = cascade_.collectMatchingRulesWithOrigins(element, sheetPairs);
+    std::cerr << "(" << matchedRules.size() << ")" << std::flush;
     
     // Step 3: Sort by cascade order
     cascade_.sortByCascade(matchedRules);
+    std::cerr << " [sort]" << std::flush;
     
     // Step 4: Apply matched rules in order (lowest priority first)
     for (const auto& match : matchedRules) {
@@ -144,6 +147,7 @@ CSSComputedStyle StyleResolver::computeStyle(DOMElement* element, const CSSCompu
             applyDeclarations(computed, match.rule->style(), parentStyle);
         }
     }
+    std::cerr << " [apply]" << std::flush;
     
     // Step 5: Apply inline styles (highest priority)
     std::string inlineStyle = element->getAttribute("style");
@@ -658,6 +662,82 @@ void StyleResolver::applyProperty(CSSComputedStyle& style,
     }
     else if (property == "cursor") { style.cursor = value; }
     else if (property == "pointer-events") { style.pointerEvents = value; }
+
+    // =====================================================================
+    // Tailwind / Modern CSS Properties
+    // =====================================================================
+    else if (property == "text-overflow") { style.textOverflow = value; }
+    else if (property == "object-fit") { style.objectFit = value; }
+    else if (property == "object-position") { style.objectPosition = value; }
+    else if (property == "aspect-ratio") { style.aspectRatio = value; }
+    else if (property == "backdrop-filter" || property == "-webkit-backdrop-filter") {
+        style.backdropFilter = value;
+    }
+    else if (property == "place-items") {
+        style.placeItems = value;
+        // Shorthand: sets align-items and justify-items
+        auto parts = splitValues(value);
+        if (parts.size() == 1) {
+            if (value == "center") {
+                style.alignItems = JustifyAlign::Center;
+                style.justifyContent = JustifyAlign::Center;
+            } else if (value == "stretch") {
+                style.alignItems = JustifyAlign::Stretch;
+            }
+        }
+    }
+    else if (property == "place-content") {
+        style.placeContent = value;
+        auto parts = splitValues(value);
+        if (parts.size() == 1) {
+            if (value == "center") {
+                style.alignContent = JustifyAlign::Center;
+                style.justifyContent = JustifyAlign::Center;
+            }
+        }
+    }
+    else if (property == "isolation") { style.isolation = value; }
+    else if (property == "will-change") { style.willChange = value; }
+    else if (property == "content") { style.content = value; }
+    else if (property == "user-select" || property == "-webkit-user-select") {
+        style.userSelect = value;
+    }
+    else if (property == "appearance" || property == "-webkit-appearance") {
+        style.appearance = value;
+    }
+    else if (property == "outline") {
+        // Shorthand: "2px solid #000" or "none"
+        if (value == "none" || value == "0") {
+            style.outlineWidth = 0;
+            style.outlineStyle = "none";
+        } else {
+            style.outlineStyle = "solid";
+            std::istringstream ss(value);
+            std::string token;
+            while (ss >> token) {
+                if (token == "solid" || token == "dashed" || token == "dotted") {
+                    style.outlineStyle = token;
+                } else if (token == "none") {
+                    style.outlineWidth = 0;
+                } else if (token[0] == '#' || token.substr(0,3) == "rgb") {
+                    style.outlineColor = parseColor(token);
+                } else {
+                    CSSLength len = parseLength(token);
+                    if (!len.isAuto()) style.outlineWidth = len.toPx(style.fontSize, 16.0f, 1920, 1080, 0);
+                }
+            }
+        }
+    }
+    else if (property == "outline-width") {
+        CSSLength len = parseLength(value);
+        if (!len.isAuto()) style.outlineWidth = len.toPx(style.fontSize, 16.0f, 1920, 1080, 0);
+    }
+    else if (property == "outline-color") { style.outlineColor = parseColor(value); }
+    else if (property == "outline-style") { style.outlineStyle = value; }
+    else if (property == "outline-offset") {
+        CSSLength len = parseLength(value);
+        if (!len.isAuto()) style.outlineOffset = len.toPx(style.fontSize, 16.0f, 1920, 1080, 0);
+    }
 }
 
 // ============================================================================

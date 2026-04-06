@@ -2,101 +2,243 @@
 // Licensed under KPL-2.0. See LICENSE file for details.
 
 #include "tessellator.h"
-#include <list>
 #include <cmath>
 #include <algorithm>
+#include <limits>
+#include <stdexcept>
 
 namespace NXRender {
 namespace PathGen {
 
-float Tessellator::signedArea(const std::vector<Math::Vector2>& polygon) {
-    float area = 0.0f;
-    size_t n = polygon.size();
-    for(size_t i = 0; i < n; i++) {
-        size_t j = (i + 1) % n;
-        area += (polygon[i].x * polygon[j].y) - (polygon[j].x * polygon[i].y);
+Tessellator::Tessellator() {}
+
+Tessellator::~Tessellator() {}
+
+void Tessellator::setOuterContour(const std::vector<Point>& contour) {
+    outerContour_ = contour;
+}
+
+void Tessellator::addHole(const std::vector<Point>& holeContour) {
+    if (!holeContour.empty()) {
+        holes_.push_back(holeContour);
     }
-    return area / 2.0f;
 }
 
-bool Tessellator::isConvex(const Math::Vector2& prev, const Math::Vector2& curr, const Math::Vector2& next) {
-    // Cross product to test convexity. Assuming CCW polygon, a positive cross product means convex
-    float cross = (curr.x - prev.x) * (next.y - curr.y) - (curr.y - prev.y) * (next.x - curr.x);
-    return cross > 0.0f;
+float Tessellator::triangleArea(const Point& p, const Point& q, const Point& r) const {
+    return (q.y - p.y) * (r.x - q.x) - (q.x - p.x) * (r.y - q.y);
 }
 
-bool Tessellator::isPointInTriangle(const Math::Vector2& pt, const Math::Vector2& a, const Math::Vector2& b, const Math::Vector2& c) {
-    float cross1 = (b.x - a.x) * (pt.y - a.y) - (b.y - a.y) * (pt.x - a.x);
-    float cross2 = (c.x - b.x) * (pt.y - b.y) - (c.y - b.y) * (pt.x - b.x);
-    float cross3 = (a.x - c.x) * (pt.y - c.y) - (a.y - c.y) * (pt.x - c.x);
+bool Tessellator::pointInTriangle(const Point& pt, const Point& v1, const Point& v2, const Point& v3) const {
+    auto sign = [](const Point& p1, const Point& p2, const Point& p3) {
+        return (p1.x - p3.x) * (p2.y - p3.y) - (p2.x - p3.x) * (p1.y - p3.y);
+    };
 
-    // Point is strictly inside if all signs are positive or all signs are negative
-    bool has_neg = (cross1 < 0) || (cross2 < 0) || (cross3 < 0);
-    bool has_pos = (cross1 > 0) || (cross2 > 0) || (cross3 > 0);
+    float d1 = sign(pt, v1, v2);
+    float d2 = sign(pt, v2, v3);
+    float d3 = sign(pt, v3, v1);
+
+    bool has_neg = (d1 < 0) || (d2 < 0) || (d3 < 0);
+    bool has_pos = (d1 > 0) || (d2 > 0) || (d3 > 0);
 
     return !(has_neg && has_pos);
 }
 
-std::vector<Trip> Tessellator::triangulate(const std::vector<Math::Vector2>& polygon) {
-    std::vector<Trip> triangles;
-    if (polygon.size() < 3) return triangles;
+Tessellator::VertexNode* Tessellator::buildDoublyLinkedList(const std::vector<Point>& contour) {
+    if (contour.size() < 3) return nullptr;
 
-    std::vector<int> indices;
-    indices.reserve(polygon.size());
-    for(size_t i = 0; i < polygon.size(); i++) {
-        indices.push_back(static_cast<int>(i));
+    VertexNode* head = nullptr;
+    VertexNode* tail = nullptr;
+
+    float area = 0.0f;
+    for (size_t i = 0; i < contour.size(); ++i) {
+        size_t j = (i + 1) % contour.size();
+        area += (contour[i].x * contour[j].y) - (contour[j].x * contour[i].y);
     }
 
-    // Force CCW order
-    if (signedArea(polygon) < 0) {
-        std::reverse(indices.begin(), indices.end());
+    // Standardize to CCW winding
+    bool isCW = area < 0.0f;
+
+    for (size_t i = 0; i < contour.size(); ++i) {
+        size_t idx = isCW ? (contour.size() - 1 - i) : i;
+        VertexNode* node = new VertexNode{contour[idx], static_cast<int>(idx), nullptr, nullptr, false, false};
+        
+        if (!head) {
+            head = node;
+            tail = node;
+            node->prev = node;
+            node->next = node;
+        } else {
+            node->prev = tail;
+            node->next = head;
+            tail->next = node;
+            head->prev = node;
+            tail = node;
+        }
     }
 
-    while(indices.size() > 3) {
-        bool earFound = false;
-        int n = static_cast<int>(indices.size());
+    return head;
+}
 
-        for(int i = 0; i < n; i++) {
-            int prev_idx = indices[(i == 0) ? (n - 1) : (i - 1)];
-            int curr_idx = indices[i];
-            int next_idx = indices[(i + 1) % n];
+void Tessellator::destroyList(VertexNode* head) {
+    if (!head) return;
+    VertexNode* curr = head;
+    do {
+        VertexNode* next = curr->next;
+        delete curr;
+        curr = next;
+    } while (curr != head);
+}
 
-            const Math::Vector2& p = polygon[prev_idx];
-            const Math::Vector2& c = polygon[curr_idx];
-            const Math::Vector2& n_pt = polygon[next_idx];
+void Tessellator::splitPolygon(VertexNode* a, VertexNode* b) {
+    VertexNode* a2 = new VertexNode{a->p, a->index, a->prev, b, false, false};
+    VertexNode* b2 = new VertexNode{b->p, b->index, a, b->next, false, false};
+    
+    a->prev->next = a2;
+    a->prev = b2;
+    b->next->prev = b2;
+    b->next = a2;
+}
 
-            if (isConvex(p, c, n_pt)) {
-                bool isEar = true;
-                for(int j = 0; j < n; j++) {
-                    int test_idx = indices[j];
-                    if (test_idx == prev_idx || test_idx == curr_idx || test_idx == next_idx) continue;
-                    
-                    if (isPointInTriangle(polygon[test_idx], p, c, n_pt)) {
-                        isEar = false;
-                        break;
-                    }
-                }
+Tessellator::VertexNode* Tessellator::findHoleBridge(VertexNode* holeNode, VertexNode* outerNode) {
+    VertexNode* p = outerNode;
+    float hx = holeNode->p.x;
+    float hy = holeNode->p.y;
+    float qx = -std::numeric_limits<float>::infinity();
+    VertexNode* m = nullptr;
 
-                if (isEar) {
-                    triangles.push_back({prev_idx, curr_idx, next_idx});
-                    indices.erase(indices.begin() + i);
-                    earFound = true;
-                    break;
-                }
+    // Find the maximal x projection on the target line
+    do {
+        if (hy <= p->p.y && hy >= p->next->p.y && p->next->p.y != p->p.y) {
+            float x = p->p.x + (hy - p->p.y) * (p->next->p.x - p->p.x) / (p->next->p.y - p->p.y);
+            if (x <= hx && x > qx) {
+                qx = x;
+                m = (p->p.x < p->next->p.x) ? p : p->next;
             }
         }
-        
-        if (!earFound) {
-            // Degenerate polygon or self-intersecting fallback.
-            // Rather than infinite looping, we forcefully drop a vertex.
-            indices.erase(indices.begin());
+        p = p->next;
+    } while (p != outerNode);
+
+    if (!m) return p;
+
+    // Check visibility against potential intersecting edges using sector confinement
+    VertexNode* b = m;
+    p = m->next;
+    float bestTan = -std::numeric_limits<float>::infinity();
+
+    while (p != m) {
+        if (hx >= p->p.x && p->p.x >= m->p.x &&
+            pointInTriangle(p->p, Point(hx, hy), m->p, Point(qx, hy))) {
+            float t = std::abs(hy - p->p.y) / (hx - p->p.x);
+            if (t > bestTan) {
+                b = p;
+                bestTan = t;
+            }
+        }
+        p = p->next;
+    }
+
+    return b;
+}
+
+Tessellator::VertexNode* Tessellator::eliminateHoles(VertexNode* outerHead) {
+    if (holes_.empty()) return outerHead;
+
+    std::vector<VertexNode*> holeNodes;
+    for (const auto& hole : holes_) {
+        VertexNode* hNode = buildDoublyLinkedList(hole);
+        if (hNode) {
+            // Find leftmost node of hole
+            VertexNode* curr = hNode;
+            VertexNode* leftmost = hNode;
+            do {
+                if (curr->p.x < leftmost->p.x) leftmost = curr;
+                curr = curr->next;
+            } while (curr != hNode);
+            holeNodes.push_back(leftmost);
         }
     }
 
-    if (indices.size() == 3) {
-        triangles.push_back({indices[0], indices[1], indices[2]});
+    // Sort holes by leftmost X coordinate
+    std::sort(holeNodes.begin(), holeNodes.end(), [](VertexNode* a, VertexNode* b) {
+        return a->p.x > b->p.x;
+    });
+
+    for (VertexNode* hLeft : holeNodes) {
+        VertexNode* bridge = findHoleBridge(hLeft, outerHead);
+        if (bridge) {
+            splitPolygon(bridge, hLeft);
+        }
     }
 
+    return outerHead;
+}
+
+bool Tessellator::isEar(VertexNode* ear) {
+    if (triangleArea(ear->prev->p, ear->p, ear->next->p) >= 0) return false;
+
+    VertexNode* p = ear->next->next;
+    while (p != ear->prev) {
+        if (pointInTriangle(p->p, ear->prev->p, ear->p, ear->next->p) &&
+            triangleArea(p->prev->p, p->p, p->next->p) >= 0) {
+            return false;
+        }
+        p = p->next;
+    }
+    return true;
+}
+
+Tessellator::VertexNode* Tessellator::earcutLinked(VertexNode* ear, std::vector<Triangle>& triangles) {
+    if (!ear) return nullptr;
+
+    VertexNode* stop = ear;
+    
+    // Compute initial ear flags
+    VertexNode* curr = ear;
+    do {
+        curr->isEar = isEar(curr);
+        curr = curr->next;
+    } while (curr != ear);
+
+    while (ear->prev != ear->next) {
+        if (ear->isEar) {
+            triangles.push_back({ear->prev->p, ear->p, ear->next->p});
+
+            VertexNode* prevNode = ear->prev;
+            VertexNode* nextNode = ear->next;
+            
+            prevNode->next = nextNode;
+            nextNode->prev = prevNode;
+
+            delete ear;
+
+            // Re-evaluate adjacent nodes
+            prevNode->isEar = isEar(prevNode);
+            nextNode->isEar = isEar(nextNode);
+
+            ear = nextNode;
+            stop = nextNode;
+            continue;
+        }
+
+        ear = ear->next;
+        if (ear == stop) break; // Infinite loop fail-safe
+    }
+
+    return ear;
+}
+
+std::vector<Triangle> Tessellator::triangulate() {
+    std::vector<Triangle> triangles;
+    if (outerContour_.size() < 3) return triangles;
+
+    VertexNode* head = buildDoublyLinkedList(outerContour_);
+    if (!head) return triangles;
+
+    head = eliminateHoles(head);
+    VertexNode* remaining = earcutLinked(head, triangles);
+    
+    destroyList(remaining);
+    
     return triangles;
 }
 

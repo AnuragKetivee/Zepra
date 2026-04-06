@@ -11,6 +11,9 @@ set(NXRENDER_SOURCES
     nxgfx/context.cpp
     nxgfx/context3d.cpp
     nxgfx/text.cpp
+    nxgfx/text/text_shaper.cpp
+    nxgfx/text/font_fallback.cpp
+    nxgfx/text/glyph_cache.cpp
     nxgfx/math/matrix.cpp
     nxgfx/math/quaternion.cpp
     nxgfx/math/transform2d.cpp
@@ -30,6 +33,7 @@ set(NXRENDER_SOURCES
     
     # widgets
     widgets/widget.cpp
+    widgets/datagrid.cpp
     widgets/button.cpp
     widgets/label.cpp
     widgets/textfield.cpp
@@ -51,6 +55,9 @@ set(NXRENDER_SOURCES
     # input
     input/mouse.cpp
     input/keyboard.cpp
+    input/event_router.cpp
+    input/focus_manager.cpp
+    input/shortcut_manager.cpp
     
     # animation
     animation/animator.cpp
@@ -116,10 +123,15 @@ target_include_directories(nxrender PRIVATE
 # Link dependencies
 find_package(OpenGL REQUIRED)
 find_package(Freetype REQUIRED)
+find_package(PkgConfig REQUIRED)
+pkg_check_modules(HARFBUZZ REQUIRED harfbuzz)
+
+target_include_directories(nxrender PRIVATE ${HARFBUZZ_INCLUDE_DIRS})
 
 target_link_libraries(nxrender PUBLIC
     OpenGL::GL
     Freetype::Freetype
+    ${HARFBUZZ_LIBRARIES}
 )
 
 # Platform-specific

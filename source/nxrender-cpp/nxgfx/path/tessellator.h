@@ -3,27 +3,62 @@
 
 #pragma once
 
-#include "nxgfx/math/vector.h"
+#include "nxgfx/primitives.h"
 #include <vector>
+#include <cstdint>
 
 namespace NXRender {
 namespace PathGen {
 
-struct Trip {
-    int v0, v1, v2;
+struct Triangle {
+    Point a, b, c;
 };
 
+// Advanced Polygon Triangulator handling complex contours, holes, and non-convex geometries
 class Tessellator {
 public:
-    // Triangulates a simple polygon (no holes). 
-    // Assumes outer polygon vertices are ordered counter-clockwise.
-    // Ear-clipping algorithm.
-    static std::vector<Trip> triangulate(const std::vector<Math::Vector2>& polygon);
+    Tessellator();
+    ~Tessellator();
+
+    // Sets the primary outer contour to be triangulated
+    void setOuterContour(const std::vector<Point>& contour);
+    
+    // Injects a hole. Must be fully contained within the outer contour.
+    void addHole(const std::vector<Point>& holeContour);
+
+    // Executes algorithmic triangulation. Returns empty if invalid.
+    std::vector<Triangle> triangulate();
 
 private:
-    static bool isConvex(const Math::Vector2& prev, const Math::Vector2& curr, const Math::Vector2& next);
-    static bool isPointInTriangle(const Math::Vector2& pt, const Math::Vector2& v1, const Math::Vector2& v2, const Math::Vector2& v3);
-    static float signedArea(const std::vector<Math::Vector2>& polygon);
+    struct VertexNode {
+        Point p;
+        int index;
+        VertexNode* prev;
+        VertexNode* next;
+        bool isEar;
+        bool isProcessed;
+    };
+
+    std::vector<Point> outerContour_;
+    std::vector<std::vector<Point>> holes_;
+
+    // Core algorithmic routines
+    VertexNode* buildDoublyLinkedList(const std::vector<Point>& contour);
+    void destroyList(VertexNode* head);
+    
+    // Hole Bridge resolution
+    VertexNode* eliminateHoles(VertexNode* outerHead);
+    VertexNode* findHoleBridge(VertexNode* hole, VertexNode* outer);
+    void splitPolygon(VertexNode* a, VertexNode* b);
+
+    // Classification
+    bool isEar(VertexNode* node);
+    bool pointInTriangle(const Point& pt, const Point& v1, const Point& v2, const Point& v3) const;
+    float triangleArea(const Point& a, const Point& b, const Point& c) const;
+
+    // Advanced spatial hashing could be mapped here for N log N complexity,
+    // currently bounded optimized traversal
+    VertexNode* earcutLinked(VertexNode* ear, std::vector<Triangle>& triangles);
 };
 
 } // namespace PathGen

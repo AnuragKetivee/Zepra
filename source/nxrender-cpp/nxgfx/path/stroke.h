@@ -3,38 +3,50 @@
 
 #pragma once
 
-#include "nxgfx/math/vector.h"
+#include "nxgfx/primitives.h"
 #include <vector>
 
 namespace NXRender {
 namespace PathGen {
 
-enum class LineJoin {
-    Miter,
-    Bevel
-};
-
 enum class LineCap {
     Butt,
+    Round,
     Square
+};
+
+enum class LineJoin {
+    Miter,
+    Round,
+    Bevel
 };
 
 struct StrokeOptions {
     float width = 1.0f;
-    float miterLimit = 10.0f;
-    LineJoin join = LineJoin::Miter;
     LineCap cap = LineCap::Butt;
+    LineJoin join = LineJoin::Miter;
+    float miterLimit = 4.0f;
 };
 
+// Responsible for expanding a 1D polyline into a 2D boundary polygon (with self-overlap elimination).
 class StrokeGenerator {
 public:
-    // Expands a list of flat points into a stroked polygon that can be tessellated.
-    // Assumes points is an open or closed flat path.
-    static std::vector<Math::Vector2> expand(const std::vector<Math::Vector2>& points, bool closed, const StrokeOptions& options);
-    
+    StrokeGenerator(const StrokeOptions& options = StrokeOptions());
+    ~StrokeGenerator();
+
+    // Ingests a flattened input path and outputs the expanded polygon border contour.
+    std::vector<Point> expandPath(const std::vector<Point>& inputLine, bool isClosed);
+
 private:
-    static void addMiterJoin(std::vector<Math::Vector2>& outVerts, const Math::Vector2& prevNorm, const Math::Vector2& nextNorm, const Math::Vector2& pt, float halfWidth, float miterLimit, bool isLeft);
-    static void addBevelJoin(std::vector<Math::Vector2>& outVerts, const Math::Vector2& prevNorm, const Math::Vector2& nextNorm, const Math::Vector2& pt, float halfWidth, bool isLeft);
+    StrokeOptions options_;
+
+    struct VertexNormal {
+        Point n;
+        float len;
+    };
+
+    void generateCap(const Point& p, const Point& normal, const Point& dir, bool isStart, std::vector<Point>& output);
+    void generateJoin(const Point& p, const Point& nA, const Point& prevDir, const Point& nB, const Point& currDir, std::vector<Point>& outputPos, std::vector<Point>& outputNeg);
 };
 
 } // namespace PathGen

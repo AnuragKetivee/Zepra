@@ -3,50 +3,90 @@
 
 #pragma once
 
-#include "nxgfx/math/vector.h"
+#include "nxgfx/primitives.h"
 #include <vector>
+#include <string>
+#include <cstdint>
 
 namespace NXRender {
 namespace PathGen {
 
-enum class PathCommand {
+enum class PathVerb : uint8_t {
     MoveTo,
     LineTo,
     QuadTo,
     CubicTo,
+    ArcTo,    // Elliptical SVG-style arc
     Close
 };
 
-struct PathPoint {
-    Math::Vector2 point;
-    PathCommand command;
+// Represents an elliptical arc following SVG A/a command specification
+struct ArcParams {
+    float rx, ry;
+    float xAxisRotation; // In radians
+    bool largeArcFlag;
+    bool sweepFlag;
+    Point endPoint;
 };
 
 class Path {
 public:
-    Path() = default;
+    Path();
+    ~Path();
 
-    void moveTo(float x, float y);
-    void moveTo(const Math::Vector2& p) { moveTo(p.x, p.y); }
-    
-    void lineTo(float x, float y);
-    void lineTo(const Math::Vector2& p) { lineTo(p.x, p.y); }
-    
-    void quadTo(const Math::Vector2& control, const Math::Vector2& end);
-    void cubicTo(const Math::Vector2& control1, const Math::Vector2& control2, const Math::Vector2& end);
-    
-    void close();
+    // Clears all contours and resets bounds
     void clear();
 
-    const std::vector<PathPoint>& getPoints() const { return points_; }
-    bool isEmpty() const { return points_.empty(); }
+    // Standard commands
+    void moveTo(float x, float y);
+    void moveTo(const Point& p) { moveTo(p.x, p.y); }
+    
+    void lineTo(float x, float y);
+    void lineTo(const Point& p) { lineTo(p.x, p.y); }
+    
+    void quadTo(float cx, float cy, float x, float y);
+    void quadTo(const Point& cp, const Point& p) { quadTo(cp.x, cp.y, p.x, p.y); }
+    
+    void cubicTo(float c1x, float c1y, float c2x, float c2y, float x, float y);
+    void cubicTo(const Point& cp1, const Point& cp2, const Point& p) { cubicTo(cp1.x, cp1.y, cp2.x, cp2.y, p.x, p.y); }
 
-    // Computes bounding box of the path
-    void getBounds(Math::Vector2& outMin, Math::Vector2& outMax) const;
+    // Adds an elliptical arc to the path
+    void arcTo(float rx, float ry, float xAxisRotation, bool largeArcFlag, bool sweepFlag, float x, float y);
+
+    void close();
+
+    // SVG Parsing: Replaces the current path with the parsed data
+    bool parseSvg(const std::string& d);
+
+    // Bounding Box computation
+    // computeBoundsExact() derives analytic maxima/minima rather than point enclosure
+    void computeBoundsExact();
+    const Rect& bounds() const { return bounds_; }
+
+    // Introspection
+    bool isEmpty() const { return verbs_.empty(); }
+    const std::vector<PathVerb>& verbs() const { return verbs_; }
+    const std::vector<Point>& points() const { return points_; }
+    const std::vector<ArcParams>& arcs() const { return arcs_; }
 
 private:
-    std::vector<PathPoint> points_;
-    Math::Vector2 currentPoint_{0.0f, 0.0f};
+    std::vector<PathVerb> verbs_;
+    std::vector<Point> points_;     // Stores points for Line, Quad, Cubic
+    std::vector<ArcParams> arcs_;   // Stores parameters exclusively for ArcTo
+    
+    Rect bounds_;
+    bool boundsDirty_ = true;
+
+    // SVG Parsing state machine helpers
+    static bool skipWhitespaceAndComma(const char*& ptr);
+    static bool parseNumber(const char*& ptr, float& value);
+    static bool parseFlag(const char*& ptr, bool& flag);
+
+    // Analytic Bounding Box accumulators
+    void updateBoundsPoint(const Point& p);
+    void updateBoundsQuad(const Point& p0, const Point& p1, const Point& p2);
+    void updateBoundsCubic(const Point& p0, const Point& p1, const Point& p2, const Point& p3);
+    void updateBoundsArc(const Point& p0, const ArcParams& arc);
 };
 
 } // namespace PathGen

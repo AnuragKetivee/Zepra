@@ -126,8 +126,8 @@ Widget* Compositor::hitTest(float x, float y) {
         if (!layer->bounds().contains(x, y)) continue;
         
         if (Widget* root = layer->rootWidget()) {
-            if (Widget* hit = root->hitTest(x, y)) {
-                return hit;
+            if (Input::EventTarget* target = root->hitTestDeep(x, y)) {
+                return static_cast<Widget*>(target);
             }
         }
     }

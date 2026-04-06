@@ -100,6 +100,40 @@ EventResult Widget::handleEvent(const Event& event) {
     }
 }
 
+EventResult Widget::handleRoutedEvent(const Input::Event& event) {
+    if (!state_.enabled) return EventResult::Ignored;
+    
+    // Map the new input::Event to the legacy virtual dispatch for compatibility
+    if (auto mouseEv = dynamic_cast<const Input::MouseEvent*>(&event)) {
+        switch (mouseEv->type()) {
+            case Input::EventType::MouseDown: return onMouseDown(mouseEv->x(), mouseEv->y(), static_cast<MouseButton>(mouseEv->button() + 1));
+            case Input::EventType::MouseUp: return onMouseUp(mouseEv->x(), mouseEv->y(), static_cast<MouseButton>(mouseEv->button() + 1));
+            case Input::EventType::MouseMove: return onMouseMove(mouseEv->x(), mouseEv->y());
+            case Input::EventType::MouseEnter: return onMouseEnter();
+            case Input::EventType::MouseLeave: return onMouseLeave();
+            default: break;
+        }
+    } else if (auto keyEv = dynamic_cast<const Input::KeyEvent*>(&event)) {
+        Modifiers legacyMods;
+        legacyMods.shift = keyEv->modifiers().shift;
+        legacyMods.ctrl = keyEv->modifiers().ctrl;
+        legacyMods.alt = keyEv->modifiers().alt;
+        legacyMods.meta = keyEv->modifiers().meta;
+
+        switch (keyEv->type()) {
+            case Input::EventType::KeyDown: return onKeyDown(static_cast<KeyCode>(keyEv->keyCode()), legacyMods);
+            case Input::EventType::KeyUp: return onKeyUp(static_cast<KeyCode>(keyEv->keyCode()), legacyMods);
+            default: break;
+        }
+    } else if (event.type() == Input::EventType::FocusIn) {
+        return onFocus();
+    } else if (event.type() == Input::EventType::FocusOut) {
+        return onBlur();
+    }
+    
+    return EventResult::Ignored;
+}
+
 EventResult Widget::onMouseDown(float x, float y, MouseButton button) {
     (void)x; (void)y; (void)button;
     return EventResult::Ignored;
@@ -171,15 +205,23 @@ void Widget::clearChildren() {
     children_.clear();
 }
 
-Widget* Widget::hitTest(float x, float y) {
+bool Widget::hitTest(float x, float y) const {
     if (!state_.visible || !bounds_.contains(x, y)) {
-        return nullptr;
+        return false;
     }
+    return true;
+}
+
+Input::EventTarget* Widget::hitTestDeep(float x, float y) {
+    if (!hitTest(x, y)) return nullptr;
     
     // Check children in reverse order (top to bottom)
     for (auto it = children_.rbegin(); it != children_.rend(); ++it) {
-        if (Widget* hit = (*it)->hitTest(x, y)) {
-            return hit;
+        if ((*it)->hitTest(x, y)) {
+            if (auto deep = (*it)->hitTestDeep(x, y)) {
+                return deep;
+            }
+            return it->get();
         }
     }
     

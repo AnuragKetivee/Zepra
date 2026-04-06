@@ -10,6 +10,8 @@
 #include "../nxgfx/primitives.h"
 #include "../nxgfx/color.h"
 #include "../input/events.h"
+#include "../input/event.h"
+#include "../input/event_router.h"
 #include "../layout/flexbox.h"
 #include <string>
 #include <vector>
@@ -46,7 +48,7 @@ enum class EventResult {
 /**
  * @brief Base Widget class
  */
-class Widget {
+class Widget : public Input::EventTarget {
 public:
     Widget();
     virtual ~Widget();
@@ -102,8 +104,17 @@ public:
     // ==========================================================================
     // Events
     // ==========================================================================
+    // ==========================================================================
+    // EventTarget Implementation
+    // ==========================================================================
     
+    Input::EventTarget* getParentTarget() const override { return parent_; }
+    bool hitTest(float x, float y) const override;
+    Input::EventTarget* hitTestDeep(float x, float y) override;
+
+    // Legacy dispatch handling
     virtual EventResult handleEvent(const Event& event);
+    virtual EventResult handleRoutedEvent(const Input::Event& event);
     virtual EventResult onMouseDown(float x, float y, MouseButton button);
     virtual EventResult onMouseUp(float x, float y, MouseButton button);
     virtual EventResult onMouseMove(float x, float y);
@@ -124,9 +135,6 @@ public:
     void clearChildren();
     const std::vector<std::unique_ptr<Widget>>& children() const { return children_; }
     Widget* parent() const { return parent_; }
-    
-    // Find child at point
-    Widget* hitTest(float x, float y);
     
 protected:
     void renderChildren(GpuContext* ctx);

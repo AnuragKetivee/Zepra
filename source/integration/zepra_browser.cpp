@@ -1375,6 +1375,7 @@ void buildLayoutFromDOM(DOMElement* element, LayoutBox* parentBox, bool inLink,
                 // Overflow
                 box->overflowHidden = (style->overflowX == OverflowValue::Hidden || 
                                        style->overflowY == OverflowValue::Hidden);
+                box->boxSizing = (style->boxSizing == Zepra::WebCore::BoxSizing::BorderBox) ? 1 : 0;
                 
                 // Text nodes always stay LayoutType::Inline — display type from CSS
                 // only applies to element nodes (containers), not text runs.
@@ -2008,6 +2009,7 @@ void buildLayoutFromDOM(DOMElement* element, LayoutBox* parentBox, bool inLink,
                     blockBox->overflowHidden = (childStyle->overflowX == OverflowValue::Hidden || 
                                                 childStyle->overflowY == OverflowValue::Hidden);
                     blockBox->visibilityHidden = (childStyle->visibility == Visibility::Hidden);
+                    blockBox->boxSizing = (childStyle->boxSizing == Zepra::WebCore::BoxSizing::BorderBox) ? 1 : 0;
                     
                     // Text alignment
                     if (childStyle->textAlign == TextAlign::Center) blockBox->textAlign = 1;

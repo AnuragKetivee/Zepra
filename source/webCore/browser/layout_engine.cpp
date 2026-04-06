@@ -9,6 +9,8 @@
 #include <iostream>
 #include <cfloat>
 
+#include "../css/css_computed_style.hpp"
+
 // Viewport dimensions (defined in zepra_browser.cpp)
 extern int g_width;
 extern int g_height;
@@ -78,7 +80,7 @@ void layoutBlock(LayoutBox& box, float containingWidth, float startY) {
     // Resolve deferred CSS width
     if (box.cssWidth.isSet() && !box.cssWidth.isAuto()) {
         box.width = box.cssWidth.resolve(containingWidth, box.fontSize, vpW, vpH);
-        if (box.boxSizing == BoxSizing::ContentBox) {
+        if (box.boxSizing == 0) {
             box.width += box.paddingLeft + box.paddingRight + box.borderLeft + box.borderRight;
         }
     } else if (box.type == LayoutType::Block || box.type == LayoutType::Flex) {
@@ -90,7 +92,7 @@ void layoutBlock(LayoutBox& box, float containingWidth, float startY) {
     // Resolve deferred CSS height (container height is 0 for now — auto)
     if (box.cssHeight.isSet() && !box.cssHeight.isAuto()) {
         box.height = box.cssHeight.resolve(0, box.fontSize, vpW, vpH);
-        if (box.boxSizing == BoxSizing::ContentBox) {
+        if (box.boxSizing == 0) {
             box.height += box.paddingTop + box.paddingBottom + box.borderTop + box.borderBottom;
         }
     }
@@ -454,7 +456,7 @@ void layoutBlock(LayoutBox& box, float containingWidth, float startY) {
     
     if (box.type == LayoutType::Inline || box.type == LayoutType::InlineBlock) {
         printf("[Layout Debug] Inline element id=%d width=%f height=%f x=%f y=%f\n", 
-            box.type, box.width, box.height, (double)box.x, (double)box.y);
+            (int)box.type, box.width, box.height, (double)box.x, (double)box.y);
     }
 }
 

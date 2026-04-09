@@ -31,6 +31,21 @@ public:
     
     Color textColor() const { return textColor_; }
     void setTextColor(const Color& color) { textColor_ = color; }
+
+    float fontSize() const { return fontSize_; }
+    void setFontSize(float size) { fontSize_ = size; }
+
+    float borderWidth() const { return borderWidth_; }
+    void setBorderWidth(float w) { borderWidth_ = w; }
+
+    // Icon
+    void setIcon(uint32_t textureId, float size = 16.0f) {
+        iconTextureId_ = textureId;
+        iconSize_ = size;
+    }
+
+    // Minimum size
+    void setMinSize(float w, float h) { minWidth_ = w; minHeight_ = h; }
     
     // Callbacks
     using ClickHandler = std::function<void()>;
@@ -47,10 +62,22 @@ public:
     EventResult onMouseLeave() override;
     
 private:
+    Color resolveBackgroundColor() const;
+    Color resolveTextColor() const;
+    Color resolveBorderColor() const;
+
     std::string label_;
     float cornerRadius_ = 4.0f;
+    float fontSize_ = 14.0f;
+    float borderWidth_ = 0.0f;
     Color textColor_ = Color::white();
     ClickHandler clickHandler_;
+
+    uint32_t iconTextureId_ = 0;
+    float iconSize_ = 16.0f;
+    float iconGap_ = 6.0f;
+    float minWidth_ = 64.0f;
+    float minHeight_ = 32.0f;
 };
 
 } // namespace NXRender

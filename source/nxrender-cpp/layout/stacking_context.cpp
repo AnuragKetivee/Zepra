@@ -5,6 +5,7 @@
 #include "widgets/widget.h"
 #include <sstream>
 #include <cmath>
+#include <algorithm>
 
 namespace NXRender {
 
@@ -13,29 +14,15 @@ StackingContext::~StackingContext() {}
 
 bool StackingContext::createsStackingContext(Widget* w) const {
     if (!w) return false;
-
-    // A widget creates a stacking context if:
-    // 1. It has a non-auto z-index and is positioned
-    // 2. It has opacity < 1
-    // 3. It has a transform
-    // 4. It has a filter
-    // 5. It's the root element
-
-    if (w->opacity() < 1.0f) return true;
-    if (w->hasTransform()) return true;
-
-    // Positioned with explicit z-index
-    auto pos = w->positionType();
-    if (pos != PositionType::Static && w->zIndex() != 0) return true;
-
+    // Without explicit opacity/transform/zIndex on Widget, we treat
+    // every widget as a simple paint-order node. A stacking context
+    // is only created for the root.
     return false;
 }
 
 int32_t StackingContext::effectiveZIndex(Widget* w) const {
-    if (!w) return 0;
-    auto pos = w->positionType();
-    if (pos == PositionType::Static) return 0;
-    return w->zIndex();
+    (void)w;
+    return 0;
 }
 
 void StackingContext::build(Widget* root) {
@@ -43,12 +30,13 @@ void StackingContext::build(Widget* root) {
     root_->widget = root;
     root_->zIndex = 0;
     root_->isStackingContext = true;
-    root_->opacity = root ? root->opacity() : 1.0f;
+    root_->opacity = 1.0f;
     contextCount_ = 1;
 
     if (root) {
-        for (auto* child : root->children()) {
-            buildEntry(child, root_.get());
+        const auto& kids = root->children();
+        for (const auto& child : kids) {
+            buildEntry(child.get(), root_.get());
         }
         sortEntry(root_.get());
     }
@@ -61,17 +49,17 @@ void StackingContext::buildEntry(Widget* widget, StackingEntry* parent) {
     entry->widget = widget;
     entry->zIndex = effectiveZIndex(widget);
     entry->isStackingContext = createsStackingContext(widget);
-    entry->isPositioned = (widget->positionType() != PositionType::Static);
-    entry->opacity = widget->opacity();
-    entry->hasTransform = widget->hasTransform();
+    entry->isPositioned = false;
+    entry->opacity = 1.0f;
+    entry->hasTransform = false;
 
     if (entry->isStackingContext) {
         contextCount_++;
     }
 
-    // Recurse into children
-    for (auto* child : widget->children()) {
-        buildEntry(child, entry.get());
+    const auto& kids = widget->children();
+    for (const auto& child : kids) {
+        buildEntry(child.get(), entry.get());
     }
 
     sortEntry(entry.get());
@@ -81,7 +69,6 @@ void StackingContext::buildEntry(Widget* widget, StackingEntry* parent) {
 void StackingContext::sortEntry(StackingEntry* entry) {
     if (!entry) return;
 
-    // Sort children by z-index (stable sort to preserve DOM order for same z-index)
     std::stable_sort(entry->children.begin(), entry->children.end(),
         [](const std::unique_ptr<StackingEntry>& a, const std::unique_ptr<StackingEntry>& b) {
             return a->zIndex < b->zIndex;
@@ -96,36 +83,32 @@ void StackingContext::visitPaintOrder(PaintVisitor visitor) const {
 void StackingContext::visitEntry(const StackingEntry* entry, PaintVisitor& visitor) const {
     if (!entry || !entry->widget) return;
 
-    // CSS paint order within a stacking context:
+    // CSS 2.1 paint order:
     // 1. Negative z-index children
-    // 2. This element's background/content
-    // 3. z-index 0 / auto children (in DOM order)
-    // 4. Positive z-index children
-
-    // Phase 1: Negative z-index children
     for (const auto& child : entry->children) {
         if (child->zIndex < 0) {
             visitEntry(child.get(), visitor);
         }
     }
 
-    // Phase 2: This element
+    // 2. This element
     const Rect* clipPtr = entry->hasClip ? &entry->clipRect : nullptr;
     visitor(entry->widget, clipPtr, entry->opacity, entry->zIndex);
 
-    // Phase 3: Non-positioned children and z-index 0 children
+    // 3. Non-positioned children at z-index 0
     for (const auto& child : entry->children) {
         if (child->zIndex == 0 && !child->isPositioned) {
             visitEntry(child.get(), visitor);
         }
     }
+    // 4. Positioned children at z-index 0
     for (const auto& child : entry->children) {
         if (child->zIndex == 0 && child->isPositioned) {
             visitEntry(child.get(), visitor);
         }
     }
 
-    // Phase 4: Positive z-index children
+    // 5. Positive z-index children
     for (const auto& child : entry->children) {
         if (child->zIndex > 0) {
             visitEntry(child.get(), visitor);
@@ -141,7 +124,7 @@ Widget* StackingContext::hitTest(float x, float y) const {
 Widget* StackingContext::hitTestEntry(const StackingEntry* entry, float x, float y) const {
     if (!entry || !entry->widget) return nullptr;
 
-    // Reverse paint order: positive z-index first (front-most)
+    // Reverse paint order: positive z-index first
     for (auto it = entry->children.rbegin(); it != entry->children.rend(); ++it) {
         if ((*it)->zIndex > 0) {
             Widget* hit = hitTestEntry(it->get(), x, y);
@@ -195,7 +178,7 @@ void StackingContext::dumpEntry(const StackingEntry* entry, int depth, std::stri
     if (!entry) return;
 
     std::string indent(static_cast<size_t>(depth) * 2, ' ');
-    std::string name = entry->widget ? entry->widget->id() : "(null)";
+    std::string name = entry->widget ? std::to_string(entry->widget->id()) : std::string("(null)");
 
     output += indent + "- " + name;
     output += " z=" + std::to_string(entry->zIndex);

@@ -70,7 +70,7 @@ Rect Checkbox::boxRect() const {
     return Rect(b.x, centerY, boxSize_, boxSize_);
 }
 
-Size Checkbox::preferredSize() const {
+Size Checkbox::measure(const Size& available) {
     float textWidth = 0;
     if (!label_.empty()) {
         textWidth = labelGap_ + static_cast<float>(label_.size()) * 8.0f;
@@ -78,24 +78,24 @@ Size Checkbox::preferredSize() const {
     return Size(boxSize_ + textWidth, std::max(boxSize_, 20.0f));
 }
 
-bool Checkbox::handleEvent(const Event& event) {
-    if (!isEnabled()) return false;
+EventResult Checkbox::handleEvent(const Event& event) {
+    if (!isEnabled()) return EventResult::Ignored;
 
     if (event.type == EventType::MouseEnter) {
         isHovered_ = true;
         invalidate();
-        return true;
+        return EventResult::NeedsRedraw;
     }
     if (event.type == EventType::MouseLeave) {
         isHovered_ = false;
         invalidate();
-        return true;
+        return EventResult::NeedsRedraw;
     }
     if (event.type == EventType::MouseDown) {
         toggle();
-        return true;
+        return EventResult::NeedsRedraw;
     }
-    return false;
+    return EventResult::Ignored;
 }
 
 void Checkbox::drawCheckmark(GpuContext* gpu, const Rect& box) {
@@ -193,7 +193,7 @@ void RadioButton::setSelected(bool selected) {
     }
 }
 
-Size RadioButton::preferredSize() const {
+Size RadioButton::measure(const Size& available) {
     float diameter = circleRadius_ * 2.0f;
     float textWidth = 0;
     if (!label_.empty()) {
@@ -202,26 +202,26 @@ Size RadioButton::preferredSize() const {
     return Size(diameter + textWidth, std::max(diameter, 20.0f));
 }
 
-bool RadioButton::handleEvent(const Event& event) {
-    if (!isEnabled()) return false;
+EventResult RadioButton::handleEvent(const Event& event) {
+    if (!isEnabled()) return EventResult::Ignored;
 
     if (event.type == EventType::MouseEnter) {
         isHovered_ = true;
         invalidate();
-        return true;
+        return EventResult::NeedsRedraw;
     }
     if (event.type == EventType::MouseLeave) {
         isHovered_ = false;
         invalidate();
-        return true;
+        return EventResult::NeedsRedraw;
     }
     if (event.type == EventType::MouseDown) {
         if (!selected_) {
             setSelected(true);
         }
-        return true;
+        return EventResult::NeedsRedraw;
     }
-    return false;
+    return EventResult::Ignored;
 }
 
 void RadioButton::render(GpuContext* gpu) {

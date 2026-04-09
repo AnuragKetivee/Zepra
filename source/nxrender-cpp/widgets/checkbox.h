@@ -71,8 +71,8 @@ public:
     
     // Widget overrides
     void render(GpuContext* gpu) override;
-    bool handleEvent(const Event& event) override;
-    Size preferredSize() const override;
+    EventResult handleEvent(const Event& event) override;
+    Size measure(const Size& available) override;
     
 private:
     std::string label_;
@@ -139,8 +139,8 @@ public:
     
     // Widget overrides
     void render(GpuContext* gpu) override;
-    bool handleEvent(const Event& event) override;
-    Size preferredSize() const override;
+    EventResult handleEvent(const Event& event) override;
+    Size measure(const Size& available) override;
     
 private:
     std::string label_;

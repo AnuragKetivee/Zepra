@@ -132,7 +132,7 @@ Rect Dropdown::dropdownRect() const {
     return Rect(b.x, b.y + b.height + 2, b.width, height);
 }
 
-Size Dropdown::preferredSize() const {
+Size Dropdown::measure(const Size& available) {
     float maxWidth = 120.0f;
     for (const auto& opt : options_) {
         float w = static_cast<float>(opt.label.size()) * 8.0f + 40;
@@ -141,33 +141,33 @@ Size Dropdown::preferredSize() const {
     return Size(maxWidth, 36.0f);
 }
 
-bool Dropdown::handleEvent(const Event& event) {
-    if (!isEnabled()) return false;
+EventResult Dropdown::handleEvent(const Event& event) {
+    if (!isEnabled()) return EventResult::Ignored;
 
     if (event.type == EventType::MouseDown) {
         const Rect& b = bounds();
 
         // Click on button area
-        if (b.contains(event.mouseX, event.mouseY)) {
+        if (b.contains(event.mouse.x, event.mouse.y)) {
             toggle();
-            return true;
+            return EventResult::NeedsRedraw;
         }
 
         // Click in dropdown list
         if (isOpen_) {
             Rect dr = dropdownRect();
-            if (dr.contains(event.mouseX, event.mouseY)) {
+            if (dr.contains(event.mouse.x, event.mouse.y)) {
                 auto indices = filteredIndices();
                 float y = dr.y - scrollOffset_;
                 for (int idx : indices) {
                     const auto& opt = options_[static_cast<size_t>(idx)];
                     float h = opt.separator ? 9.0f : itemHeight_;
-                    if (event.mouseY >= y && event.mouseY < y + h) {
+                    if (event.mouse.y >= y && event.mouse.y < y + h) {
                         if (!opt.separator && !opt.disabled) {
                             setSelectedIndex(idx);
                             close();
                         }
-                        return true;
+                        return EventResult::NeedsRedraw;
                     }
                     y += h;
                 }
@@ -175,24 +175,24 @@ bool Dropdown::handleEvent(const Event& event) {
 
             // Click outside — close
             close();
-            return true;
+            return EventResult::NeedsRedraw;
         }
     }
 
     if (event.type == EventType::MouseMove && isOpen_) {
         Rect dr = dropdownRect();
-        if (dr.contains(event.mouseX, event.mouseY)) {
+        if (dr.contains(event.mouse.x, event.mouse.y)) {
             auto indices = filteredIndices();
             float y = dr.y - scrollOffset_;
             for (int idx : indices) {
                 const auto& opt = options_[static_cast<size_t>(idx)];
                 float h = opt.separator ? 9.0f : itemHeight_;
-                if (event.mouseY >= y && event.mouseY < y + h) {
+                if (event.mouse.y >= y && event.mouse.y < y + h) {
                     if (hoveredIndex_ != idx) {
                         hoveredIndex_ = idx;
                         invalidate();
                     }
-                    return true;
+                    return EventResult::NeedsRedraw;
                 }
                 y += h;
             }
@@ -201,27 +201,27 @@ bool Dropdown::handleEvent(const Event& event) {
 
     if (event.type == EventType::MouseWheel && isOpen_) {
         Rect dr = dropdownRect();
-        if (dr.contains(event.mouseX, event.mouseY)) {
-            scrollOffset_ -= event.scrollDelta * 30.0f;
+        if (dr.contains(event.mouse.x, event.mouse.y)) {
+            scrollOffset_ -= event.mouse.wheelDelta * 30.0f;
             scrollOffset_ = std::max(0.0f, scrollOffset_);
             invalidate();
-            return true;
+            return EventResult::NeedsRedraw;
         }
     }
 
     if (event.type == EventType::KeyDown && isOpen_) {
-        if (event.keyCode == KeyCode::Escape) {
+        if (event.key.key == KeyCode::Escape) {
             close();
-            return true;
+            return EventResult::NeedsRedraw;
         }
-        if (event.keyCode == KeyCode::Enter) {
+        if (event.key.key == KeyCode::Enter) {
             if (hoveredIndex_ >= 0 && hoveredIndex_ < static_cast<int>(options_.size())) {
                 setSelectedIndex(hoveredIndex_);
                 close();
             }
-            return true;
+            return EventResult::NeedsRedraw;
         }
-        if (event.keyCode == KeyCode::Up) {
+        if (event.key.key == KeyCode::Up) {
             auto indices = filteredIndices();
             for (int i = static_cast<int>(indices.size()) - 1; i >= 0; i--) {
                 if (indices[static_cast<size_t>(i)] < hoveredIndex_ &&
@@ -232,9 +232,9 @@ bool Dropdown::handleEvent(const Event& event) {
                     break;
                 }
             }
-            return true;
+            return EventResult::NeedsRedraw;
         }
-        if (event.keyCode == KeyCode::Down) {
+        if (event.key.key == KeyCode::Down) {
             auto indices = filteredIndices();
             for (size_t i = 0; i < indices.size(); i++) {
                 if (indices[i] > hoveredIndex_ &&
@@ -245,24 +245,24 @@ bool Dropdown::handleEvent(const Event& event) {
                     break;
                 }
             }
-            return true;
+            return EventResult::NeedsRedraw;
         }
 
         // Type-to-search
-        if (searchable_ && event.keyCode >= KeyCode::A && event.keyCode <= KeyCode::Z) {
-            char c = 'a' + (static_cast<int>(event.keyCode) - static_cast<int>(KeyCode::A));
+        if (searchable_ && event.key.key >= KeyCode::A && event.key.key <= KeyCode::Z) {
+            char c = 'a' + (static_cast<int>(event.key.key) - static_cast<int>(KeyCode::A));
             searchText_ += c;
             invalidate();
-            return true;
+            return EventResult::NeedsRedraw;
         }
-        if (searchable_ && event.keyCode == KeyCode::Backspace && !searchText_.empty()) {
+        if (searchable_ && event.key.key == KeyCode::Backspace && !searchText_.empty()) {
             searchText_.pop_back();
             invalidate();
-            return true;
+            return EventResult::NeedsRedraw;
         }
     }
 
-    return false;
+    return EventResult::Ignored;
 }
 
 void Dropdown::renderButton(GpuContext* gpu) {

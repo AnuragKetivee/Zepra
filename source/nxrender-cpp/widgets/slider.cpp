@@ -94,7 +94,7 @@ void Slider::setValueFromPosition(float pos) {
     setValue(newValue);
 }
 
-Size Slider::preferredSize() const {
+Size Slider::measure(const Size& available) {
     if (orientation_ == SliderOrientation::Horizontal) {
         return Size(200.0f, std::max(thumbRadius_ * 2 + 8, 32.0f));
     } else {
@@ -102,65 +102,65 @@ Size Slider::preferredSize() const {
     }
 }
 
-bool Slider::handleEvent(const Event& event) {
-    if (!isEnabled()) return false;
+EventResult Slider::handleEvent(const Event& event) {
+    if (!isEnabled()) return EventResult::Ignored;
 
     if (event.type == EventType::MouseDown) {
         Rect thumb = thumbRect();
-        float dx = event.mouseX - (thumb.x + thumb.width * 0.5f);
-        float dy = event.mouseY - (thumb.y + thumb.height * 0.5f);
+        float dx = event.mouse.x - (thumb.x + thumb.width * 0.5f);
+        float dy = event.mouse.y - (thumb.y + thumb.height * 0.5f);
         float dist = std::sqrt(dx * dx + dy * dy);
 
         if (dist <= thumbRadius_ * 1.5f) {
             isDragging_ = true;
-            return true;
+            return EventResult::NeedsRedraw;
         }
 
         // Click on track — jump to position
         Rect track = trackRect();
-        if (track.contains(event.mouseX, event.mouseY)) {
+        if (track.contains(event.mouse.x, event.mouse.y)) {
             float pos = (orientation_ == SliderOrientation::Horizontal)
-                        ? event.mouseX : event.mouseY;
+                        ? event.mouse.x : event.mouse.y;
             setValueFromPosition(pos);
             isDragging_ = true;
-            return true;
+            return EventResult::NeedsRedraw;
         }
     }
 
     if (event.type == EventType::MouseMove && isDragging_) {
         float pos = (orientation_ == SliderOrientation::Horizontal)
-                    ? event.mouseX : event.mouseY;
+                    ? event.mouse.x : event.mouse.y;
         setValueFromPosition(pos);
-        return true;
+        return EventResult::NeedsRedraw;
     }
 
     if (event.type == EventType::MouseUp && isDragging_) {
         isDragging_ = false;
         if (onValueCommitted_) onValueCommitted_(value_);
-        return true;
+        return EventResult::NeedsRedraw;
     }
 
     if (event.type == EventType::KeyDown) {
         float delta = (step_ > 0) ? step_ : (maxValue_ - minValue_) * 0.01f;
-        if (event.keyCode == KeyCode::Left || event.keyCode == KeyCode::Down) {
+        if (event.key.key == KeyCode::Left || event.key.key == KeyCode::Down) {
             setValue(value_ - delta);
-            return true;
+            return EventResult::NeedsRedraw;
         }
-        if (event.keyCode == KeyCode::Right || event.keyCode == KeyCode::Up) {
+        if (event.key.key == KeyCode::Right || event.key.key == KeyCode::Up) {
             setValue(value_ + delta);
-            return true;
+            return EventResult::NeedsRedraw;
         }
-        if (event.keyCode == KeyCode::Home) {
+        if (event.key.key == KeyCode::Home) {
             setValue(minValue_);
-            return true;
+            return EventResult::NeedsRedraw;
         }
-        if (event.keyCode == KeyCode::End) {
+        if (event.key.key == KeyCode::End) {
             setValue(maxValue_);
-            return true;
+            return EventResult::NeedsRedraw;
         }
     }
 
-    return false;
+    return EventResult::Ignored;
 }
 
 void Slider::render(GpuContext* gpu) {

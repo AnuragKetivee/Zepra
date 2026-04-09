@@ -23,6 +23,12 @@ enum class TextAlign {
 /**
  * @brief Label widget for text display
  */
+enum class TextTruncation {
+    None,
+    End,
+    Middle
+};
+
 class Label : public Widget {
 public:
     Label();
@@ -51,6 +57,15 @@ public:
     
     bool wordWrap() const { return wordWrap_; }
     void setWordWrap(bool wrap) { wordWrap_ = wrap; }
+
+    float lineSpacing() const { return lineSpacing_; }
+    void setLineSpacing(float spacing) { lineSpacing_ = spacing; }
+
+    TextTruncation truncation() const { return truncation_; }
+    void setTruncation(TextTruncation t) { truncation_ = t; }
+
+    float maxWidth() const { return maxWidth_; }
+    void setMaxWidth(float w) { maxWidth_ = w; }
     
     // Rendering
     void render(GpuContext* ctx) override;
@@ -64,6 +79,9 @@ private:
     bool italic_ = false;
     TextAlign alignment_ = TextAlign::Left;
     bool wordWrap_ = false;
+    float lineSpacing_ = 1.4f;
+    TextTruncation truncation_ = TextTruncation::None;
+    float maxWidth_ = 0;
 };
 
 } // namespace NXRender

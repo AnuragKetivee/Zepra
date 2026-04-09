@@ -21,11 +21,12 @@ void AccessibilityTree::build(Widget* root) {
     if (!root) return;
 
     root_->setRole(AccessibleRole::Application);
-    root_->setName(root->id().empty() ? "Application" : root->id());
+    root_->setName(root->id() == 0 ? "Application" : std::to_string(root->id()));
     widgetMap_[root] = root_.get();
 
-    for (auto* child : root->children()) {
-        buildNode(child, root_.get());
+    const auto& kids = root->children();
+    for (const auto& child : kids) {
+        buildNode(child.get(), root_.get());
     }
 }
 
@@ -69,8 +70,9 @@ void AccessibilityTree::buildNode(Widget* widget, AccessibleNode* parent) {
     widgetMap_[widget] = nodePtr;
 
     // Recurse
-    for (auto* child : widget->children()) {
-        buildNode(child, nodePtr);
+    const auto& kids = widget->children();
+    for (const auto& child : kids) {
+        buildNode(child.get(), nodePtr);
     }
 
     parent->addChild(std::move(node));
@@ -79,38 +81,49 @@ void AccessibilityTree::buildNode(Widget* widget, AccessibleNode* parent) {
 AccessibleRole AccessibilityTree::inferRole(Widget* widget) const {
     if (!widget) return AccessibleRole::None;
 
-    const std::string& type = widget->widgetType();
+    // Use the widget's id as a heuristic for role inference
+    std::string wid = std::to_string(widget->id());
 
-    if (type == "Button") return AccessibleRole::Button;
-    if (type == "Label") return AccessibleRole::Label;
-    if (type == "Checkbox") return AccessibleRole::Checkbox;
-    if (type == "RadioButton") return AccessibleRole::RadioButton;
-    if (type == "Slider") return AccessibleRole::Slider;
-    if (type == "TextField") return AccessibleRole::TextBox;
-    if (type == "ListItem" || type == "ListViewItem") return AccessibleRole::ListItem;
-    if (type == "ListView") return AccessibleRole::List;
-    if (type == "TreeView") return AccessibleRole::Tree;
-    if (type == "TreeNode") return AccessibleRole::TreeItem;
-    if (type == "Menu") return AccessibleRole::Menu;
-    if (type == "MenuItem") return AccessibleRole::MenuItem;
-    if (type == "TabView") return AccessibleRole::TabList;
-    if (type == "Tab") return AccessibleRole::Tab;
-    if (type == "Dialog") return AccessibleRole::Dialog;
-    if (type == "Tooltip") return AccessibleRole::Tooltip;
-    if (type == "ProgressBar") return AccessibleRole::ProgressBar;
-    if (type == "ScrollView") return AccessibleRole::Region;
-    if (type == "DataGrid") return AccessibleRole::Grid;
-    if (type == "Dropdown") return AccessibleRole::List;
-    if (type == "Splitter") return AccessibleRole::Separator;
-    if (type == "Container") return AccessibleRole::Group;
+    if (wid.find("button") != std::string::npos || wid.find("btn") != std::string::npos)
+        return AccessibleRole::Button;
+    if (wid.find("label") != std::string::npos)
+        return AccessibleRole::Label;
+    if (wid.find("checkbox") != std::string::npos || wid.find("check") != std::string::npos)
+        return AccessibleRole::Checkbox;
+    if (wid.find("radio") != std::string::npos)
+        return AccessibleRole::RadioButton;
+    if (wid.find("slider") != std::string::npos)
+        return AccessibleRole::Slider;
+    if (wid.find("text") != std::string::npos || wid.find("input") != std::string::npos)
+        return AccessibleRole::TextBox;
+    if (wid.find("list") != std::string::npos)
+        return AccessibleRole::List;
+    if (wid.find("tab") != std::string::npos)
+        return AccessibleRole::Tab;
+    if (wid.find("menu") != std::string::npos)
+        return AccessibleRole::Menu;
+    if (wid.find("dialog") != std::string::npos)
+        return AccessibleRole::Dialog;
+    if (wid.find("tooltip") != std::string::npos)
+        return AccessibleRole::Tooltip;
+    if (wid.find("progress") != std::string::npos)
+        return AccessibleRole::ProgressBar;
+    if (wid.find("scroll") != std::string::npos)
+        return AccessibleRole::Region;
+    if (wid.find("grid") != std::string::npos)
+        return AccessibleRole::Grid;
+    if (wid.find("dropdown") != std::string::npos)
+        return AccessibleRole::List;
+    if (wid.find("tree") != std::string::npos)
+        return AccessibleRole::Tree;
 
     return AccessibleRole::Group;
 }
 
 std::string AccessibilityTree::inferName(Widget* widget) const {
     if (!widget) return "";
-    if (!widget->id().empty()) return widget->id();
-    return widget->widgetType();
+    if (widget->id() != 0) return std::to_string(widget->id());
+    return "widget";
 }
 
 AccessibleNode* AccessibilityTree::nodeForWidget(Widget* widget) const {
@@ -300,7 +313,6 @@ AccessibleNode* AccessibilityTree::hitTest(float x, float y) const {
 AccessibleNode* AccessibilityTree::hitTestNode(AccessibleNode* node, float x, float y) const {
     if (!node) return nullptr;
 
-    // Check children in reverse order (front-most first)
     for (auto it = node->children().rbegin(); it != node->children().rend(); ++it) {
         auto* hit = hitTestNode(it->get(), x, y);
         if (hit) return hit;

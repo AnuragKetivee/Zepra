@@ -42,11 +42,45 @@ public:
     const uint8_t* pixels() const { return pixels_.get(); }
     int stride() const { return stride_; }
     
-    // Clear
+    // Clear entire surface or a region
     void clear(uint32_t color = 0);
+    void clearRect(const Rect& rect, uint32_t color = 0);
     
-    // Resize
+    // Resize (preserves existing pixels that fit)
     void resize(int width, int height);
+
+    // Blit (copy pixels from src into this surface)
+    void blit(const Surface& src, int destX, int destY);
+    void blitRect(const Surface& src, const Rect& srcRect, int destX, int destY);
+
+    // Alpha-composited blit (Porter-Duff src-over, RGBA8 only)
+    void blitAlpha(const Surface& src, int destX, int destY);
+
+    // Alpha premultiplication
+    void premultiplyAlpha();
+    void unpremultiplyAlpha();
+
+    // Flip vertically (for GL readback)
+    void flipVertical();
+
+    // Format conversion (in-place)
+    void convertFormat(PixelFormat newFormat);
+
+    // Individual pixel access
+    uint32_t getPixel(int x, int y) const;
+    void setPixel(int x, int y, uint32_t color);
+    void fillRect(const Rect& rect, uint32_t color);
+
+    // Memory and state
+    size_t memoryUsage() const;
+    bool isOpaque() const;
+
+    // Cloning and sub-regions
+    std::unique_ptr<Surface> clone() const;
+    std::unique_ptr<Surface> subSurface(const Rect& region) const;
+
+    // Bilinear-scaled copy
+    std::unique_ptr<Surface> scaled(int newWidth, int newHeight) const;
     
 private:
     int width_;

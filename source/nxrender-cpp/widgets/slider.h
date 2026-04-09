@@ -74,8 +74,8 @@ public:
     
     // Widget overrides
     void render(GpuContext* gpu) override;
-    bool handleEvent(const Event& event) override;
-    Size preferredSize() const override;
+    EventResult handleEvent(const Event& event) override;
+    Size measure(const Size& available) override;
     
 private:
     float value_ = 0;

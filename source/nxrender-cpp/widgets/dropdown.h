@@ -98,8 +98,8 @@ public:
     
     // Widget overrides
     void render(GpuContext* gpu) override;
-    bool handleEvent(const Event& event) override;
-    Size preferredSize() const override;
+    EventResult handleEvent(const Event& event) override;
+    Size measure(const Size& available) override;
     
 private:
     std::vector<DropdownOption> options_;
@@ -169,7 +169,7 @@ public:
     
     // Widget overrides
     void render(GpuContext* gpu) override;
-    Size preferredSize() const override;
+    Size measure(const Size& available) override;
     
 private:
     float value_ = 0;
@@ -230,7 +230,7 @@ public:
     
     // Widget overrides
     void render(GpuContext* gpu) override;
-    Size preferredSize() const override;
+    Size measure(const Size& available) override;
     
 private:
     std::string text_;

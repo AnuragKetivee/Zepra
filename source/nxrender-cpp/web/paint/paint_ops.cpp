@@ -438,45 +438,5 @@ void PaintTreeBuilder::paintNode(const BoxNode* node, PaintList& list) {
     if (hasOpacity) list.addOp(PaintOp::popOpacity());
 }
 
-// ==================================================================
-// Hit testing
-// ==================================================================
-
-HitTestResult HitTester::hitTest(const BoxNode* root, float x, float y) {
-    HitTestResult result;
-    if (root) {
-        hitTestNode(root, x, y, 0, result);
-    }
-    return result;
-}
-
-bool HitTester::hitTestNode(const BoxNode* node, float x, float y,
-                              int depth, HitTestResult& result) {
-    const auto& cv = node->computed();
-    const auto& lb = node->layoutBox();
-
-    // Skip invisible/none
-    if (cv.display == 0) return false;
-    if (cv.visibility == 1) return false;
-    if (cv.pointerEvents == "none") return false;
-
-    // Check bounds
-    if (!lb.contains(x, y)) return false;
-
-    // Test children in reverse order (front-to-back)
-    for (int i = static_cast<int>(node->children().size()) - 1; i >= 0; i--) {
-        if (hitTestNode(node->children()[i].get(), x, y, depth + 1, result)) {
-            return true;
-        }
-    }
-
-    // This node is the hit
-    result.node = node;
-    result.localX = x - lb.x;
-    result.localY = y - lb.y;
-    result.depth = depth;
-    return true;
-}
-
 } // namespace Web
 } // namespace NXRender

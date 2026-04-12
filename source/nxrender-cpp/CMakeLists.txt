@@ -32,6 +32,7 @@ set(NXRENDER_SOURCES
     nxgfx/clip_stack.cpp
     nxgfx/text/text_layout.cpp
     nxgfx/svg/svg_renderer.cpp
+    nxgfx/transform.cpp
 
     # core — rendering pipeline
     core/compositor.cpp
@@ -127,6 +128,13 @@ set(NXRENDER_SOURCES
     web/paint/painters.cpp
     web/paint/hit_test.cpp
     web/paint/image_loader.cpp
+    web/observers.cpp
+    web/containment.cpp
+    web/resource_loader.cpp
+    web/frame_orchestrator.cpp
+    web/animation.cpp
+    web/events.cpp
+    web/input.cpp
 
     # canvas 2D & WebGL
     nxgfx/canvas2d/canvas_context.cpp
@@ -139,8 +147,9 @@ set(NXRENDER_SOURCES
     media/media_element.cpp
     media/media_pipeline.cpp
 
-    # scroll snap
+    # scroll snap + advanced layout
     layout/scroll_snap.cpp
+    layout/advanced_layout.cpp
 
     # bridge to libnxrender.a (C library) - DISABLED: requires external nxgfx C lib
     # nxrender_c_bridge.cpp

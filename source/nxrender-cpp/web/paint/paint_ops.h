@@ -153,25 +153,5 @@ private:
     void paintStackingContext(const BoxNode* node, PaintList& list);
     void sortByZOrder(std::vector<const BoxNode*>& nodes);
 };
-
-// ==================================================================
-// Hit testing
-// ==================================================================
-
-struct HitTestResult {
-    const BoxNode* node = nullptr;
-    float localX = 0, localY = 0;
-    int depth = 0;
-};
-
-class HitTester {
-public:
-    HitTestResult hitTest(const BoxNode* root, float x, float y);
-
-private:
-    bool hitTestNode(const BoxNode* node, float x, float y,
-                     int depth, HitTestResult& result);
-};
-
 } // namespace Web
 } // namespace NXRender

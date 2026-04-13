@@ -135,6 +135,9 @@ set(NXRENDER_SOURCES
     web/animation.cpp
     web/events.cpp
     web/input.cpp
+    web/document_view.cpp
+    web/forms.cpp
+    web/accessibility.cpp
 
     # canvas 2D & WebGL
     nxgfx/canvas2d/canvas_context.cpp
